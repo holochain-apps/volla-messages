@@ -11,18 +11,7 @@
     "withGlobalTauri": true,
     "security": {
       "csp": null
-    },
-    "windows": [
-      {
-        "width": 360,
-        "height": 720,
-        "decorations": false,
-        "resizable": true,
-        "center": true,
-        "url": "",
-        "label": "main"
-      }
-    ]
+    }
   },
   "bundle": {
     "active": true,

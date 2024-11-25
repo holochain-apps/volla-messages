@@ -10,7 +10,6 @@
 	import { RelayStore } from '$store/RelayStore';
 	import { type RoleNameCallZomeRequest } from '@holochain/client';
 	import toast, { Toaster } from 'svelte-french-toast';
-	import { isAppInstalled, installApp, appWebsocketAuth } from "tauri-plugin-holochain-service-consumer-api";
 	import { v7 as uuidv7 } from 'uuid';
 	import '../app.postcss';
 
@@ -32,8 +31,12 @@
 		document.documentElement.style.setProperty('--app-height', `${appHeight}px`);
   }
 
+	
+	// Only used with the holochain_service build
+	import { isAppInstalled, installApp, appWebsocketAuth } from "tauri-plugin-holochain-service-consumer-api";
 	import happUrl from '../../../workdir/relay.happ?url';
 	async function setupHapp() {
+
 		const appBundleBytes = new Uint8Array(await (await fetch(happUrl)).arrayBuffer())
 		
 		// Install happ if needed
