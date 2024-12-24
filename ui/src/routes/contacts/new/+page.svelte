@@ -20,7 +20,11 @@
   {#if isMobile()}
     <div class="absolute right-0">
       <button class="z-10 mr-5 text-4xl" on:click={() => scanStore.scan()}>
-        <SvgIcon icon="qrCodeScan" color={$modeCurrent ? "%232e2e2e" : "white"} size="30" />
+        <SvgIcon
+          icon="qrCodeScan"
+          color={$modeCurrent ? "%232e2e2e" : "white"}
+          size="30"
+        />
       </button>
     </div>
   {/if}

@@ -13,7 +13,8 @@
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   let myPubKeyB64 = relayStore.client.myPubKeyB64;
 
@@ -32,7 +33,9 @@
 {/if}
 <button
   class="message-content mt-3 block w-full border-0 text-left
-    {isSelected ? 'bg-secondary-500 rounded-xl px-2.5 py-1.5' : 'bg-transparent'}"
+    {isSelected
+    ? 'bg-secondary-500 rounded-xl px-2.5 py-1.5'
+    : 'bg-transparent'}"
   on:click
   use:press={{ timeframe: 300, triggerBeforeFinished: true }}
   on:press
@@ -57,9 +60,13 @@
 
     <div class="ml-3 {fromMe && 'items-end text-end'}">
       {#if !message.hideDetails}
-        <span class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}">
+        <span
+          class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}"
+        >
           <span class="font-bold">{fromMe ? "You" : message.author}</span>
-          <span class="text-xxs mx-2"><Time timestamp={message.timestamp} format="h:mma" /></span>
+          <span class="text-xxs mx-2"
+            ><Time timestamp={message.timestamp} format="h:mma" /></span
+          >
         </span>
       {/if}
 
@@ -68,15 +75,31 @@
           <div class="flex {fromMe ? 'justify-end' : 'justify-start'}">
             {#if image.status === "loaded"}
               <div class="mb-2 flex items-start justify-between">
-                <LightboxImage btnClass="inline max-w-2/3" src={image.dataURL} alt={image.name} />
+                <LightboxImage
+                  btnClass="inline max-w-2/3"
+                  src={image.dataURL}
+                  alt={image.name}
+                />
               </div>
             {:else if image.status === "loading" || image.status === "pending"}
-              <div class="bg-surface-800 mb-2 flex h-20 w-20 items-center justify-center">
-                <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size="30" />
+              <div
+                class="bg-surface-800 mb-2 flex h-20 w-20 items-center justify-center"
+              >
+                <SvgIcon
+                  icon="spinner"
+                  color={$modeCurrent ? "%232e2e2e" : "white"}
+                  size="30"
+                />
               </div>
             {:else}
-              <div class="bg-surface-800 mb-2 flex h-20 w-20 items-center justify-center">
-                <SvgIcon icon="x" color={$modeCurrent ? "%232e2e2e" : "white"} size="30" />
+              <div
+                class="bg-surface-800 mb-2 flex h-20 w-20 items-center justify-center"
+              >
+                <SvgIcon
+                  icon="x"
+                  color={$modeCurrent ? "%232e2e2e" : "white"}
+                  size="30"
+                />
               </div>
             {/if}
           </div>
@@ -91,7 +114,7 @@
               url: "noopener noreferrer",
             },
             target: "_blank",
-          }),
+          })
         )}
       </div>
     </div>
