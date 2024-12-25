@@ -27,7 +27,7 @@
 
   $: conversation = relayStore.getConversation($page.params.id);
 
-  let selectedContacts = writable<Contact[]>([]);
+  let selectedContacts: Contact[] = [];
   let search = "";
 
   $: contacts = derived(relayStore.contacts, ($contacts) => {
@@ -45,21 +45,19 @@
   function selectContact(publicKeyB64: string) {
     const contact = $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64);
     if (contact) {
-      selectedContacts.update((currentContacts) => {
-        if (
-          currentContacts.find(
-            (c) => c.publicKeyB64 === contact.data.publicKeyB64
-          )
-        ) {
-          // If already selected then unselect
-          return currentContacts.filter(
-            (c) => c.publicKeyB64 !== contact.data.publicKeyB64
-          );
-        } else {
-          // otherwise select the contact
-          return [...currentContacts, contact];
-        }
-      });
+      if (
+        selectedContacts.find(
+          (c) => c.publicKeyB64 === contact.data.publicKeyB64
+        )
+      ) {
+        // If already selected then unselect
+        selectedContacts = selectedContacts.filter(
+          (c) => c.publicKeyB64 !== contact.data.publicKeyB64
+        );
+      } else {
+        // otherwise select the contact
+        selectedContacts = [...selectedContacts, contact];
+      }
     }
   }
 
@@ -67,7 +65,7 @@
     // TODO: update config.title?
     try {
       if (conversation) {
-        conversation.addContacts($selectedContacts);
+        conversation.addContacts(selectedContacts);
         goto(`/conversations/${conversation.data.dnaHashB64}/details`);
       }
     } catch (e) {
@@ -182,7 +180,7 @@
                 {contact.firstName[0].toUpperCase()}
               </p>
             {/if}
-            {@const selected = $selectedContacts.find(
+            {@const selected = selectedContacts.find(
               (c) => c.publicKeyB64 === contact.data.publicKeyB64
             )}
             {@const alreadyInvited = !!conversation.invitedContactKeys.find(
@@ -223,7 +221,7 @@
           {/each}
         </div>
 
-        {#if $selectedContacts.length > 0}
+        {#if selectedContacts.length > 0}
           <button
             class="bg-primary-500 max-w-2/3 fixed bottom-5 right-5 flex items-center justify-center rounded-full border-0 py-1 pl-2 pr-4 text-white"
             on:click={() => addContactsToConversation()}
@@ -237,14 +235,14 @@
                 color="%23FD3524"
                 moreClasses="mr-1"
               />
-              {$selectedContacts.length}
+              {selectedContacts.length}
             </span>
             <div class="nowrap overflow-hidden text-ellipsis">
               <div class="text-md text-start">
-                {$t("conversations.add_contact_to_conversation_error")}
+                {$t("conversations.add_contact_to_conversation")}
               </div>
               <div class="pb-1 text-start text-xs font-light">
-                with {$selectedContacts.map((c) => c.firstName).join(", ")}
+                with {selectedContacts.map((c) => c.firstName).join(", ")}
               </div>
             </div>
           </button>

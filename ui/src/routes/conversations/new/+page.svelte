@@ -18,7 +18,7 @@
   let relayStore = relayStoreContext.getStore();
 
   let title = "";
-  let imageUrl = writable("");
+  let imageUrl = "";
   let pendingCreate = false;
 
   async function createConversation(privacy: Privacy) {
@@ -26,7 +26,7 @@
     try {
       const conversation = await relayStore.createConversation(
         title,
-        get(imageUrl),
+        imageUrl,
         privacy
       );
       if (conversation) {
@@ -49,7 +49,7 @@
     accept="image/jpeg, image/png, image/gif"
     on:change={(event) => {
       try {
-        imageUrl.set(event.detail);
+        imageUrl = event.detail;
       } catch (e) {
         toast.error(`${$t("common.upload_image_error")}: ${e.message}`);
       }
@@ -61,9 +61,9 @@
     for="avatarInput"
     class="file-icon-label bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full"
   >
-    {#if $imageUrl}
+    {#if imageUrl}
       <img
-        src={$imageUrl}
+        src={imageUrl}
         alt="Avatar"
         class="h-32 w-32 rounded-full object-cover"
       />
