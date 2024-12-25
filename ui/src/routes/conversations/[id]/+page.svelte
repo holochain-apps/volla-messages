@@ -25,14 +25,12 @@
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
 
-  $: conversationId = $page.params.id;
-
   const relayStoreContext: { getStore: () => RelayStore } =
     getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   let myPubKeyB64 = relayStore.client.myPubKeyB64;
 
-  $: conversation = relayStore.getConversation(conversationId);
+  $: conversation = relayStore.getConversation($page.params.id);
   $: contacts = relayStore.contacts;
 
   let agentProfiles: { [key: AgentPubKeyB64]: Profile } = {};
@@ -238,7 +236,7 @@
       class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center"
     >
       <button
-        on:click={() => goto(`/conversations/${conversationId}/details`)}
+        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
         class="w-full"
       >
         {conversation.title}
@@ -246,7 +244,7 @@
     </h1>
     <button
       class="self-center pl-2"
-      on:click={() => goto(`/conversations/${conversationId}/details`)}
+      on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     >
       <SvgIcon
         icon="gear"
@@ -308,7 +306,7 @@
 
       <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
       <button
-        on:click={() => goto(`/conversations/${conversationId}/details`)}
+        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
         class="text-left text-sm"
       >
         {$tAny("conversations.num_members", { count: numMembers })}
