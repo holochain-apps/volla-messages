@@ -29,7 +29,7 @@ import {
 } from "../types";
 import { createMessageHistoryStore, type MessageHistoryStore } from "./MessageHistoryStore";
 import pRetry from "p-retry";
-import { fileToDataUrl } from "$lib/utils";
+import { fileToDataUrl, makeFullName } from "$lib/utils";
 import toast from "svelte-french-toast";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
@@ -274,7 +274,7 @@ export class ConversationStore {
     } else if (numInvited === 1) {
       // Use full name of the one other person in the chat
       return this.allMembers[0]
-        ? this.allMembers[0].firstName + " " + this.allMembers[0].lastName
+        ? makeFullName(this.allMembers[0].firstName, this.allMembers[0].lastName)
         : this.data?.config.title;
     } else if (numInvited === 2) {
       return this.allMembers.map((c) => c?.firstName).join(" & ");

@@ -149,3 +149,8 @@ export function convertDataURIToUint8Array(dataURI: string): Uint8Array {
 
   return array;
 }
+
+export function makeFullName(firstName: string, lastName?: string): string {
+  const hasLastName = lastName !== undefined && lastName.length > 0;
+  return `${firstName}${hasLastName ? " " + lastName : ""}`;
+}

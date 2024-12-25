@@ -26,6 +26,7 @@ import type {
   MessageRecord,
   Privacy,
 } from "../types";
+import { makeFullName } from "$lib/utils";
 
 export class RelayClient {
   // conversations is a map of string to ClonedCell
@@ -50,7 +51,10 @@ export class RelayClient {
       role_name: this.roleName,
       zome_name: "profiles",
       fn_name: "create_profile",
-      payload: { nickname: firstName + " " + lastName, fields: { avatar, firstName, lastName } },
+      payload: {
+        nickname: makeFullName(firstName, lastName),
+        fields: { avatar, firstName, lastName },
+      },
     });
   }
 
@@ -59,7 +63,10 @@ export class RelayClient {
       role_name: this.roleName,
       zome_name: "profiles",
       fn_name: "update_profile",
-      payload: { nickname: firstName + " " + lastName, fields: { avatar, firstName, lastName } },
+      payload: {
+        nickname: makeFullName(firstName, lastName),
+        fields: { avatar, firstName, lastName },
+      },
     });
 
     // Update profile in every conversation I am a part of
@@ -68,7 +75,10 @@ export class RelayClient {
         cell_id: conversation.cell.cell_id,
         zome_name: "profiles",
         fn_name: "update_profile",
-        payload: { nickname: firstName + " " + lastName, fields: { avatar, firstName, lastName } },
+        payload: {
+          nickname: makeFullName(firstName, lastName),
+          fields: { avatar, firstName, lastName },
+        },
       });
     });
 

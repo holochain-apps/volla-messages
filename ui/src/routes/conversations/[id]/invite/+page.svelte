@@ -10,7 +10,12 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import { copyToClipboard, isMobile, shareText } from "$lib/utils";
+  import {
+    copyToClipboard,
+    isMobile,
+    makeFullName,
+    shareText,
+  } from "$lib/utils";
   import { type Contact, Privacy } from "../../../../types";
   import toast from "svelte-french-toast";
 
@@ -201,8 +206,7 @@
               <p
                 class="text-secondary-500 dark:text-tertiary-100 flex-1 text-start"
               >
-                {contact.firstName}
-                {contact.lastName}
+                {makeFullName(contact.firstName, contact.lastName)}
               </p>
               {#if alreadyInConversation}
                 <span class="text-xs font-extralight"

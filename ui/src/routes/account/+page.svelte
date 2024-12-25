@@ -7,7 +7,12 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { copyToClipboard, isMobile, shareText } from "$lib/utils";
+  import {
+    copyToClipboard,
+    isMobile,
+    makeFullName,
+    shareText,
+  } from "$lib/utils";
   import { RelayClient } from "$store/RelayClient";
   import { ProfilesStore } from "@holochain-open-dev/profiles";
   import { get } from "svelte/store";
@@ -142,7 +147,9 @@
       </div>
     {:else}
       <div class="row mb-10 flex items-center justify-center">
-        <h1 class="mr-2 flex-shrink-0 text-3xl">{firstName} {lastName}</h1>
+        <h1 class="mr-2 flex-shrink-0 text-3xl">
+          {makeFullName(firstName, lastName)}
+        </h1>
 
         <button on:click={() => (editingName = true)}>
           <SvgIcon
