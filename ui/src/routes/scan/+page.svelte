@@ -15,8 +15,6 @@
 
   let needsPermission = false;
 
-  $: isSupported = scanStore.isSupported;
-
   async function ensurePermissions() {
     let permissionsState = await checkPermissions();
     if (permissionsState === "granted") return;
@@ -34,15 +32,10 @@
   async function executeScan() {
     try {
       const res = await scan({ windowed: true, formats: [Format.QRCode] });
-      scanSuccess(res.content);
+      scanStore.complete(res.content);
     } catch (e) {
       console.error("executeScan error", e);
     }
-  }
-
-  function scanSuccess(value: string) {
-    scanStore.value.set(value);
-    scanStore.complete();
   }
 
   async function scanCancel() {
@@ -82,7 +75,7 @@
   });
 </script>
 
-{#if $isSupported}
+{#if $scanStore.isSupported}
   <div class="fixed left-0 top-0 z-10 h-screen w-screen text-black">
     <div class="flex h-screen w-screen flex-col items-center justify-center">
       <!-- Scanning Area -->
