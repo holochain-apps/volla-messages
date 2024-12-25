@@ -11,7 +11,12 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import { Privacy, type Conversation, type Image, type Message } from "../../../types";
+  import {
+    Privacy,
+    type Conversation,
+    type Image,
+    type Message,
+  } from "../../../types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
   import ConversationMembers from "./ConversationMembers.svelte";
@@ -22,7 +27,8 @@
 
   $: conversationId = $page.params.id;
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   let myPubKeyB64 = relayStore.client.myPubKeyB64;
 
@@ -71,10 +77,15 @@
   const checkForMessages = async () => {
     if (!conversation) return;
 
-    const [_, hashes] = await conversation.loadMessageSetFrom(conversation.currentBucket());
+    const [_, hashes] = await conversation.loadMessageSetFrom(
+      conversation.currentBucket()
+    );
     // If this we aren't getting anything back and there are no messages loaded at all
     // then keep trying as this is probably a no network, or a just joined situation
-    if (hashes.length == 0 && Object.keys(conversation.data.messages).length == 0) {
+    if (
+      hashes.length == 0 &&
+      Object.keys(conversation.data.messages).length == 0
+    ) {
       messageTimeout = setTimeout(() => {
         checkForMessages();
       }, 2000);
@@ -114,7 +125,8 @@
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-    conversationContainer && conversationContainer.removeEventListener("scroll", handleScroll);
+    conversationContainer &&
+      conversationContainer.removeEventListener("scroll", handleScroll);
     window.removeEventListener("resize", debouncedHandleResize);
   });
 
@@ -123,7 +135,7 @@
     conversation &&
     derived(conversation, ($value) => {
       const messages = Object.values(($value as Conversation).messages).sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
       );
       const result: Message[] = [];
 
@@ -136,33 +148,42 @@
           return;
         }
 
-        const contact = $contacts.find((c) => c.publicKeyB64 === message.authorKey);
+        const contact = $contacts.find(
+          (c) => c.publicKeyB64 === message.authorKey
+        );
 
         const displayMessage = {
           ...message,
           author:
             contact?.firstName ||
-            ($value as Conversation).agentProfiles[message.authorKey].fields.firstName,
+            ($value as Conversation).agentProfiles[message.authorKey].fields
+              .firstName,
           avatar:
             contact?.avatar ||
-            ($value as Conversation).agentProfiles[message.authorKey].fields.avatar,
+            ($value as Conversation).agentProfiles[message.authorKey].fields
+              .avatar,
         };
 
         if (
           !lastMessage ||
-          message.timestamp.toDateString() !== lastMessage.timestamp.toDateString()
+          message.timestamp.toDateString() !==
+            lastMessage.timestamp.toDateString()
         ) {
-          displayMessage.header = message.timestamp.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          });
+          displayMessage.header = message.timestamp.toLocaleDateString(
+            "en-US",
+            {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            }
+          );
         }
 
         // If same person is posting a bunch of messages in a row, hide their name and avatar
         if (
           lastMessage?.authorKey === message.authorKey &&
-          message.timestamp.getTime() - lastMessage.timestamp.getTime() < 1000 * 60 * 5
+          message.timestamp.getTime() - lastMessage.timestamp.getTime() <
+            1000 * 60 * 5
         ) {
           displayMessage.hideDetails = true;
         }
@@ -211,8 +232,13 @@
 
 <Header backUrl={`/conversations${conversation?.archived ? "/archive" : ""}`}>
   {#if conversation}
-    <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
-      <button on:click={() => goto(`/conversations/${conversationId}/details`)} class="w-full">
+    <h1
+      class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center"
+    >
+      <button
+        on:click={() => goto(`/conversations/${conversationId}/details`)}
+        class="w-full"
+      >
         {conversation.title}
       </button>
     </h1>
@@ -220,17 +246,25 @@
       class="self-center pl-2"
       on:click={() => goto(`/conversations/${conversationId}/details`)}
     >
-      <SvgIcon icon="gear" size="18" color={$modeCurrent ? "%232e2e2e" : "white"} />
+      <SvgIcon
+        icon="gear"
+        size="18"
+        color={$modeCurrent ? "%232e2e2e" : "white"}
+      />
     </button>
     {#if conversation.data.privacy === Privacy.Public || encodeHashToBase64(conversation.data.progenitor) === myPubKeyB64}
       <button
         class="flex-none pl-5"
         on:click={() =>
           goto(
-            `/conversations/${conversation.data.id}/${conversation.data.privacy === Privacy.Public ? "details" : "invite"}`,
+            `/conversations/${conversation.data.id}/${conversation.data.privacy === Privacy.Public ? "details" : "invite"}`
           )}
       >
-        <SvgIcon icon="addPerson" size="24" color={$modeCurrent ? "%232e2e2e" : "white"} />
+        <SvgIcon
+          icon="addPerson"
+          size="24"
+          color={$modeCurrent ? "%232e2e2e" : "white"}
+        />
       </button>
     {:else}
       <span class="flex-none pl-8">&nbsp;</span>

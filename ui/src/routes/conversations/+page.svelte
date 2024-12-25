@@ -10,7 +10,8 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let search = "";
@@ -22,7 +23,10 @@
         if (c.archived) {
           hasArchive = true;
         }
-        return !c.archived && c.title.toLocaleLowerCase().includes(search.toLocaleLowerCase());
+        return (
+          !c.archived &&
+          c.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+        );
       })
       .sort((a, b) => get(b.lastActivityAt) - get(a.lastActivityAt));
   });
@@ -58,7 +62,10 @@
       <li
         class="hover:bg-tertiary-500 dark:hover:bg-secondary-500 flex items-center rounded-lg py-2"
       >
-        <button on:click={() => goto("/conversations/archive")} class="flex w-full items-center">
+        <button
+          on:click={() => goto("/conversations/archive")}
+          class="flex w-full items-center"
+        >
           <SvgIcon
             icon="archive"
             size="24"
@@ -74,6 +81,3 @@
     {/each}
   </ul>
 </div>
-
-<style>
-</style>

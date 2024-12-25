@@ -9,14 +9,19 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let search = "";
 
   $: conversations = derived(relayStore.conversations, ($value) => {
     return $value
-      .filter((c) => c.archived && c.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+      .filter(
+        (c) =>
+          c.archived &&
+          c.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+      )
       .sort((a, b) => get(b.lastActivityAt) - get(a.lastActivityAt));
   });
 </script>
@@ -44,6 +49,3 @@
     {/each}
   </ul>
 </div>
-
-<style>
-</style>
