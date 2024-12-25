@@ -26,6 +26,7 @@ import type {
   MessageRecord,
   Privacy,
 } from "../types";
+import { makeFullName } from "$lib/utils";
 
 export class RelayClient {
   // conversations is a map of string to ClonedCell
@@ -55,7 +56,7 @@ export class RelayClient {
       zome_name: "profiles",
       fn_name: "create_profile",
       payload: {
-        nickname: firstName + " " + lastName,
+        nickname: makeFullName(firstName, lastName),
         fields: { avatar, firstName, lastName },
       },
     });
@@ -71,7 +72,7 @@ export class RelayClient {
       zome_name: "profiles",
       fn_name: "update_profile",
       payload: {
-        nickname: firstName + " " + lastName,
+        nickname: makeFullName(firstName, lastName),
         fields: { avatar, firstName, lastName },
       },
     });
@@ -83,7 +84,7 @@ export class RelayClient {
         zome_name: "profiles",
         fn_name: "update_profile",
         payload: {
-          nickname: firstName + " " + lastName,
+          nickname: makeFullName(firstName, lastName),
           fields: { avatar, firstName, lastName },
         },
       });

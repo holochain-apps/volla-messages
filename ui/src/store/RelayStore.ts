@@ -23,7 +23,7 @@ import type {
   RelaySignal,
 } from "../types";
 import { Privacy } from "../types";
-import { enqueueNotification, isMobile } from "$lib/utils";
+import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
 
 export class RelayStore {
   public contacts: Writable<ContactStore[]>;
@@ -90,12 +90,12 @@ export class RelayStore {
                 : message.content;
             if (isMobile()) {
               enqueueNotification(
-                `${sender ? sender.firstName + " " + sender.lastName : message.authorKey}: ${msgShort}`,
+                `${sender ? makeFullName(sender.firstName, sender.lastName) : message.authorKey}: ${msgShort}`,
                 message.content
               );
             } else {
               enqueueNotification(
-                `Message from ${sender ? sender.firstName + " " + sender.lastName : message.authorKey}`,
+                `Message from ${sender ? makeFullName(sender.firstName, sender.lastName) : message.authorKey}`,
                 message.content
               );
             }
@@ -245,7 +245,7 @@ export class RelayStore {
         ) || null;
       if (!conversation) {
         conversation = await this.createConversation(
-          contact.firstName + " " + contact.lastName,
+          makeFullName(contact.firstName, contact.lastName),
           "",
           Privacy.Private,
           [contact]
