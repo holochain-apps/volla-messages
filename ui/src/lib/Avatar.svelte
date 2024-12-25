@@ -1,10 +1,15 @@
 <script lang="ts">
-  import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKey } from "@holochain/client";
+  import {
+    decodeHashFromBase64,
+    encodeHashToBase64,
+    type AgentPubKey,
+  } from "@holochain/client";
   import { ProfilesStore } from "@holochain-open-dev/profiles";
   import { getContext } from "svelte";
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
 
-  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
+  const profilesContext: { getStore: () => ProfilesStore } =
+    getContext("profiles");
   const store = profilesContext.getStore();
 
   export let agentPubKey: AgentPubKey | string | null = null;
@@ -31,12 +36,17 @@
   $: nickname =
     $profile && agentPubKeyB64
       ? $profile.status == "complete" && $profile.value
-        ? $profile.value.entry.fields.firstName + " " + $profile.value.entry.fields.lastName
+        ? $profile.value.entry.fields.firstName +
+          " " +
+          $profile.value.entry.fields.lastName
         : agentPubKeyB64.slice(5, 9) + "..."
       : "";
 </script>
 
-<div class="avatar-{namePosition} {moreClasses}" title={showNickname ? "" : nickname}>
+<div
+  class="avatar-{namePosition} {moreClasses}"
+  title={showNickname ? "" : nickname}
+>
   {#if image}
     <div class="avatar-container" style="width: {size}px; height: {size}px">
       <img src={image} alt="avatar" width={size} height={size} />
@@ -47,7 +57,12 @@
     {#if showAvatar}
       <div class="avatar-container" style="width: {size}px; height: {size}px">
         {#if $profile.value.entry.fields.avatar}
-          <img src={$profile.value.entry.fields.avatar} alt="avatar" width={size} height={size} />
+          <img
+            src={$profile.value.entry.fields.avatar}
+            alt="avatar"
+            width={size}
+            height={size}
+          />
         {:else}
           <holo-identicon
             hash={agentPubKeyHash}

@@ -11,7 +11,8 @@
   import { RelayStore } from "$store/RelayStore";
   import { type Contact, Privacy } from "../../types";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let selectedContacts = writable<Contact[]>([]);
@@ -25,12 +26,18 @@
     if (value.length > 0) {
       existingConversation = get(relayStore.conversations)
         .sort((a, b) =>
-          b.privacy === Privacy.Private ? 1 : a.privacy === Privacy.Private ? -1 : 0,
+          b.privacy === Privacy.Private
+            ? 1
+            : a.privacy === Privacy.Private
+              ? -1
+              : 0
         )
         .find(
           (c) =>
             c.allMembers.length === value.length &&
-            c.allMembers.every((k) => value.find((c) => c.publicKeyB64 === k.publicKeyB64)),
+            c.allMembers.every((k) =>
+              value.find((c) => c.publicKeyB64 === k.publicKeyB64)
+            )
         );
     } else {
       existingConversation = undefined;
@@ -44,7 +51,7 @@
         (c) =>
           c.data.firstName.toLowerCase().includes(test) ||
           c.data.lastName.toLowerCase().includes(test) ||
-          (test.length > 2 && c.data.publicKeyB64.toLowerCase().includes(test)),
+          (test.length > 2 && c.data.publicKeyB64.toLowerCase().includes(test))
       )
       .sort((a, b) => a.data.firstName.localeCompare(b.data.firstName));
   });
@@ -53,9 +60,15 @@
     const contact = $contacts.find((c) => c.data.publicKeyB64 === publicKey);
     if (contact) {
       selectedContacts.update((currentContacts) => {
-        if (currentContacts.find((c) => c.publicKeyB64 === contact.data.publicKeyB64)) {
+        if (
+          currentContacts.find(
+            (c) => c.publicKeyB64 === contact.data.publicKeyB64
+          )
+        ) {
           // If already selected then unselect
-          return currentContacts.filter((c) => c.publicKeyB64 !== contact.data.publicKeyB64);
+          return currentContacts.filter(
+            (c) => c.publicKeyB64 !== contact.data.publicKeyB64
+          );
         } else {
           // otherwise select the contact
           return [...currentContacts, contact];
@@ -83,7 +96,7 @@
       title,
       "",
       Privacy.Private,
-      $selectedContacts,
+      $selectedContacts
     );
     if (conversation) {
       goto(`/conversations/${conversation.id}/details`);
@@ -159,7 +172,9 @@
       alt="No contacts"
       class="mb-4 mt-10 h-32 w-32"
     />
-    <h2 class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold">
+    <h2
+      class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold"
+    >
       {$t("create.no_contacts_header")}
     </h2>
     <p class="text-secondary-400 dark:text-tertiary-700 text-center text-xs">
@@ -168,13 +183,17 @@
   {:else}
     <div class="w-full">
       {#each $contacts as contact, i}
-        {#if i === 0 || contact.firstName.charAt(0).toUpperCase() !== $contacts[i - 1].firstName
+        {#if i === 0 || contact.firstName
+            .charAt(0)
+            .toUpperCase() !== $contacts[i - 1].firstName
               .charAt(0)
               .toUpperCase()}
-          <p class="text-secondary-300 mb-1 mt-2 pl-0">{contact.firstName[0].toUpperCase()}</p>
+          <p class="text-secondary-300 mb-1 mt-2 pl-0">
+            {contact.firstName[0].toUpperCase()}
+          </p>
         {/if}
         {@const selected = $selectedContacts.find(
-          (c) => c.publicKeyB64 === contact.data.publicKeyB64,
+          (c) => c.publicKeyB64 === contact.data.publicKeyB64
         )}
         <button
           class="-ml-1 mb-2 flex w-full items-center justify-between rounded-3xl py-1 pl-1 pr-2 {selected &&
@@ -194,7 +213,8 @@
           >
             {contact.firstName}
             {contact.lastName}
-            {#if contact.pendingConnection}<span class="text-secondary-400 ml-1 text-xs"
+            {#if contact.pendingConnection}<span
+                class="text-secondary-400 ml-1 text-xs"
                 >{$t("create.unconfirmed")}</span
               >{/if}
           </p>
@@ -231,7 +251,9 @@
         </span>
         <div class="nowrap overflow-hidden text-ellipsis">
           <div class="text-md text-start">
-            {$tAny("create.open_conversation", { existingConversation: !!existingConversation })}
+            {$tAny("create.open_conversation", {
+              existingConversation: !!existingConversation,
+            })}
           </div>
           <div class="pb-1 text-start text-xs font-light">
             with {$selectedContacts.map((c) => c.firstName).join(", ")}

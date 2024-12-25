@@ -9,7 +9,7 @@
   function convertImageToDataUrl(
     img: HTMLImageElement,
     maxWidth: number = 300,
-    maxHeight: number = 300,
+    maxHeight: number = 300
   ): string {
     let width = img.width;
     let height = img.height;
@@ -38,7 +38,10 @@
     return canvas.toDataURL();
   }
 
-  function handleFileChange(event: Event, callback: (imageData: string) => void) {
+  function handleFileChange(
+    event: Event,
+    callback: (imageData: string) => void
+  ) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];

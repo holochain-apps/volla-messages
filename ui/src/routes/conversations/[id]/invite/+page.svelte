@@ -18,7 +18,8 @@
 
   $: conversationId = $page.params.id;
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   $: conversation = relayStore.getConversation(conversationId);
@@ -33,7 +34,7 @@
         (c) =>
           c.data.firstName.toLowerCase().includes(test) ||
           c.data.lastName.toLowerCase().includes(test) ||
-          (test.length > 2 && c.data.publicKeyB64.toLowerCase().includes(test)),
+          (test.length > 2 && c.data.publicKeyB64.toLowerCase().includes(test))
       )
       .sort((a, b) => a.data.firstName.localeCompare(b.data.firstName));
   });
@@ -42,9 +43,15 @@
     const contact = $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64);
     if (contact) {
       selectedContacts.update((currentContacts) => {
-        if (currentContacts.find((c) => c.publicKeyB64 === contact.data.publicKeyB64)) {
+        if (
+          currentContacts.find(
+            (c) => c.publicKeyB64 === contact.data.publicKeyB64
+          )
+        ) {
           // If already selected then unselect
-          return currentContacts.filter((c) => c.publicKeyB64 !== contact.data.publicKeyB64);
+          return currentContacts.filter(
+            (c) => c.publicKeyB64 !== contact.data.publicKeyB64
+          );
         } else {
           // otherwise select the contact
           return [...currentContacts, contact];
@@ -61,7 +68,9 @@
         goto(`/conversations/${conversation.id}/details`);
       }
     } catch (e) {
-      toast.error(`${$t("common.add_contact_to_conversation_error")}: ${e.message}`);
+      toast.error(
+        `${$t("common.add_contact_to_conversation_error")}: ${e.message}`
+      );
     }
   }
 </script>
@@ -75,7 +84,9 @@
 
 {#if conversation}
   {#if conversation.data.privacy === Privacy.Public}
-    <div class="container mx-auto flex grow flex-col items-center justify-center px-10">
+    <div
+      class="container mx-auto flex grow flex-col items-center justify-center px-10"
+    >
       <img src="/share-public-invite.png" alt="Share Key" class="mb-4" />
       <h1 class="h1 mb-2">{$t("conversations.open_invite_code")}</h1>
       <p class="mb-5">{$t("conversations.share_with_people")}</p>
@@ -121,7 +132,8 @@
       {/if}
       <Button
         moreClasses="bg-surface-400 text-secondary-50 w-64 justify-center"
-        on:click={() => goto(`/conversations/${conversationId}`)}>{$t("common.done")}</Button
+        on:click={() => goto(`/conversations/${conversationId}`)}
+        >{$t("common.done")}</Button
       >
     </footer>
   {:else}
@@ -145,25 +157,33 @@
 
       {#if $contacts.length === 0}
         <img
-          src={$modeCurrent ? "/clear-skies-gray.png" : "/clear-skies-white.png"}
+          src={$modeCurrent
+            ? "/clear-skies-gray.png"
+            : "/clear-skies-white.png"}
           alt="No contacts"
           class="mb-4 mt-10 h-32 w-32"
         />
-        <h2 class="text-primary-200 text-lg">{$t("create.no_contacts_header")}</h2>
+        <h2 class="text-primary-200 text-lg">
+          {$t("create.no_contacts_header")}
+        </h2>
         <p class="text-center text-xs">{$t("create.no_contacts_text")}</p>
       {:else}
         <div class="w-full font-light">
           {#each $contacts as contact, i}
-            {#if i === 0 || contact.firstName.charAt(0).toUpperCase() !== $contacts[i - 1].firstName
+            {#if i === 0 || contact.firstName
+                .charAt(0)
+                .toUpperCase() !== $contacts[i - 1].firstName
                   .charAt(0)
                   .toUpperCase()}
-              <p class="text-secondary-300 mb-1 mt-2 pl-0">{contact.firstName[0].toUpperCase()}</p>
+              <p class="text-secondary-300 mb-1 mt-2 pl-0">
+                {contact.firstName[0].toUpperCase()}
+              </p>
             {/if}
             {@const selected = $selectedContacts.find(
-              (c) => c.publicKeyB64 === contact.data.publicKeyB64,
+              (c) => c.publicKeyB64 === contact.data.publicKeyB64
             )}
             {@const alreadyInvited = !!conversation.invitedContactKeys.find(
-              (k) => k === contact.data.publicKeyB64,
+              (k) => k === contact.data.publicKeyB64
             )}
             {@const alreadyInConversation = !!conversation
               .memberList()
@@ -180,14 +200,20 @@
                 agentPubKey={contact.publicKeyB64}
                 moreClasses="mr-3"
               />
-              <p class="text-secondary-500 dark:text-tertiary-100 flex-1 text-start">
+              <p
+                class="text-secondary-500 dark:text-tertiary-100 flex-1 text-start"
+              >
                 {contact.firstName}
                 {contact.lastName}
               </p>
               {#if alreadyInConversation}
-                <span class="text-xs font-extralight">{$t("conversations.already_member")}</span>
+                <span class="text-xs font-extralight"
+                  >{$t("conversations.already_member")}</span
+                >
               {:else if alreadyInvited}
-                <span class="text-xs font-extralight">{$t("conversations.already_invited")}</span>
+                <span class="text-xs font-extralight"
+                  >{$t("conversations.already_invited")}</span
+                >
               {:else}
                 <span class="text-primary-500 text-lg font-extrabold">+</span>
               {/if}
@@ -203,7 +229,12 @@
             <span
               class="bg-surface-500 text-primary-500 mr-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-extrabold"
             >
-              <SvgIcon icon="person" size="12" color="%23FD3524" moreClasses="mr-1" />
+              <SvgIcon
+                icon="person"
+                size="12"
+                color="%23FD3524"
+                moreClasses="mr-1"
+              />
               {$selectedContacts.length}
             </span>
             <div class="nowrap overflow-hidden text-ellipsis">

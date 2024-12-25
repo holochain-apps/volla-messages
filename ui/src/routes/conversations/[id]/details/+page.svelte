@@ -20,7 +20,8 @@
   const tAny = t as any;
 
   $: conversationId = $page.params.id;
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   const myPublicKey64 = relayStore.client.myPubKeyB64;
   $: conversation = relayStore.getConversation(conversationId);
@@ -60,7 +61,7 @@
   {#if conversation}
     <h1 class="flex-1 grow text-center">
       {#if conversation.data.privacy === Privacy.Public}{$t(
-          "conversations.group_details",
+          "conversations.group_details"
         )}{:else}{conversation.title}{/if}
     </h1>
     {#if conversation.data.privacy === Privacy.Private && encodeHashToBase64(conversation.data.progenitor) === relayStore.client.myPubKeyB64}
@@ -105,17 +106,27 @@
         id="avatarInput"
         accept="image/jpeg, image/png, image/gif"
         on:change={(event) =>
-          updateConfig({ image: event.detail, title: title || conversation.data?.config.title })}
+          updateConfig({
+            image: event.detail,
+            title: title || conversation.data?.config.title,
+          })}
       />
 
       {#if image}
         <div style="position:relative">
-          <img src={image} alt="Group" class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover" />
+          <img
+            src={image}
+            alt="Group"
+            class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
+          />
           <label
             for="avatarInput"
             class="bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
           >
-            <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} />
+            <SvgIcon
+              icon="image"
+              color={$modeCurrent ? "%232e2e2e" : "white"}
+            />
           </label>
         </div>
       {:else}
@@ -123,7 +134,11 @@
           for="avatarInput"
           class="bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 min-h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
         >
-          <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
+          <SvgIcon
+            icon="image"
+            size="44"
+            color={$modeCurrent ? "%232e2e2e" : "white"}
+          />
         </label>
       {/if}
     {/if}
@@ -165,13 +180,22 @@
         </h1>
         {#if conversation.privacy !== Privacy.Private}
           <button on:click={() => (editingTitle = true)}>
-            <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
+            <SvgIcon
+              icon="write"
+              size="24"
+              color="gray"
+              moreClasses="cursor-pointer"
+            />
           </button>
         {/if}
       </div>
     {/if}
-    <p class="text-sm">{$tAny("conversations.created", { date: conversation.created })}</p>
-    <p class="text-sm">{$tAny("conversations.num_members", { count: numMembers })}</p>
+    <p class="text-sm">
+      {$tAny("conversations.created", { date: conversation.created })}
+    </p>
+    <p class="text-sm">
+      {$tAny("conversations.num_members", { count: numMembers })}
+    </p>
 
     <div class="container mx-auto flex flex-col overflow-y-auto px-4">
       <ul class="mt-10 flex-1">
@@ -184,7 +208,9 @@
             >
               <SvgIcon icon="addPerson" size="24" color="%23FD3524" />
             </span>
-            <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.add_members")}</span>
+            <span class="ml-4 flex-1 text-sm font-bold"
+              >{$t("conversations.add_members")}</span
+            >
             <button
               class="bg-surface-500 text-secondary-500 mr-1 flex items-center justify-center rounded-full px-2 py-2 text-xs font-bold"
               on:click={async () => {
@@ -196,7 +222,12 @@
                 }
               }}
             >
-              <SvgIcon icon="copy" size="14" color="%23FD3524" moreClasses="mr-2" />
+              <SvgIcon
+                icon="copy"
+                size="14"
+                color="%23FD3524"
+                moreClasses="mr-2"
+              />
               {$t("conversations.copy_invite")}
             </button>
             {#if isMobile()}
@@ -206,11 +237,18 @@
                   try {
                     await shareText(conversation.publicInviteCode);
                   } catch (e) {
-                    toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+                    toast.error(
+                      `${$t("common.share_code_error")}: ${e.message}`
+                    );
                   }
                 }}
               >
-                <SvgIcon icon="share" size="14" color="%23FD3524" moreClasses="mr-1" />
+                <SvgIcon
+                  icon="share"
+                  size="14"
+                  color="%23FD3524"
+                  moreClasses="mr-1"
+                />
               </button>
             {/if}
           </li>
@@ -227,12 +265,16 @@
                 size="38"
                 moreClasses="-ml-30"
               />
-              <span class="ml-4 flex-1 text-sm">{contact.firstName + " " + contact.lastName}</span>
+              <span class="ml-4 flex-1 text-sm"
+                >{contact.firstName + " " + contact.lastName}</span
+              >
               <button
                 class="variant-filled-tertiary flex items-center justify-center rounded-2xl p-2 px-3 text-sm font-bold"
                 on:click={async () => {
                   try {
-                    const inviteCode = await conversation.inviteCodeForAgent(contact.publicKeyB64);
+                    const inviteCode = await conversation.inviteCodeForAgent(
+                      contact.publicKeyB64
+                    );
                     await copyToClipboard(inviteCode);
                     toast.success(`${$t("common.copy_success")}`);
                   } catch (e) {
@@ -240,7 +282,12 @@
                   }
                 }}
               >
-                <SvgIcon icon="copy" size="18" color="%23FD3524" moreClasses="mr-2" />
+                <SvgIcon
+                  icon="copy"
+                  size="18"
+                  color="%23FD3524"
+                  moreClasses="mr-2"
+                />
                 {$t("conversations.copy_invite")}
               </button>
               {#if isMobile()}
@@ -249,16 +296,24 @@
                   on:click={async () => {
                     try {
                       const inviteCode = await conversation.inviteCodeForAgent(
-                        contact.publicKeyB64,
+                        contact.publicKeyB64
                       );
-                      if (!inviteCode) throw new Error("Failed to generate invite code");
+                      if (!inviteCode)
+                        throw new Error("Failed to generate invite code");
                       await shareText(inviteCode);
                     } catch (e) {
-                      toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+                      toast.error(
+                        `${$t("common.share_code_error")}: ${e.message}`
+                      );
                     }
                   }}
                 >
-                  <SvgIcon icon="share" size="18" color="%23FD3524" moreClasses="mr-2" />
+                  <SvgIcon
+                    icon="share"
+                    size="18"
+                    color="%23FD3524"
+                    moreClasses="mr-2"
+                  />
                 </button>
               {/if}
             </li>
@@ -272,9 +327,13 @@
         {/if}
         <li class="mb-4 flex flex-row items-center px-2 text-xl">
           <Avatar agentPubKey={myPublicKey64} size="38" moreClasses="-ml-30" />
-          <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.you")}</span>
+          <span class="ml-4 flex-1 text-sm font-bold"
+            >{$t("conversations.you")}</span
+          >
           {#if myPublicKey64 === encodeHashToBase64(conversation.data.progenitor)}
-            <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
+            <span class="text-secondary-300 ml-2 text-xs"
+              >{$t("conversations.admin")}</span
+            >
           {/if}
         </li>
         {#each conversation.memberList() as contact}
@@ -289,7 +348,9 @@
               >{contact.firstName + " " + contact.lastName}</span
             >
             {#if contact.publicKeyB64 === encodeHashToBase64(conversation.data.progenitor)}
-              <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
+              <span class="text-secondary-300 ml-2 text-xs"
+                >{$t("conversations.admin")}</span
+              >
             {/if}
           </li>
         {/each}
