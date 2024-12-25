@@ -150,7 +150,7 @@ export class RelayStore {
     title: string,
     image: string,
     privacy: Privacy,
-    initialContacts: Contact[] = []
+    initialContacts: AgentPubKeyB64[] = []
   ) {
     if (!this.client) return null;
     const convoCellAndConfig = await this.client.createConversation(
@@ -248,7 +248,7 @@ export class RelayStore {
           makeFullName(contact.firstName, contact.lastName),
           "",
           Privacy.Private,
-          [contact]
+          [contact.publicKeyB64]
         );
       }
       const contactStore = new ContactStore(

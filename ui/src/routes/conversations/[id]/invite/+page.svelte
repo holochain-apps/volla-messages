@@ -18,6 +18,7 @@
   } from "$lib/utils";
   import { type Contact, Privacy } from "../../../../types";
   import toast from "svelte-french-toast";
+  import type { AgentPubKeyB64 } from "@holochain/client";
 
   const tAny = t as any;
 
@@ -27,7 +28,7 @@
 
   $: conversation = relayStore.getConversation($page.params.id);
 
-  let selectedContacts: Contact[] = [];
+  let selectedContacts: AgentPubKeyB64[] = [];
   let search = "";
 
   $: contacts = derived(relayStore.contacts, ($contacts) => {
@@ -45,18 +46,14 @@
   function selectContact(publicKeyB64: string) {
     const contact = $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64);
     if (contact) {
-      if (
-        selectedContacts.find(
-          (c) => c.publicKeyB64 === contact.data.publicKeyB64
-        )
-      ) {
+      if (selectedContacts.find((c) => c === contact.data.publicKeyB64)) {
         // If already selected then unselect
         selectedContacts = selectedContacts.filter(
-          (c) => c.publicKeyB64 !== contact.data.publicKeyB64
+          (c) => c !== contact.data.publicKeyB64
         );
       } else {
         // otherwise select the contact
-        selectedContacts = [...selectedContacts, contact];
+        selectedContacts = [...selectedContacts, contact.data.publicKeyB64];
       }
     }
   }
@@ -181,7 +178,7 @@
               </p>
             {/if}
             {@const selected = selectedContacts.find(
-              (c) => c.publicKeyB64 === contact.data.publicKeyB64
+              (c) => c === contact.data.publicKeyB64
             )}
             {@const alreadyInvited = !!conversation.invitedContactKeys.find(
               (k) => k === contact.data.publicKeyB64
@@ -242,7 +239,14 @@
                 {$t("conversations.add_contact_to_conversation")}
               </div>
               <div class="pb-1 text-start text-xs font-light">
-                with {selectedContacts.map((c) => c.firstName).join(", ")}
+                with {selectedContacts
+                  .map(
+                    (c) =>
+                      $contacts.find(
+                        (contact) => c === contact.data.publicKeyB64
+                      )?.firstName
+                  )
+                  .join(", ")}
               </div>
             </div>
           </button>
