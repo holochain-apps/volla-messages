@@ -1,8 +1,4 @@
-import {
-  encodeHashToBase64,
-  type DnaHash,
-  type DnaHashB64,
-} from "@holochain/client";
+import { type DnaHashB64 } from "@holochain/client";
 import type { Message } from "../types";
 import { BucketStore } from "./BucketStore";
 import {
@@ -15,18 +11,19 @@ import {
 
 export class MessageHistoryStore {
   private buckets: Writable<BucketStore[]>;
-  private dnaB64: DnaHashB64;
   public messageCount: Readable<number>;
 
-  constructor(currentBucket: number, dnaHash: DnaHash) {
-    this.dnaB64 = encodeHashToBase64(dnaHash);
+  constructor(
+    currentBucket: number,
+    private dnaHashB64: DnaHashB64
+  ) {
     const buckets: BucketStore[] = [];
     for (let b = 0; b <= currentBucket; b += 1) {
-      const bucketJSON = localStorage.getItem(`c.${this.dnaB64}.${b}`);
-      buckets[b] = bucketJSON
-        ? new BucketStore(bucketJSON)
-        : new BucketStore(undefined);
+      const bucketJSON = localStorage.getItem(`c.${this.dnaHashB64}.${b}`);
+      const initialBuckets = bucketJSON ? JSON.parse(bucketJSON) : [];
+      buckets[b] = new BucketStore(initialBuckets);
     }
+
     this.buckets = writable(buckets);
     this.messageCount = derived(this.buckets, ($b) => {
       let count = 0;
@@ -82,6 +79,6 @@ export class MessageHistoryStore {
 
   saveBucket(b: number) {
     const bucket = this.getBucket(b);
-    localStorage.setItem(`c.${this.dnaB64}.${b}`, bucket.toJSON());
+    localStorage.setItem(`c.${this.dnaHashB64}.${b}`, bucket.toJSON());
   }
 }
