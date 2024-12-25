@@ -1,4 +1,4 @@
-import { type ActionHash, type AgentPubKeyB64 } from "@holochain/client";
+import { type ActionHash, type AgentPubKeyB64, type DnaHashB64 } from "@holochain/client";
 import { writable, get, type Writable } from "svelte/store";
 import LocalStorageStore from "$store/LocalStorageStore";
 import { RelayStore } from "$store/RelayStore";
@@ -15,10 +15,10 @@ export class ContactStore {
     public lastName: string,
     public originalActionHash: ActionHash | undefined,
     public publicKeyB64: AgentPubKeyB64,
-    public conversationId?: string | undefined,
+    public dnaHashB64?: DnaHashB64 | undefined,
   ) {
     const privateConversationId = get(
-      LocalStorageStore(`contact_${publicKeyB64}_private_conversation`, conversationId),
+      LocalStorageStore(`contact_${publicKeyB64}_private_conversation`, dnaHashB64),
     );
     this.contact = writable({
       avatar,

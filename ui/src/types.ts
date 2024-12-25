@@ -12,6 +12,7 @@ import type {
   DeleteLink,
   MembraneProof,
   ClonedCell,
+  DnaHashB64,
 } from "@holochain/client";
 
 import type { Profile } from "@holochain-open-dev/profiles";
@@ -82,7 +83,8 @@ export interface MessageInput {
 export type Messages = { [key: string]: Message };
 
 export interface Conversation {
-  id: string; // the network seed
+  networkSeed: string;
+  dnaHashB64: DnaHashB64;
   cellId: CellId;
   config: Config;
   description?: string;

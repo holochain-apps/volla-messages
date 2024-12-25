@@ -10,8 +10,8 @@ import {
   type MembraneProof,
   type AgentPubKeyB64,
   type ActionHash,
+  type DnaHashB64,
 } from "@holochain/client";
-import { decode } from "@msgpack/msgpack";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import type { Profile, ProfilesStore } from "@holochain-open-dev/profiles";
 import { get } from "svelte/store";
@@ -29,7 +29,7 @@ import type {
 
 export class RelayClient {
   // conversations is a map of string to ClonedCell
-  conversations: { [key: string]: ConversationCellAndConfig } = {};
+  conversations: { [dnaHashB64: DnaHashB64]: ConversationCellAndConfig } = {};
   myPubKeyB64: AgentPubKeyB64;
 
   constructor(
@@ -89,13 +89,14 @@ export class RelayClient {
         const cell = c[CellType.Cloned];
 
         try {
+          console.log("get config for ", encodeHashToBase64(cell.cell_id[0]));
           const configRecord = await this._getConfig(cell.cell_id);
 
           const config = configRecord ? configRecord.entry : { title: cell.name, image: "" };
 
           const convoCellAndConfig: ConversationCellAndConfig = { cell, config };
 
-          this.conversations[cell.dna_modifiers.network_seed] = convoCellAndConfig;
+          this.conversations[encodeHashToBase64(cell.cell_id[0])] = convoCellAndConfig;
         } catch (e) {
           console.error("Unable to get config for cell:", cell, e);
         }
@@ -139,7 +140,7 @@ export class RelayClient {
     membrane_proof?: MembraneProof,
     networkSeed?: string,
   ): Promise<ConversationCellAndConfig | null> {
-    const conversationId = networkSeed || uuidv4();
+    const newNetworkSeed = networkSeed || uuidv4();
 
     try {
       const cell = await this.client.createCloneCell({
@@ -147,7 +148,7 @@ export class RelayClient {
         name: title,
         membrane_proof,
         modifiers: {
-          network_seed: conversationId,
+          network_seed: newNetworkSeed,
           properties: {
             created,
             privacy,
@@ -163,7 +164,7 @@ export class RelayClient {
 
       await this._setMyProfileForConversation(cell.cell_id);
       const convoCellAndConfig: ConversationCellAndConfig = { cell, config };
-      this.conversations[conversationId] = convoCellAndConfig;
+      this.conversations[encodeHashToBase64(cell.cell_id[0])] = convoCellAndConfig;
       return convoCellAndConfig;
     } catch (e) {
       console.error("Error creating conversation", e);
@@ -172,11 +173,11 @@ export class RelayClient {
   }
 
   public async getAllMessages(
-    conversationId: string,
+    dnaHashB64: DnaHashB64,
     buckets: Array<number>,
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
-      cell_id: this.conversations[conversationId].cell.cell_id,
+      cell_id: this.conversations[dnaHashB64].cell.cell_id,
       zome_name: this.zomeName,
       fn_name: "get_messages_for_buckets",
       payload: buckets,
@@ -184,12 +185,12 @@ export class RelayClient {
   }
 
   public async getMessageHashes(
-    conversationId: string,
+    dnaHashB64: DnaHashB64,
     bucket: number,
     count: number,
   ): Promise<Array<ActionHash>> {
     return this.client.callZome({
-      cell_id: this.conversations[conversationId].cell.cell_id,
+      cell_id: this.conversations[dnaHashB64].cell.cell_id,
       zome_name: this.zomeName,
       fn_name: "get_message_hashes",
       payload: { bucket, count },
@@ -197,19 +198,19 @@ export class RelayClient {
   }
 
   public async getMessageEntries(
-    conversationId: string,
+    dnaHashB64: DnaHashB64,
     hashes: Array<ActionHash>,
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
-      cell_id: this.conversations[conversationId].cell.cell_id,
+      cell_id: this.conversations[dnaHashB64].cell.cell_id,
       zome_name: this.zomeName,
       fn_name: "get_message_entries",
       payload: hashes,
     });
   }
 
-  public async getAllAgents(conversationId: string): Promise<{ [key: AgentPubKeyB64]: Profile }> {
-    const cellId = this.conversations[conversationId].cell.cell_id;
+  public async getAllAgents(dnaHashB64: DnaHashB64): Promise<{ [key: AgentPubKeyB64]: Profile }> {
+    const cellId = this.conversations[dnaHashB64].cell.cell_id;
 
     // Fetcha all AgentPubKeys of agents with profiles
     const agentsResponse: AgentPubKey[] = await this.client.callZome({
@@ -249,8 +250,8 @@ export class RelayClient {
     });
   }
 
-  async _getConfig(id: CellId | string): Promise<EntryRecord<Config> | undefined> {
-    const cellId = typeof id === "string" ? this.conversations[id].cell.cell_id : id;
+  async _getConfig(cellId: CellId): Promise<EntryRecord<Config> | undefined> {
+    console.log("cell id is", cellId);
 
     const config = await this.client.callZome({
       cell_id: cellId,
@@ -262,14 +263,14 @@ export class RelayClient {
   }
 
   public async sendMessage(
-    conversationId: string,
+    dnaHashB64: DnaHashB64,
     content: string,
     bucket: number,
     images: ImageStruct[],
     agents: AgentPubKey[],
   ): Promise<EntryRecord<Message>> {
     const message = await this.client.callZome({
-      cell_id: this.conversations[conversationId].cell.cell_id,
+      cell_id: this.conversations[dnaHashB64].cell.cell_id,
       zome_name: this.zomeName,
       fn_name: "create_message",
       payload: {
@@ -295,12 +296,12 @@ export class RelayClient {
   }
 
   public async inviteAgentToConversation(
-    conversationId: string,
+    dnaHashB64: DnaHashB64,
     forAgent: AgentPubKey,
     role: number = 0,
   ): Promise<MembraneProof | undefined> {
     try {
-      const conversation = this.conversations[conversationId];
+      const conversation = this.conversations[dnaHashB64];
 
       const data: MembraneProofData = {
         conversation_id: conversation.cell.dna_modifiers.network_seed,

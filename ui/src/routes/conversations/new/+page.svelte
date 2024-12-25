@@ -30,7 +30,7 @@
         privacy
       );
       if (conversation) {
-        goto(`/conversations/${conversation.data.id}`);
+        goto(`/conversations/${conversation.data.dnaHashB64}`);
         pendingCreate = false;
       }
     } catch (e) {

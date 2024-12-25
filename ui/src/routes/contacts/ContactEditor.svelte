@@ -83,7 +83,9 @@
       if (newContact) {
         if (!agentPubKeyB64) {
           if (newContact.privateConversation) {
-            return goto(`/conversations/${newContact.privateConversation?.id}`);
+            return goto(
+              `/conversations/${newContact.privateConversation?.data.dnaHashB64}`
+            );
           } else {
             // XXX: this shouldn't happen, but is a backup if the private conversation doesn't get created for some reason
             goto(`/contacts/${newContact.publicKeyB64}`);
@@ -345,7 +347,9 @@
       <Button
         moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
         on:click={() =>
-          goto(`/conversations/${contact?.privateConversation?.id}`)}
+          goto(
+            `/conversations/${contact?.privateConversation?.data.dnaHashB64}`
+          )}
       >
         <SvgIcon
           icon="speechBubble"
