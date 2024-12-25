@@ -27,7 +27,10 @@ import {
   Privacy,
   type Messages,
 } from "../types";
-import { MessageHistoryStore } from "./MessageHistoryStore";
+import {
+  createMessageHistoryStore,
+  type MessageHistoryStore,
+} from "./MessageHistoryStore";
 import pRetry from "p-retry";
 import { fileToDataUrl } from "$lib/utils";
 import toast from "svelte-french-toast";
@@ -55,14 +58,13 @@ export class ConversationStore {
     const messages: Messages = {};
 
     const currentBucket = this.currentBucket();
-    this.history = new MessageHistoryStore(
-      currentBucket,
-      encodeHashToBase64(this.cellId[0])
-    );
+
+    const dnaHashB64 = encodeHashToBase64(this.cellId[0]);
+    this.history = createMessageHistoryStore(dnaHashB64, currentBucket);
 
     this.conversation = writable({
       networkSeed,
-      dnaHashB64: encodeHashToBase64(cellId[0]),
+      dnaHashB64,
       cellId,
       config,
       privacy,
@@ -321,7 +323,7 @@ export class ConversationStore {
       const messageHashes = await this.client.getMessageHashes(
         this.data.dnaHashB64,
         b,
-        bucket.count
+        get(bucket).count
       );
 
       const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
@@ -331,11 +333,10 @@ export class ConversationStore {
           this.localDataStore.update((data) => ({ ...data, unread: true }));
         }
         bucket.add(missingHashes);
-        this.history.saveBucket(b);
       }
 
       const hashesToLoad: Array<ActionHash> = [];
-      get(bucket.hashes).forEach((h) => {
+      get(bucket).hashes.forEach((h) => {
         if (!newMessages[h]) hashesToLoad.push(decodeHashFromBase64(h));
       });
 
