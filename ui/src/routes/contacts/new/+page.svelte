@@ -1,6 +1,5 @@
 <script lang="ts">
   import { modeCurrent } from "@skeletonlabs/skeleton";
-  import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
