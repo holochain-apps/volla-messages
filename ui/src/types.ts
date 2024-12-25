@@ -69,7 +69,7 @@ export interface Contact {
   currentActionHash?: ActionHash;
   originalActionHash?: ActionHash;
   avatar: string;
-  privateConversationId?: string; // the network seed of the 1:1 conversation with this contact, either the one you created, or the one they created if you join that one first
+  privateConversationDnaHashB64?: DnaHashB64;
   firstName: string;
   lastName: string;
   publicKeyB64: AgentPubKeyB64;
