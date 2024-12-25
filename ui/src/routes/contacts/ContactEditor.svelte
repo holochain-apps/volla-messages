@@ -107,6 +107,7 @@
     if (!agentPubKeyB64 || creating) {
       history.back();
     } else {
+      imageUrl = contact?.data.avatar || "";
       editing = false;
     }
   }
