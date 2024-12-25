@@ -8,4 +8,4 @@
 
 <Header backUrl="/create" />
 
-<ContactEditor editContactId={contactId} />
+<ContactEditor agentPubKeyB64={contactId} />

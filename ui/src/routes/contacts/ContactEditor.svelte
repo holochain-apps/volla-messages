@@ -3,7 +3,11 @@
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { writable, get } from "svelte/store";
-  import { decodeHashFromBase64, type HoloHash } from "@holochain/client";
+  import {
+    decodeHashFromBase64,
+    type AgentPubKeyB64,
+    type HoloHash,
+  } from "@holochain/client";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
@@ -20,16 +24,16 @@
     getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
-  export let editContactId: string | null = null;
+  export let agentPubKeyB64: AgentPubKeyB64 | null = null;
   export let creating = false;
 
-  let contact = editContactId ? relayStore.getContact(editContactId) : null;
+  let contact = agentPubKeyB64 ? relayStore.getContact(agentPubKeyB64) : null;
   let firstName = contact?.data.firstName || "";
   let lastName = contact?.data.lastName || "";
-  let publicKeyB64 = editContactId || "";
+  let publicKeyB64 = agentPubKeyB64 || "";
   let imageUrl = writable(contact?.data.avatar || "");
 
-  let editing = !editContactId || creating;
+  let editing = !agentPubKeyB64 || creating;
   let pendingSave = false;
   let valid = false;
   let error = writable("");
@@ -46,7 +50,7 @@
         valid = false;
         error.set($t("contacts.invalid_contact_code"));
       } else if (
-        !editContactId &&
+        !agentPubKeyB64 &&
         $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64)
       ) {
         valid = false;
@@ -77,7 +81,7 @@
         ? await relayStore.updateContact({ ...contact, ...newContactData })
         : await relayStore.createContact(newContactData);
       if (newContact) {
-        if (!editContactId) {
+        if (!agentPubKeyB64) {
           if (newContact.privateConversation) {
             return goto(`/conversations/${newContact.privateConversation?.id}`);
           } else {
@@ -85,20 +89,20 @@
             goto(`/contacts/${newContact.publicKeyB64}`);
           }
         }
-        editContactId = newContact.publicKeyB64;
+        agentPubKeyB64 = newContact.publicKeyB64;
         contact = newContact;
       }
       pendingSave = false;
       editing = false;
     } catch (e) {
       console.error(e);
-      error.set($tAny("contacts.error_saving", { updating: !!editContactId }));
+      error.set($tAny("contacts.error_saving", { updating: !!agentPubKeyB64 }));
       pendingSave = false;
     }
   }
 
   function cancel() {
-    if (!editContactId || creating) {
+    if (!agentPubKeyB64 || creating) {
       history.back();
     } else {
       editing = false;
@@ -180,7 +184,7 @@
       {#if !isEmpty($error)}
         <p class="ml-1 mt-1 text-xs text-error-500">{$error}</p>
       {/if}
-      {#if !editContactId}
+      {#if !agentPubKeyB64}
         <p class="mb-4 mt-4 text-xs text-secondary-600 dark:text-tertiary-700">
           {$t("contacts.request_contact_code")}
         </p>
@@ -204,7 +208,7 @@
         disabled={!valid || pendingSave}
       >
         <strong class=""
-          >{#if editContactId}{$t("common.save")}{:else}{$t(
+          >{#if agentPubKeyB64}{$t("common.save")}{:else}{$t(
               "common.done"
             )}{/if}</strong
         >
