@@ -95,14 +95,8 @@
     moreClasses="w-72 justify-center variant-filled-tertiary"
     on:click={() => createConversation(Privacy.Public)}
     disabled={!valid || pendingCreate}
+    loading={pendingCreate}
   >
-    {#if pendingCreate}
-      <SvgIcon
-        icon="spinner"
-        size="18"
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-      />
-    {/if}
     <strong class="ml-2">{$t("conversations.create_group")}</strong>
   </Button>
 </footer>
