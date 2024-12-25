@@ -16,13 +16,11 @@
 
   const tAny = t as any;
 
-  $: conversationId = $page.params.id;
-
   const relayStoreContext: { getStore: () => RelayStore } =
     getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
-  $: conversation = relayStore.getConversation(conversationId);
+  $: conversation = relayStore.getConversation($page.params.id);
 
   let selectedContacts = writable<Contact[]>([]);
   let search = "";
@@ -132,7 +130,7 @@
       {/if}
       <Button
         moreClasses="bg-surface-400 text-secondary-50 w-64 justify-center"
-        on:click={() => goto(`/conversations/${conversationId}`)}
+        on:click={() => goto(`/conversations/${$page.params.id}`)}
         >{$t("common.done")}</Button
       >
     </footer>
