@@ -67,12 +67,10 @@
   <footer>
     <Button
       disabled={!inviteCode || joining}
+      loading={joining}
+      icon="newConversation"
       moreClasses="variant-filled-tertiary"
     >
-      {#if joining}<SvgIcon icon="spinner" size="20" />{:else}<SvgIcon
-          icon="newConversation"
-          size="20"
-        />{/if}
       <strong class="ml-2">{$t("conversations.join_conversation")}</strong>
     </Button>
   </footer>
