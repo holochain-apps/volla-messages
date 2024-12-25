@@ -3,6 +3,7 @@ import { writable, get, type Writable } from "svelte/store";
 import LocalStorageStore from "$store/LocalStorageStore";
 import { RelayStore } from "$store/RelayStore";
 import { type Contact } from "../types";
+import { makeFullName } from "$lib/utils";
 
 export class ContactStore {
   private contact: Writable<Contact>;
@@ -41,7 +42,7 @@ export class ContactStore {
   }
 
   get name() {
-    return this.data.firstName + " " + this.data.lastName;
+    return makeFullName(this.data.firstName, this.data.lastName);
   }
 
   get privateConversation() {

@@ -10,6 +10,7 @@
   import { ConversationStore } from "$store/ConversationStore";
   import { RelayStore } from "$store/RelayStore";
   import { type Contact, Privacy } from "../../types";
+  import { makeFullName } from "$lib/utils";
 
   const relayStoreContext: { getStore: () => RelayStore } =
     getContext("relayStore");
@@ -87,7 +88,10 @@
 
     const title =
       $selectedContacts.length == 1
-        ? $selectedContacts[0].firstName + " " + $selectedContacts[0].lastName
+        ? makeFullName(
+            $selectedContacts[0].firstName,
+            $selectedContacts[0].lastName
+          )
         : $selectedContacts.length == 2
           ? $selectedContacts.map((c) => c.firstName).join(" & ")
           : $selectedContacts.map((c) => c.firstName).join(", ");
@@ -211,8 +215,7 @@
               ? 'text-secondary-400 dark:!text-secondary-300'
               : ''}"
           >
-            {contact.firstName}
-            {contact.lastName}
+            {makeFullName(contact.firstName, contact.lastName)}
             {#if contact.pendingConnection}<span
                 class="text-secondary-400 ml-1 text-xs"
                 >{$t("create.unconfirmed")}</span
