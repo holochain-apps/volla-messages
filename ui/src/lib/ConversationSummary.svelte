@@ -112,7 +112,7 @@
       e.preventDefault();
       e.stopPropagation();
     } else {
-      goto(`/conversations/${$conversation.id}`);
+      goto(`/conversations/${$conversation.dnaHashB64}`);
     }
   }
 

@@ -63,7 +63,7 @@
     try {
       if (conversation) {
         conversation.addContacts($selectedContacts);
-        goto(`/conversations/${conversation.id}/details`);
+        goto(`/conversations/${conversation.data.dnaHashB64}/details`);
       }
     } catch (e) {
       toast.error(

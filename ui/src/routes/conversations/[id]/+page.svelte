@@ -255,7 +255,7 @@
         class="flex-none pl-5"
         on:click={() =>
           goto(
-            `/conversations/${conversation.data.id}/${conversation.data.privacy === Privacy.Public ? "details" : "invite"}`
+            `/conversations/${conversation.data.dnaHashB64}/${conversation.data.privacy === Privacy.Public ? "details" : "invite"}`
           )}
       >
         <SvgIcon

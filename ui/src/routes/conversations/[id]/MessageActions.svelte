@@ -8,7 +8,6 @@
   import { writeFile } from "@tauri-apps/plugin-fs";
   import { downloadDir } from "@tauri-apps/api/path";
   import toast from "svelte-french-toast";
-  import { createEventDispatcher } from "svelte";
 
   export let message: Message;
 
