@@ -100,7 +100,9 @@
       <div class="flex flex-row px-4">
         {#each images as image, i}
           {#if image.status === "loading"}
-            <div class="bg-tertiary-500 mr-2 flex h-10 w-10 items-center justify-center">
+            <div
+              class="bg-tertiary-500 mr-2 flex h-10 w-10 items-center justify-center"
+            >
               <SvgIcon icon="spinner" color="white" size="10" />
             </div>
           {:else}
@@ -114,7 +116,11 @@
       disabled={text.trim().length === 0 && images.length === 0}
       class="pr-2 disabled:opacity-50"
     >
-      <SvgIcon icon="caretRight" color={$modeCurrent ? "#2e2e2e" : "white"} size="10" />
+      <SvgIcon
+        icon="caretRight"
+        color={$modeCurrent ? "#2e2e2e" : "white"}
+        size="10"
+      />
     </button>
   </form>
 </div>

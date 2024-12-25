@@ -15,13 +15,16 @@
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import { MIN_FIRST_NAME_LENGTH } from "$config";
 
-  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
+  const relayClientContext: { getClient: () => RelayClient } =
+    getContext("relayClient");
   let relayClient = relayClientContext.getClient();
 
-  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
+  const profilesContext: { getStore: () => ProfilesStore } =
+    getContext("profiles");
   let profilesStore = profilesContext.getStore();
   $: prof = profilesStore ? profilesStore.myProfile : undefined;
-  $: profileData = $prof?.status === "complete" ? $prof.value?.entry : undefined;
+  $: profileData =
+    $prof?.status === "complete" ? $prof.value?.entry : undefined;
 
   const agentPublicKey64 = relayClient.myPubKeyB64;
 
@@ -38,7 +41,11 @@
       try {
         const firstName = firstNameElem.value;
         const lastName = lastNameElem.value;
-        await relayClient.updateProfile(firstName, lastName, profileData.fields.avatar);
+        await relayClient.updateProfile(
+          firstName,
+          lastName,
+          profileData.fields.avatar
+        );
         editingName = false;
       } catch (e) {
         toast.error(`${$t("common.update_profile_error")}: ${e.message}`);
@@ -75,12 +82,20 @@
     />
 
     <div style="position:relative">
-      <Avatar agentPubKey={relayClient.myPubKey} size="128" moreClasses="mb-4" />
+      <Avatar
+        agentPubKey={relayClient.myPubKey}
+        size="128"
+        moreClasses="mb-4"
+      />
       <label
         for="avatarInput"
         class="bg-tertiary-500 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
       >
-        <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} size="26" />
+        <SvgIcon
+          icon="image"
+          color={$modeCurrent ? "%232e2e2e" : "white"}
+          size="26"
+        />
       </label>
     </div>
 
@@ -130,7 +145,12 @@
         <h1 class="mr-2 flex-shrink-0 text-3xl">{firstName} {lastName}</h1>
 
         <button on:click={() => (editingName = true)}>
-          <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
+          <SvgIcon
+            icon="write"
+            size="24"
+            color="gray"
+            moreClasses="cursor-pointer"
+          />
         </button>
       </div>
     {/if}

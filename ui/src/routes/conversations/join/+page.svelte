@@ -12,10 +12,12 @@
   import { RelayStore } from "$store/RelayStore";
   import type { Invitation } from "../../../types";
 
-  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
+  const relayClientContext: { getClient: () => RelayClient } =
+    getContext("relayClient");
   let relayClient = relayClientContext.getClient();
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let inviteCode = "";
@@ -32,7 +34,9 @@
         goto(`/conversations/${conversation.data.id}`);
         joining = false;
       } else {
-        console.error("Error joining conversation, couldn't create the conversation");
+        console.error(
+          "Error joining conversation, couldn't create the conversation"
+        );
         error = true;
         joining = false;
       }
@@ -47,7 +51,9 @@
 <Header back title={$t("conversations.join_conversation")} />
 
 <form on:submit|preventDefault={() => joinConversation()} class="contents">
-  <div class="container mx-auto flex grow flex-col items-start justify-center px-10">
+  <div
+    class="container mx-auto flex grow flex-col items-start justify-center px-10"
+  >
     <h1 class="h1">{$t("conversations.enter_invite_code")}</h1>
     <input
       class="bg-surface-900 mt-2 w-full overflow-hidden text-ellipsis border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
@@ -57,12 +63,17 @@
       bind:value={inviteCode}
     />
     {#if error}
-      <p class="text-error-500 mt-2 text-sm">{$t("conversations.error_joining")}</p>
+      <p class="text-error-500 mt-2 text-sm">
+        {$t("conversations.error_joining")}
+      </p>
     {/if}
   </div>
 
   <footer>
-    <Button disabled={!inviteCode || joining} moreClasses="variant-filled-tertiary">
+    <Button
+      disabled={!inviteCode || joining}
+      moreClasses="variant-filled-tertiary"
+    >
       {#if joining}<SvgIcon icon="spinner" size="20" />{:else}<SvgIcon
           icon="newConversation"
           size="20"

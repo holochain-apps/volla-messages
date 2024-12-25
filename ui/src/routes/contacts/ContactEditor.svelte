@@ -16,7 +16,8 @@
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } =
+    getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   export let editContactId: string | null = null;
@@ -44,7 +45,10 @@
       } else if (decodedPublicKey.length !== 39) {
         valid = false;
         error.set($t("contacts.invalid_contact_code"));
-      } else if (!editContactId && $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64)) {
+      } else if (
+        !editContactId &&
+        $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64)
+      ) {
         valid = false;
         error.set($t("contacts.contact_already_exist"));
       } else if (relayStore.client.myPubKeyB64 === publicKeyB64) {
@@ -63,7 +67,12 @@
   async function saveContact() {
     pendingSave = true;
     try {
-      const newContactData = { avatar: get(imageUrl), firstName, lastName, publicKeyB64 };
+      const newContactData = {
+        avatar: get(imageUrl),
+        firstName,
+        lastName,
+        publicKeyB64,
+      };
       const newContact = contact
         ? await relayStore.updateContact({ ...contact, ...newContactData })
         : await relayStore.createContact(newContactData);
@@ -111,7 +120,11 @@
     <!-- Label styled as a big clickable icon -->
     {#if $imageUrl}
       <div class="relative">
-        <img src={$imageUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
+        <img
+          src={$imageUrl}
+          alt="Avatar"
+          class="h-32 w-32 rounded-full object-cover"
+        />
         <label
           for="avatarInput"
           class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-0 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
@@ -124,7 +137,11 @@
         for="avatarInput"
         class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
       >
-        <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
+        <SvgIcon
+          icon="image"
+          size="44"
+          color={$modeCurrent ? "%232e2e2e" : "white"}
+        />
       </label>
     {/if}
   </div>
@@ -187,7 +204,9 @@
         disabled={!valid || pendingSave}
       >
         <strong class=""
-          >{#if editContactId}{$t("common.save")}{:else}{$t("common.done")}{/if}</strong
+          >{#if editContactId}{$t("common.save")}{:else}{$t(
+              "common.done"
+            )}{/if}</strong
         >
       </Button>
     </footer>
@@ -197,7 +216,12 @@
         <h1 class="mr-2 flex-shrink-0 text-3xl">{contact?.name}</h1>
 
         <button on:click={() => (editing = true)}>
-          <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
+          <SvgIcon
+            icon="write"
+            size="24"
+            color="gray"
+            moreClasses="cursor-pointer"
+          />
         </button>
       </div>
       <div class="mt-2 flex items-center justify-center">
@@ -209,7 +233,8 @@
         <button
           on:click={async () => {
             try {
-              if (!contact?.publicKeyB64) throw new Error("Contact Public Key not found");
+              if (!contact?.publicKeyB64)
+                throw new Error("Contact Public Key not found");
               await copyToClipboard(contact.publicKeyB64);
               toast.success(`${$t("common.copy_success")}`);
             } catch (e) {
@@ -223,7 +248,8 @@
           <button
             on:click={async () => {
               try {
-                if (!contact?.publicKeyB64) throw new Error("Contact Pub Key not found");
+                if (!contact?.publicKeyB64)
+                  throw new Error("Contact Pub Key not found");
                 await shareText(contact.publicKeyB64);
               } catch (e) {
                 toast.error(`${$t("common.share_code_error")}: ${e.message}`);
@@ -240,22 +266,34 @@
       <div
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
       >
-        <SvgIcon icon="handshake" size="36" color={$modeCurrent ? "%23232323" : "white"} />
-        <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
+        <SvgIcon
+          icon="handshake"
+          size="36"
+          color={$modeCurrent ? "%23232323" : "white"}
+        />
+        <h1
+          class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold"
+        >
           {$t("contacts.pending_connection_header")}
         </h1>
-        <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-          {$tAny("contacts.pending_connection_description", { name: contact?.firstName })}
+        <p
+          class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm"
+        >
+          {$tAny("contacts.pending_connection_description", {
+            name: contact?.firstName,
+          })}
         </p>
         <div class="flex justify-center">
           <Button
             moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
             on:click={async () => {
               try {
-                const inviteCode = await contact?.privateConversation?.inviteCodeForAgent(
-                  contact?.publicKeyB64,
-                );
-                if (!inviteCode) throw new Error("Failed to generate invite code");
+                const inviteCode =
+                  await contact?.privateConversation?.inviteCodeForAgent(
+                    contact?.publicKeyB64
+                  );
+                if (!inviteCode)
+                  throw new Error("Failed to generate invite code");
                 await copyToClipboard(inviteCode);
                 toast.success(`${$t("common.copy_success")}`);
               } catch (e) {
@@ -263,7 +301,12 @@
               }
             }}
           >
-            <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
+            <SvgIcon
+              icon="copy"
+              size="20"
+              color="%23FD3524"
+              moreClasses="mr-2"
+            />
             {$t("contacts.copy_invite_code")}
           </Button>
           {#if isMobile()}
@@ -271,17 +314,24 @@
               moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
               on:click={async () => {
                 try {
-                  const inviteCode = await contact?.privateConversation?.inviteCodeForAgent(
-                    contact?.publicKeyB64,
-                  );
-                  if (!inviteCode) throw new Error("Failed to generate invite code");
+                  const inviteCode =
+                    await contact?.privateConversation?.inviteCodeForAgent(
+                      contact?.publicKeyB64
+                    );
+                  if (!inviteCode)
+                    throw new Error("Failed to generate invite code");
                   await shareText(inviteCode);
                 } catch (e) {
                   toast.error(`${$t("common.share_code_error")}: ${e.message}`);
                 }
               }}
             >
-              <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
+              <SvgIcon
+                icon="copy"
+                size="20"
+                color="%23FD3524"
+                moreClasses="mr-2"
+              />
               <strong>{$t("contacts.share_invite_code")}</strong>
             </Button>
           {/if}
@@ -290,9 +340,15 @@
     {:else}
       <Button
         moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
-        on:click={() => goto(`/conversations/${contact?.privateConversation?.id}`)}
+        on:click={() =>
+          goto(`/conversations/${contact?.privateConversation?.id}`)}
       >
-        <SvgIcon icon="speechBubble" size="20" color="%23FD3524" moreClasses="mr-2" />
+        <SvgIcon
+          icon="speechBubble"
+          size="20"
+          color="%23FD3524"
+          moreClasses="mr-2"
+        />
         {$t("contacts.send_message")}
       </Button>
     {/if}
