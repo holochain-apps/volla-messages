@@ -103,7 +103,8 @@
         {$t("conversations.share_personal_invitations")}
       </p>
       <Button
-        on:click={() => goto(`/conversations/${conversation.data.id}/details`)}
+        on:click={() =>
+          goto(`/conversations/${conversation.data.dnaHashB64}/details`)}
         moreClasses="w-72 justify-center"
       >
         <SvgIcon
