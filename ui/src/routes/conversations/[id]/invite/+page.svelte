@@ -239,7 +239,7 @@
             </span>
             <div class="nowrap overflow-hidden text-ellipsis">
               <div class="text-md text-start">
-                {$t("conversations.add_contact_to_conversation_error")}
+                {$t("conversations.add_contact_to_conversation")}
               </div>
               <div class="pb-1 text-start text-xs font-light">
                 with {selectedContacts.map((c) => c.firstName).join(", ")}
