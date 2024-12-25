@@ -271,7 +271,7 @@
                 moreClasses="-ml-30"
               />
               <span class="ml-4 flex-1 text-sm"
-                >{makeFullName(contact.firstName, contact.lastName)}</span
+                >{makeFullName(contact.firstName || "", contact.lastName)}</span
               >
               <button
                 class="variant-filled-tertiary flex items-center justify-center rounded-2xl p-2 px-3 text-sm font-bold"

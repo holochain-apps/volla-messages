@@ -4,13 +4,14 @@ import {
   type DnaHashB64,
 } from "@holochain/client";
 import { writable, get, type Writable } from "svelte/store";
-import LocalStorageStore from "$store/LocalStorageStore";
 import { RelayStore } from "$store/RelayStore";
 import { type Contact } from "../types";
 import { makeFullName } from "$lib/utils";
+import { persisted, type Persisted } from "svelte-persisted-store";
 
 export class ContactStore {
   private contact: Writable<Contact>;
+  private privateConversationDnaHashB64: Persisted<DnaHashB64 | undefined>;
 
   constructor(
     public relayStore: RelayStore,
@@ -22,11 +23,9 @@ export class ContactStore {
     public publicKeyB64: AgentPubKeyB64,
     public dnaHashB64?: DnaHashB64 | undefined
   ) {
-    const privateConversationId = get(
-      LocalStorageStore(
-        `contact_${publicKeyB64}_private_conversation`,
-        dnaHashB64
-      )
+    this.privateConversationDnaHashB64 = persisted(
+      `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
+      dnaHashB64
     );
     this.contact = writable({
       avatar,
@@ -36,7 +35,7 @@ export class ContactStore {
       lastName,
       originalActionHash,
       publicKeyB64,
-      privateConversationId,
+      privateConversationDnaHashB64: get(this.privateConversationDnaHashB64),
     });
   }
 
@@ -53,17 +52,17 @@ export class ContactStore {
   }
 
   get privateConversation() {
-    return this.data.privateConversationId
-      ? this.relayStore.getConversation(this.data.privateConversationId)
+    return this.data.privateConversationDnaHashB64
+      ? this.relayStore.getConversation(this.data.privateConversationDnaHashB64)
       : null;
   }
 
   // Check if the contact has joined the private conversation between you yet
   get pendingConnection() {
     const conversationAgents =
-      this.data.privateConversationId &&
-      this.relayStore.getConversation(this.data.privateConversationId)?.data
-        .agentProfiles;
+      this.data.privateConversationDnaHashB64 &&
+      this.relayStore.getConversation(this.data.privateConversationDnaHashB64)
+        ?.data.agentProfiles;
     return conversationAgents && Object.keys(conversationAgents).length === 1;
   }
 

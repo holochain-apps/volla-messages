@@ -8,12 +8,12 @@ import {
   encodeHashToBase64,
   type ActionHashB64,
   type ActionHash,
+  type AgentPubKeyB64,
 } from "@holochain/client";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { derived, get, writable, type Writable } from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
 import { t } from "$translations";
-import LocalStorageStore from "$store/LocalStorageStore";
 import { RelayStore } from "$store/RelayStore";
 import {
   type Config,
@@ -36,13 +36,14 @@ import { fileToDataUrl, makeFullName } from "$lib/utils";
 import toast from "svelte-french-toast";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
+import { persisted, type Persisted } from "svelte-persisted-store";
 
 export class ConversationStore {
   public conversation: Writable<Conversation>;
   public history: MessageHistoryStore;
   public lastBucketLoaded: number = -1;
   public lastMessage: Writable<Message | null>;
-  public localDataStore: Writable<LocalConversationData>;
+  public localDataStore: Persisted<LocalConversationData>;
   private client;
   private fileStorageClient: FileStorageClient;
 
@@ -72,8 +73,8 @@ export class ConversationStore {
       agentProfiles: {},
       messages,
     });
-    this.localDataStore = LocalStorageStore<LocalConversationData>(
-      `conversation_${this.data.dnaHashB64}`,
+    this.localDataStore = persisted(
+      `CONVERSATION.${this.data.dnaHashB64}.LOCAL_DATA_STORE`,
       {
         archived: false,
         invitedContactKeys: [],
@@ -295,7 +296,10 @@ export class ConversationStore {
     } else if (numInvited === 1) {
       // Use full name of the one other person in the chat
       return this.allMembers[0]
-        ? makeFullName(this.allMembers[0].firstName, this.allMembers[0].lastName)
+        ? makeFullName(
+            this.allMembers[0].firstName,
+            this.allMembers[0].lastName
+          )
         : this.data?.config.title;
     } else if (numInvited === 2) {
       return this.allMembers.map((c) => c?.firstName).join(" & ");
@@ -569,12 +573,10 @@ export class ConversationStore {
   }
 
   // Invite more contacts to this private conversation
-  addContacts(invitedContacts: Contact[]) {
+  addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
     this.localDataStore.update((data) => ({
       ...data,
-      invitedContactKeys: this.invitedContactKeys.concat(
-        invitedContacts.map((c) => c.publicKeyB64)
-      ),
+      invitedContactKeys: [...this.invitedContactKeys, ...agentPubKeyB64s],
     }));
   }
 
