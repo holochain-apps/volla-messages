@@ -31,12 +31,12 @@
   let firstName = contact?.data.firstName || "";
   let lastName = contact?.data.lastName || "";
   let publicKeyB64 = agentPubKeyB64 || "";
-  let imageUrl = writable(contact?.data.avatar || "");
+  let imageUrl = contact?.data.avatar || "";
 
   let editing = !agentPubKeyB64 || creating;
   let pendingSave = false;
   let valid = false;
-  let error = writable("");
+  let error = "";
   let decodedPublicKey: HoloHash;
 
   $: contacts = relayStore.contacts;
@@ -45,26 +45,26 @@
       decodedPublicKey = decodeHashFromBase64(publicKeyB64);
       if (firstName.trim().length === 0 || publicKeyB64.trim().length === 0) {
         valid = false;
-        error.set("");
+        error = "";
       } else if (decodedPublicKey.length !== 39) {
         valid = false;
-        error.set($t("contacts.invalid_contact_code"));
+        error = $t("contacts.invalid_contact_code");
       } else if (
         !agentPubKeyB64 &&
         $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64)
       ) {
         valid = false;
-        error.set($t("contacts.contact_already_exist"));
+        error = $t("contacts.contact_already_exist");
       } else if (relayStore.client.myPubKeyB64 === publicKeyB64) {
         valid = false;
-        error.set($t("contacts.cant_add_yourself"));
+        error = $t("contacts.cant_add_yourself");
       } else {
         valid = true;
-        error.set("");
+        error = "";
       }
     } catch (e) {
       valid = false;
-      error.set($t("contacts.invalid_contact_code"));
+      error = $t("contacts.invalid_contact_code");
     }
   }
 
@@ -72,7 +72,7 @@
     pendingSave = true;
     try {
       const newContactData = {
-        avatar: get(imageUrl),
+        avatar: imageUrl,
         firstName,
         lastName,
         publicKeyB64,
@@ -98,7 +98,7 @@
       editing = false;
     } catch (e) {
       console.error(e);
-      error.set($tAny("contacts.error_saving", { updating: !!agentPubKeyB64 }));
+      error = $tAny("contacts.error_saving", { updating: !!agentPubKeyB64 });
       pendingSave = false;
     }
   }
@@ -107,6 +107,7 @@
     if (!agentPubKeyB64 || creating) {
       history.back();
     } else {
+      imageUrl = contact?.data.avatar || "";
       editing = false;
     }
   }
@@ -119,15 +120,15 @@
       accept="image/jpeg, image/png, image/gif"
       on:change={(event) => {
         editing = true;
-        imageUrl.set(event.detail);
+        imageUrl = event.detail;
       }}
     />
 
     <!-- Label styled as a big clickable icon -->
-    {#if $imageUrl}
+    {#if imageUrl}
       <div class="relative">
         <img
-          src={$imageUrl}
+          src={imageUrl}
           alt="Avatar"
           class="h-32 w-32 rounded-full object-cover"
         />
@@ -183,8 +184,8 @@
         bind:value={publicKeyB64}
         minlength={1}
       />
-      {#if !isEmpty($error)}
-        <p class="ml-1 mt-1 text-xs text-error-500">{$error}</p>
+      {#if !isEmpty(error)}
+        <p class="ml-1 mt-1 text-xs text-error-500">{error}</p>
       {/if}
       {#if !agentPubKeyB64}
         <p class="mb-4 mt-4 text-xs text-secondary-600 dark:text-tertiary-700">

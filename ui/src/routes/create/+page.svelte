@@ -16,15 +16,15 @@
     getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
-  let selectedContacts = writable<Contact[]>([]);
+  let selectedContacts: Contact[] = [];
   let search = "";
   let existingConversation: ConversationStore | undefined = undefined;
   let pendingCreate = false;
 
   const tAny = t as any;
 
-  selectedContacts.subscribe((value) => {
-    if (value.length > 0) {
+  $: {
+    if (selectedContacts.length > 0) {
       existingConversation = get(relayStore.conversations)
         .sort((a, b) =>
           b.privacy === Privacy.Private
@@ -35,15 +35,15 @@
         )
         .find(
           (c) =>
-            c.allMembers.length === value.length &&
+            c.allMembers.length === selectedContacts.length &&
             c.allMembers.every((k) =>
-              value.find((c) => c.publicKeyB64 === k.publicKeyB64)
+              selectedContacts.find((c) => c.publicKeyB64 === k.publicKeyB64)
             )
         );
     } else {
       existingConversation = undefined;
     }
-  });
+  }
 
   $: contacts = derived(relayStore.contacts, ($contacts) => {
     const test = search.trim().toLowerCase();
@@ -60,21 +60,19 @@
   function selectContact(publicKey: string) {
     const contact = $contacts.find((c) => c.data.publicKeyB64 === publicKey);
     if (contact) {
-      selectedContacts.update((currentContacts) => {
-        if (
-          currentContacts.find(
-            (c) => c.publicKeyB64 === contact.data.publicKeyB64
-          )
-        ) {
-          // If already selected then unselect
-          return currentContacts.filter(
-            (c) => c.publicKeyB64 !== contact.data.publicKeyB64
-          );
-        } else {
-          // otherwise select the contact
-          return [...currentContacts, contact];
-        }
-      });
+      if (
+        selectedContacts.find(
+          (c) => c.publicKeyB64 === contact.data.publicKeyB64
+        )
+      ) {
+        // If already selected then unselect
+        selectedContacts = selectedContacts.filter(
+          (c) => c.publicKeyB64 !== contact.data.publicKeyB64
+        );
+      } else {
+        // otherwise select the contact
+        selectedContacts = [...selectedContacts, contact];
+      }
     }
   }
 
@@ -87,20 +85,20 @@
     pendingCreate = true;
 
     const title =
-      $selectedContacts.length == 1
+      selectedContacts.length == 1
         ? makeFullName(
-            $selectedContacts[0].firstName,
-            $selectedContacts[0].lastName
+            selectedContacts[0].firstName,
+            selectedContacts[0].lastName
           )
-        : $selectedContacts.length == 2
-          ? $selectedContacts.map((c) => c.firstName).join(" & ")
-          : $selectedContacts.map((c) => c.firstName).join(", ");
+        : selectedContacts.length == 2
+          ? selectedContacts.map((c) => c.firstName).join(" & ")
+          : selectedContacts.map((c) => c.firstName).join(", ");
 
     const conversation = await relayStore.createConversation(
       title,
       "",
       Privacy.Private,
-      $selectedContacts
+      selectedContacts
     );
     if (conversation) {
       goto(`/conversations/${conversation.data.dnaHashB64}/details`);
@@ -196,7 +194,7 @@
             {contact.firstName[0].toUpperCase()}
           </p>
         {/if}
-        {@const selected = $selectedContacts.find(
+        {@const selected = selectedContacts.find(
           (c) => c.publicKeyB64 === contact.data.publicKeyB64
         )}
         <button
@@ -235,7 +233,7 @@
       {/each}
     </div>
 
-    {#if $selectedContacts.length > 0}
+    {#if selectedContacts.length > 0}
       <button
         class="max-w-2/3 bg-primary-500 fixed bottom-5 right-5 flex items-center justify-center rounded-full border-0 py-1 pl-2 pr-4 text-white"
         disabled={pendingCreate}
@@ -250,7 +248,7 @@
             color="%23FD3524"
             moreClasses="mr-1"
           />
-          {$selectedContacts.length}
+          {selectedContacts.length}
         </span>
         <div class="nowrap overflow-hidden text-ellipsis">
           <div class="text-md text-start">
@@ -259,7 +257,7 @@
             })}
           </div>
           <div class="pb-1 text-start text-xs font-light">
-            with {$selectedContacts.map((c) => c.firstName).join(", ")}
+            with {selectedContacts.map((c) => c.firstName).join(", ")}
           </div>
         </div>
       </button>

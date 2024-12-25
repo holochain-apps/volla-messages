@@ -29,7 +29,7 @@
   let menuOpen = 0;
   let isVisible = true;
 
-  let x = writable(0);
+  let x = 0;
   let dragThreshold = 10;
   let startX = 0;
   let isDragging = false;
@@ -52,11 +52,11 @@
       let resistance = 0.8;
       let resistedX = snapDistance + (currentX - snapDistance) * resistance;
 
-      x.set(resistedX);
+      x = resistedX;
 
       // Check if we've reached the actionDistance
       if (resistedX >= actionDistance) {
-        x.set(actionDistance);
+        x = actionDistance;
       }
     }
   }
@@ -74,7 +74,7 @@
     }
 
     // Animate to the target position
-    let start = $x;
+    let start = x;
     let startTime = performance.now();
 
     function animate(currentTime: number) {
@@ -86,10 +86,10 @@
           1 -
           Math.pow(2, -10 * progress) *
             Math.cos(((progress * 10 - 0.75) * Math.PI) / 3);
-        x.set(start + (targetX - start) * progress);
+        x = start + (targetX - start) * progress;
         requestAnimationFrame(animate);
       } else {
-        x.set(targetX);
+        x = targetX;
       }
     }
 
@@ -135,7 +135,7 @@
   function archiveConversation() {
     store.toggleArchived();
     isVisible = true;
-    x.set(0);
+    x = 0;
   }
 </script>
 
@@ -147,7 +147,7 @@
   >
     <button
       class={`bg-surface-100 hover:bg-tertiary-400 dark:bg-surface-900 dark:hover:bg-secondary-500 z-10 flex w-full min-w-0 flex-row items-center rounded-lg px-2 py-3 text-left transition-transform duration-300 ease-in-out ${isHovering && "bg-tertiary-400 dark:!bg-secondary-500"}`}
-      style="transform: translateX({-$x}px)"
+      style="transform: translateX({-x}px)"
       use:pan={{ delay: 10 }}
       on:pan={handlePan}
       on:pandown={handlePanStart}
@@ -261,7 +261,7 @@
           >{Object.values($conversation.agentProfiles).length}</span
         >
       </span>
-      {#if !isMobile() && isHovering && $x === 0}
+      {#if !isMobile() && isHovering && x === 0}
         <button
           class="z-10"
           on:click|preventDefault|stopPropagation={toggleMenu}
