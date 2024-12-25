@@ -18,20 +18,20 @@
 
   let firstName = "";
   let lastName = "";
-  $: avatarDataUrl = writable("");
+  let avatarDataUrl = "";
 
   $: {
     // Subscribe to the store and update local state
     ProfileCreateStore.subscribe(($profile) => {
       firstName = $profile.firstName;
       lastName = $profile.lastName;
-      $avatarDataUrl = $profile.avatar;
+      avatarDataUrl = $profile.avatar;
     });
   }
 
   async function createAccount() {
     try {
-      await relayClient.createProfile(firstName, lastName, $avatarDataUrl);
+      await relayClient.createProfile(firstName, lastName, avatarDataUrl);
       goto("/welcome");
     } catch (e) {
       toast.error(`${$t("common.create_account_error")}: ${e.message}`);
@@ -60,9 +60,9 @@
     for="avatarInput"
     class="file-icon-label bg-secondary-300 hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full"
   >
-    {#if $avatarDataUrl}
+    {#if avatarDataUrl}
       <img
-        src={$avatarDataUrl}
+        src={avatarDataUrl}
         alt="Avatar"
         class="h-32 w-32 rounded-full object-cover"
       />
