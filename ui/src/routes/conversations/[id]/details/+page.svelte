@@ -19,12 +19,11 @@
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
 
-  $: conversationId = $page.params.id;
   const relayStoreContext: { getStore: () => RelayStore } =
     getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   const myPublicKey64 = relayStore.client.myPubKeyB64;
-  $: conversation = relayStore.getConversation(conversationId);
+  $: conversation = relayStore.getConversation($page.params.id);
 
   // used for editing Group conversation details
   $: image = conversation ? conversation.data?.config.image : undefined;
@@ -57,7 +56,7 @@
   };
 </script>
 
-<Header backUrl={`/conversations/${conversationId}`}>
+<Header backUrl={`/conversations/${$page.params.id}`}>
   {#if conversation}
     <h1 class="flex-1 grow text-center">
       {#if conversation.data.privacy === Privacy.Public}{$t(

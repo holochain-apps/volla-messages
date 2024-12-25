@@ -235,11 +235,17 @@
     <h1
       class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center"
     >
-      <button on:click={() => goto(`details`)} class="w-full">
+      <button
+        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
+        class="w-full"
+      >
         {conversation.title}
       </button>
     </h1>
-    <button class="self-center pl-2" on:click={() => goto(`details`)}>
+    <button
+      class="self-center pl-2"
+      on:click={() => goto(`/conversations/${$page.params.id}/details`)}
+    >
       <SvgIcon
         icon="gear"
         size="18"
@@ -299,7 +305,10 @@
       <h1 class="b-1 break-all text-3xl">{conversation.title}</h1>
 
       <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
-      <button on:click={() => goto(`details`)} class="text-left text-sm">
+      <button
+        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
+        class="text-left text-sm"
+      >
         {$tAny("conversations.num_members", { count: numMembers })}
       </button>
 
