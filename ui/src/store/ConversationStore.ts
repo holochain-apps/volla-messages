@@ -8,7 +8,6 @@ import {
   encodeHashToBase64,
   type ActionHashB64,
   type ActionHash,
-  type DnaHashB64,
 } from "@holochain/client";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { derived, get, writable, type Writable } from "svelte/store";
@@ -56,7 +55,7 @@ export class ConversationStore {
     const messages: Messages = {};
 
     const currentBucket = this.currentBucket();
-    this.history = new MessageHistoryStore(currentBucket, this.cellId[0]);
+    this.history = new MessageHistoryStore(currentBucket, encodeHashToBase64(this.cellId[0]));
 
     this.conversation = writable({
       networkSeed,
@@ -298,9 +297,11 @@ export class ConversationStore {
     try {
       const newMessages: { [key: string]: Message } = this.data.messages;
       let bucket = this.history.getBucket(b);
-      bucket.ensureIsHashType();
-      const count = bucket.count;
-      const messageHashes = await this.client.getMessageHashes(this.data.dnaHashB64, b, count);
+      const messageHashes = await this.client.getMessageHashes(
+        this.data.dnaHashB64,
+        b,
+        bucket.count,
+      );
 
       const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
       const missingHashes = bucket.missingHashes(messageHashesB64);
