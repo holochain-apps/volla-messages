@@ -8,6 +8,7 @@ import {
   encodeHashToBase64,
   type ActionHashB64,
   type ActionHash,
+  type DnaHashB64,
 } from "@holochain/client";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { derived, get, writable, type Writable } from "svelte/store";
@@ -45,7 +46,7 @@ export class ConversationStore {
 
   constructor(
     public relayStore: RelayStore,
-    public id: string,
+    public networkSeed: string,
     public cellId: CellId,
     public config: Config,
     public created: number,
@@ -58,7 +59,8 @@ export class ConversationStore {
     this.history = new MessageHistoryStore(currentBucket, this.cellId[0]);
 
     this.conversation = writable({
-      id,
+      networkSeed,
+      dnaHashB64: encodeHashToBase64(cellId[0]),
       cellId,
       config,
       privacy,
@@ -66,11 +68,14 @@ export class ConversationStore {
       agentProfiles: {},
       messages,
     });
-    this.localDataStore = LocalStorageStore<LocalConversationData>(`conversation_${this.data.id}`, {
-      archived: false,
-      invitedContactKeys: [],
-      unread: false,
-    });
+    this.localDataStore = LocalStorageStore<LocalConversationData>(
+      `conversation_${this.data.dnaHashB64}`,
+      {
+        archived: false,
+        invitedContactKeys: [],
+        unread: false,
+      },
+    );
     this.lastMessage = writable(null);
     this.client = relayStore.client;
     this.fileStorageClient = new FileStorageClient(
@@ -113,7 +118,7 @@ export class ConversationStore {
   }
 
   async fetchAgents() {
-    const agentProfiles = await this.client.getAllAgents(this.data.id);
+    const agentProfiles = await this.client.getAllAgents(this.data.dnaHashB64);
     this.conversation.update((c) => {
       c.agentProfiles = { ...agentProfiles };
       return c;
@@ -134,7 +139,7 @@ export class ConversationStore {
     if (this.data.privacy === Privacy.Public) {
       const invitation: Invitation = {
         created: this.created,
-        networkSeed: this.data.id,
+        networkSeed: this.data.networkSeed,
         privacy: this.data.privacy,
         progenitor: this.data.progenitor,
         title: this.title,
@@ -151,7 +156,7 @@ export class ConversationStore {
       return this.publicInviteCode;
     }
     const proof = await this.relayStore.inviteAgentToConversation(
-      this.data.id,
+      this.data.dnaHashB64,
       decodeHashFromBase64(publicKeyB64),
     );
     if (proof !== undefined) {
@@ -168,7 +173,7 @@ export class ConversationStore {
         progenitor: this.data.progenitor,
         privacy: this.data.privacy,
         proof,
-        networkSeed: this.data.id,
+        networkSeed: this.data.networkSeed,
         title,
       };
       const msgpck = encode(invitation);
@@ -198,7 +203,7 @@ export class ConversationStore {
 
   private get open() {
     const { route, params } = get(page);
-    return route.id === "/conversations/[id]" && params.id === this.data.id;
+    return route.id === "/conversations/[id]" && params.id === this.data.dnaHashB64;
   }
 
   get unread() {
@@ -278,7 +283,7 @@ export class ConversationStore {
   }
 
   async getConfig() {
-    const config = await this.client._getConfig(this.data.id);
+    const config = await this.client._getConfig(this.data.cellId);
     if (config) {
       this.conversation.update((c) => {
         c.config = { ...config.entry };
@@ -295,7 +300,7 @@ export class ConversationStore {
       let bucket = this.history.getBucket(b);
       bucket.ensureIsHashType();
       const count = bucket.count;
-      const messageHashes = await this.client.getMessageHashes(this.data.id, b, count);
+      const messageHashes = await this.client.getMessageHashes(this.data.dnaHashB64, b, count);
 
       const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
       const missingHashes = bucket.missingHashes(messageHashesB64);
@@ -314,7 +319,7 @@ export class ConversationStore {
 
       if (hashesToLoad.length > 0) {
         const messageRecords: Array<MessageRecord> = await this.client.getMessageEntries(
-          this.data.id,
+          this.data.dnaHashB64,
           hashesToLoad,
         );
         if (hashesToLoad.length != messageRecords.length) {
@@ -430,7 +435,7 @@ export class ConversationStore {
         }),
     );
     const newMessageEntry = await this.client.sendMessage(
-      this.data.id,
+      this.data.dnaHashB64,
       content,
       bucket,
       imageStructs,
@@ -515,7 +520,7 @@ export class ConversationStore {
   }
 
   async updateConfig(config: Config) {
-    const cellAndConfig = this.relayStore.client.conversations[this.id];
+    const cellAndConfig = this.relayStore.client.conversations[this.data.dnaHashB64];
     await this.relayStore.client._setConfig(config, cellAndConfig.cell.cell_id);
     this.conversation.update((conversation) => ({ ...conversation, config }));
   }

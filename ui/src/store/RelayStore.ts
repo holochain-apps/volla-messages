@@ -9,6 +9,7 @@ import {
   encodeHashToBase64,
   type Signal,
   SignalType,
+  type DnaHashB64,
 } from "@holochain/client";
 import { ContactStore } from "./ContactStore";
 import { ConversationStore } from "./ConversationStore";
@@ -106,10 +107,9 @@ export class RelayStore {
     ) as Properties;
     const progenitor = decodeHashFromBase64(properties.progenitor);
     const privacy = properties.privacy;
-    const seed = convoCellAndConfig.cell.dna_modifiers.network_seed;
     const newConversation = new ConversationStore(
       this,
-      seed,
+      convoCellAndConfig.cell.dna_modifiers.network_seed,
       convoCellAndConfig.cell.cell_id,
       convoCellAndConfig.config,
       properties.created,
@@ -166,15 +166,17 @@ export class RelayStore {
     return null;
   }
 
-  async inviteAgentToConversation(conversationId: string, agent: AgentPubKey, role: number = 0) {
+  async inviteAgentToConversation(dnaHashB64: DnaHashB64, agent: AgentPubKey, role: number = 0) {
     if (!this.client) return;
-    return await this.client.inviteAgentToConversation(conversationId, agent, role);
+    return await this.client.inviteAgentToConversation(dnaHashB64, agent, role);
   }
 
-  getConversation(id: string): ConversationStore | undefined {
+  getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
     let foundConversation;
     this.conversations.subscribe((conversations) => {
-      foundConversation = conversations.find((conversation) => conversation.data.id === id);
+      foundConversation = conversations.find(
+        (conversation) => conversation.data.dnaHashB64 === dnaHashB64,
+      );
     })();
 
     return foundConversation;
@@ -237,7 +239,7 @@ export class RelayStore {
         contact.lastName,
         contactResult.signed_action.hashed.hash,
         contact.publicKeyB64,
-        conversation?.id,
+        conversation?.data.dnaHashB64,
       );
       this.contacts.update((contacts) => [...contacts, contactStore]);
       return contactStore;

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { decode } from "@msgpack/msgpack";
   import { Base64 } from "js-base64";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
@@ -11,10 +10,6 @@
   import { RelayClient } from "$store/RelayClient";
   import { RelayStore } from "$store/RelayStore";
   import type { Invitation } from "../../../types";
-
-  const relayClientContext: { getClient: () => RelayClient } =
-    getContext("relayClient");
-  let relayClient = relayClientContext.getClient();
 
   const relayStoreContext: { getStore: () => RelayStore } =
     getContext("relayStore");
@@ -31,7 +26,7 @@
       const invitation: Invitation = decode(msgpack) as Invitation;
       const conversation = await relayStore.joinConversation(invitation);
       if (conversation) {
-        goto(`/conversations/${conversation.data.id}`);
+        goto(`/conversations/${conversation.data.dnaHashB64}`);
         joining = false;
       } else {
         console.error(

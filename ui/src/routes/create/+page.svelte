@@ -79,7 +79,7 @@
 
   async function createConversation() {
     if (existingConversation) {
-      goto(`/conversations/${existingConversation.id}`);
+      goto(`/conversations/${existingConversation.data.dnaHashB64}`);
       return;
     }
 
@@ -99,7 +99,7 @@
       $selectedContacts
     );
     if (conversation) {
-      goto(`/conversations/${conversation.id}/details`);
+      goto(`/conversations/${conversation.data.dnaHashB64}/details`);
     }
     pendingCreate = false;
   }
