@@ -630,6 +630,16 @@
                                 <div
                                   class="bg-surface-800/10 flex w-auto flex-row items-start gap-3 rounded-xl p-3"
                                 >
+                                  {#if !fromMe}
+                                    <div class="flex flex-shrink-0 items-center justify-center">
+                                      <PdfThumbnail
+                                        pdfDataUrl={file.dataURL ?? ""}
+                                        width={70}
+                                        height={90}
+                                        fallbackIcon="pdf"
+                                      />
+                                    </div>
+                                  {/if}
                                   <div class="min-w-0 flex-grow">
                                     <div class="break-all text-sm sm:text-base">
                                       {isMobile()
@@ -640,33 +650,46 @@
                                       {prettyBytes(file.size)}
                                     </div>
                                   </div>
-                                  <div class="flex-shrink-0">
-                                    <PdfThumbnail
-                                      pdfDataUrl={file.dataURL ?? ""}
-                                      width={70}
-                                      height={90}
-                                      fallbackIcon="pdf"
-                                    />
-                                  </div>
+                                  {#if fromMe}
+                                    <div class="flex flex-shrink-0 items-center justify-center">
+                                      <PdfThumbnail
+                                        pdfDataUrl={file.dataURL ?? ""}
+                                        width={70}
+                                        height={90}
+                                        fallbackIcon="pdf"
+                                      />
+                                    </div>
+                                  {/if}
                                 </div>
                                 <!-- Display icons for other file types -->
                               {:else}
                                 <div
                                   class="bg-surface-800/10 flex w-auto flex-row items-start gap-3 rounded-xl p-3"
                                 >
+                                  {#if !fromMe}
+                                    <div class="flex flex-shrink-0 items-center justify-center">
+                                      <SvgIcon
+                                        icon={formatFileIcon(file)}
+                                        color={$modeCurrent ? "black" : "white"}
+                                        size="50"
+                                      />
+                                    </div>
+                                  {/if}
                                   <div class="min-w-0 flex-grow">
                                     <div class="break-all text-sm sm:text-base">{file.name}</div>
                                     <div class="mt-1 text-xs font-bold text-yellow-400 sm:text-sm">
                                       {prettyBytes(file.size)}
                                     </div>
                                   </div>
-                                  <div class="flex flex-shrink-0 items-center justify-center">
-                                    <SvgIcon
-                                      icon={formatFileIcon(file)}
-                                      color={$modeCurrent ? "black" : "white"}
-                                      size="50"
-                                    />
-                                  </div>
+                                  {#if fromMe}
+                                    <div class="flex flex-shrink-0 items-center justify-center">
+                                      <SvgIcon
+                                        icon={formatFileIcon(file)}
+                                        color={$modeCurrent ? "black" : "white"}
+                                        size="50"
+                                      />
+                                    </div>
+                                  {/if}
                                 </div>
                               {/if}
                             </div>
@@ -832,7 +855,7 @@
                   <SvgIcon
                     icon={formatFileIcon(file)}
                     color={$modeCurrent ? "black" : "white"}
-                    size="30"
+                    size="50"
                   />
                 </div>
               </div>
