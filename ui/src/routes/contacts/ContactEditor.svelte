@@ -2,12 +2,7 @@
   import { isEmpty } from "lodash-es";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
-  import { writable, get } from "svelte/store";
-  import {
-    decodeHashFromBase64,
-    type AgentPubKeyB64,
-    type HoloHash,
-  } from "@holochain/client";
+  import { decodeHashFromBase64, type AgentPubKeyB64, type HoloHash } from "@holochain/client";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
@@ -16,22 +11,22 @@
   import { RelayStore } from "$store/RelayStore";
   import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
+  import { get } from "svelte/store";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   export let agentPubKeyB64: AgentPubKeyB64 | null = null;
   export let creating = false;
 
-  let contact = agentPubKeyB64 ? relayStore.getContact(agentPubKeyB64) : null;
-  let firstName = contact?.data.firstName || "";
-  let lastName = contact?.data.lastName || "";
+  let contact = agentPubKeyB64 ? relayStore.getContact(agentPubKeyB64) : undefined;
+  let firstName = $contact?.firstName || "";
+  let lastName = $contact?.lastName || "";
   let publicKeyB64 = agentPubKeyB64 || "";
-  let imageUrl = contact?.data.avatar || "";
+  let imageUrl = $contact?.avatar || "";
 
   let editing = !agentPubKeyB64 || creating;
   let pendingSave = false;
@@ -49,10 +44,7 @@
       } else if (decodedPublicKey.length !== 39) {
         valid = false;
         error = $t("contacts.invalid_contact_code");
-      } else if (
-        !agentPubKeyB64 &&
-        $contacts.find((c) => c.data.publicKeyB64 === publicKeyB64)
-      ) {
+      } else if (!agentPubKeyB64 && contacts.find((c) => get(c).publicKeyB64 === publicKeyB64)) {
         valid = false;
         error = $t("contacts.contact_already_exist");
       } else if (relayStore.client.myPubKeyB64 === publicKeyB64) {
@@ -77,21 +69,19 @@
         lastName,
         publicKeyB64,
       };
-      const newContact = contact
-        ? await relayStore.updateContact({ ...contact, ...newContactData })
+      const newContact = $contact
+        ? await relayStore.updateContact({ ...$contact, ...newContactData })
         : await relayStore.createContact(newContactData);
       if (newContact) {
         if (!agentPubKeyB64) {
-          if (newContact.privateConversation) {
-            return goto(
-              `/conversations/${newContact.privateConversation?.data.dnaHashB64}`
-            );
+          if (newContact.getPrivateConversation()) {
+            return goto(`/conversations/${newContact.getPrivateConversation()?.data.dnaHashB64}`);
           } else {
             // XXX: this shouldn't happen, but is a backup if the private conversation doesn't get created for some reason
-            goto(`/contacts/${newContact.publicKeyB64}`);
+            goto(`/contacts/${get(newContact).publicKeyB64}`);
           }
         }
-        agentPubKeyB64 = newContact.publicKeyB64;
+        agentPubKeyB64 = get(newContact).publicKeyB64;
         contact = newContact;
       }
       pendingSave = false;
@@ -107,7 +97,7 @@
     if (!agentPubKeyB64 || creating) {
       history.back();
     } else {
-      imageUrl = contact?.data.avatar || "";
+      imageUrl = $contact?.avatar || "";
       editing = false;
     }
   }
@@ -127,11 +117,7 @@
     <!-- Label styled as a big clickable icon -->
     {#if imageUrl}
       <div class="relative">
-        <img
-          src={imageUrl}
-          alt="Avatar"
-          class="h-32 w-32 rounded-full object-cover"
-        />
+        <img src={imageUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
         <label
           for="avatarInput"
           class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-0 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
@@ -144,11 +130,7 @@
         for="avatarInput"
         class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
       >
-        <SvgIcon
-          icon="image"
-          size="44"
-          color={$modeCurrent ? "%232e2e2e" : "white"}
-        />
+        <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
       </label>
     {/if}
   </div>
@@ -211,38 +193,30 @@
         disabled={!valid || pendingSave}
       >
         <strong class=""
-          >{#if agentPubKeyB64}{$t("common.save")}{:else}{$t(
-              "common.done"
-            )}{/if}</strong
+          >{#if agentPubKeyB64}{$t("common.save")}{:else}{$t("common.done")}{/if}</strong
         >
       </Button>
     </footer>
   {:else}
     <div class="flex flex-1 flex-col items-center">
       <div class="flex flex-row justify-center">
-        <h1 class="mr-2 flex-shrink-0 text-3xl">{contact?.name}</h1>
+        <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.name}</h1>
 
         <button on:click={() => (editing = true)}>
-          <SvgIcon
-            icon="write"
-            size="24"
-            color="gray"
-            moreClasses="cursor-pointer"
-          />
+          <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
         </button>
       </div>
       <div class="mt-2 flex items-center justify-center">
         <span
           class="text-secondary-400 dark:text-tertiary-700 mr-1 w-64 overflow-hidden text-ellipsis text-nowrap"
         >
-          {contact?.publicKeyB64}
+          {$contact?.publicKeyB64}
         </span>
         <button
           on:click={async () => {
             try {
-              if (!contact?.publicKeyB64)
-                throw new Error("Contact Public Key not found");
-              await copyToClipboard(contact.publicKeyB64);
+              if (!$contact?.publicKeyB64) throw new Error("Contact Public Key not found");
+              await copyToClipboard($contact.publicKeyB64);
               toast.success(`${$t("common.copy_success")}`);
             } catch (e) {
               toast.error(`${$t("common.copy_error")}: ${e.message}`);
@@ -255,9 +229,8 @@
           <button
             on:click={async () => {
               try {
-                if (!contact?.publicKeyB64)
-                  throw new Error("Contact Pub Key not found");
-                await shareText(contact.publicKeyB64);
+                if (!$contact?.publicKeyB64) throw new Error("Contact Pub Key not found");
+                await shareText($contact.publicKeyB64);
               } catch (e) {
                 toast.error(`${$t("common.share_code_error")}: ${e.message}`);
               }
@@ -269,25 +242,17 @@
       </div>
     </div>
 
-    {#if contact?.pendingConnection}
+    {#if contact?.getIsPendingConnection()}
       <div
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
       >
-        <SvgIcon
-          icon="handshake"
-          size="36"
-          color={$modeCurrent ? "%23232323" : "white"}
-        />
-        <h1
-          class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold"
-        >
+        <SvgIcon icon="handshake" size="36" color={$modeCurrent ? "%23232323" : "white"} />
+        <h1 class="mt-2 text-xl font-bold text-secondary-500 dark:text-tertiary-100">
           {$t("contacts.pending_connection_header")}
         </h1>
-        <p
-          class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm"
-        >
+        <p class="mb-6 mt-4 text-center text-sm text-secondary-400 dark:text-tertiary-700">
           {$tAny("contacts.pending_connection_description", {
-            name: contact?.firstName,
+            name: $contact?.firstName,
           })}
         </p>
         <div class="flex justify-center">
@@ -295,12 +260,12 @@
             moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
             on:click={async () => {
               try {
-                const inviteCode =
-                  await contact?.privateConversation?.inviteCodeForAgent(
-                    contact?.publicKeyB64
-                  );
-                if (!inviteCode)
-                  throw new Error("Failed to generate invite code");
+                if (!$contact?.publicKeyB64) throw new Error();
+
+                const inviteCode = await contact
+                  ?.getPrivateConversation()
+                  ?.inviteCodeForAgent($contact?.publicKeyB64);
+                if (!inviteCode) throw new Error("Failed to generate invite code");
                 await copyToClipboard(inviteCode);
                 toast.success(`${$t("common.copy_success")}`);
               } catch (e) {
@@ -308,12 +273,7 @@
               }
             }}
           >
-            <SvgIcon
-              icon="copy"
-              size="20"
-              color="%23FD3524"
-              moreClasses="mr-2"
-            />
+            <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
             {$t("contacts.copy_invite_code")}
           </Button>
           {#if isMobile()}
@@ -321,24 +281,19 @@
               moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
               on:click={async () => {
                 try {
-                  const inviteCode =
-                    await contact?.privateConversation?.inviteCodeForAgent(
-                      contact?.publicKeyB64
-                    );
-                  if (!inviteCode)
-                    throw new Error("Failed to generate invite code");
+                  if (!$contact?.publicKeyB64) throw new Error();
+
+                  const inviteCode = await contact
+                    ?.getPrivateConversation()
+                    ?.inviteCodeForAgent($contact?.publicKeyB64);
+                  if (!inviteCode) throw new Error("Failed to generate invite code");
                   await shareText(inviteCode);
                 } catch (e) {
                   toast.error(`${$t("common.share_code_error")}: ${e.message}`);
                 }
               }}
             >
-              <SvgIcon
-                icon="copy"
-                size="20"
-                color="%23FD3524"
-                moreClasses="mr-2"
-              />
+              <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
               <strong>{$t("contacts.share_invite_code")}</strong>
             </Button>
           {/if}
@@ -348,16 +303,9 @@
       <Button
         moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
         on:click={() =>
-          goto(
-            `/conversations/${contact?.privateConversation?.data.dnaHashB64}`
-          )}
+          goto(`/conversations/${contact?.getPrivateConversation()?.data.dnaHashB64}`)}
       >
-        <SvgIcon
-          icon="speechBubble"
-          size="20"
-          color="%23FD3524"
-          moreClasses="mr-2"
-        />
+        <SvgIcon icon="speechBubble" size="20" color="%23FD3524" moreClasses="mr-2" />
         {$t("contacts.send_message")}
       </Button>
     {/if}

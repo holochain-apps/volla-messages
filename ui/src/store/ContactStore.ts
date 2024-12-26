@@ -3,72 +3,78 @@ import {
   type AgentPubKeyB64,
   type DnaHashB64,
 } from "@holochain/client";
-import { writable, get, type Writable } from "svelte/store";
+import {
+  writable,
+  get,
+  derived,
+  type Invalidator,
+  type Subscriber,
+  type Unsubscriber,
+} from "svelte/store";
 import { RelayStore } from "$store/RelayStore";
-import { type Contact } from "../types";
 import { makeFullName } from "$lib/utils";
-import { persisted, type Persisted } from "svelte-persisted-store";
+import { persisted } from "svelte-persisted-store";
+import type { ConversationStore } from "./ConversationStore";
+import type { Contact, ContactExtended } from "../types";
 
-export class ContactStore {
-  private contact: Writable<Contact>;
-  private privateConversationDnaHashB64: Persisted<DnaHashB64 | undefined>;
+export interface ContactStore {
+  getPrivateConversation: () => ConversationStore | undefined;
+  getIsPendingConnection: () => boolean | undefined;
+  subscribe: (
+    this: void,
+    run: Subscriber<ContactExtended>,
+    invalidate?: Invalidator<ContactExtended> | undefined
+  ) => Unsubscriber;
+}
 
-  constructor(
-    public relayStore: RelayStore,
-    public avatar: string,
-    public currentActionHash: ActionHash | undefined,
-    public firstName: string,
-    public lastName: string,
-    public originalActionHash: ActionHash | undefined,
-    public publicKeyB64: AgentPubKeyB64,
-    public dnaHashB64?: DnaHashB64 | undefined
-  ) {
-    this.privateConversationDnaHashB64 = persisted(
-      `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
-      dnaHashB64
-    );
-    this.contact = writable({
-      avatar,
-      confirmed: false,
-      currentActionHash,
-      firstName,
-      lastName,
-      originalActionHash,
-      publicKeyB64,
-      privateConversationDnaHashB64: get(this.privateConversationDnaHashB64),
-    });
-  }
+export function createContactStore(
+  relayStore: RelayStore,
+  avatar: string,
+  currentActionHash: ActionHash | undefined,
+  firstName: string,
+  lastName: string,
+  originalActionHash: ActionHash | undefined,
+  publicKeyB64: AgentPubKeyB64,
+  dnaHashB64?: DnaHashB64 | undefined
+) {
+  const privateConversationDnaHashB64 = persisted(
+    `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
+    dnaHashB64
+  );
+  const contact = writable<Contact>({
+    avatar,
+    currentActionHash,
+    firstName,
+    lastName,
+    originalActionHash,
+    publicKeyB64,
+    privateConversationDnaHashB64: get(privateConversationDnaHashB64),
+  });
+  const { subscribe } = derived<typeof contact, ContactExtended>(
+    contact,
+    ($contact) => ({
+      ...$contact,
+      name: makeFullName($contact.firstName, $contact.lastName),
+    })
+  );
 
-  subscribe(run: any) {
-    return this.contact.subscribe(run);
-  }
+  function getPrivateConversation() {
+    const val = get(privateConversationDnaHashB64);
+    if (val === undefined) return undefined;
 
-  get data() {
-    return get(this.contact);
-  }
-
-  get name() {
-    return makeFullName(this.data.firstName, this.data.lastName);
-  }
-
-  get privateConversation() {
-    return this.data.privateConversationDnaHashB64
-      ? this.relayStore.getConversation(this.data.privateConversationDnaHashB64)
-      : null;
+    return relayStore.getConversation(val);
   }
 
   // Check if the contact has joined the private conversation between you yet
-  get pendingConnection() {
-    const conversationAgents =
-      this.data.privateConversationDnaHashB64 &&
-      this.relayStore.getConversation(this.data.privateConversationDnaHashB64)
-        ?.data.agentProfiles;
+  function getIsPendingConnection() {
+    const privateConversation = getPrivateConversation();
+    const conversationAgents = privateConversation?.data.agentProfiles;
     return conversationAgents && Object.keys(conversationAgents).length === 1;
   }
 
-  update(newData: any) {
-    this.contact.update((c) => {
-      return { ...c, ...newData };
-    });
-  }
+  return {
+    getPrivateConversation,
+    getIsPendingConnection,
+    subscribe,
+  };
 }

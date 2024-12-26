@@ -5,9 +5,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { RelayClient } from "$store/RelayClient";
   import { RelayStore } from "$store/RelayStore";
   import type { Invitation } from "../../../types";
 
