@@ -2,7 +2,6 @@
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { derived, get } from "svelte/store";
-  import { goto } from "$app/navigation";
   import { t } from "$translations";
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";

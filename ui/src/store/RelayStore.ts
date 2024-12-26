@@ -11,7 +11,7 @@ import {
   SignalType,
   type DnaHashB64,
 } from "@holochain/client";
-import { ContactStore } from "./ContactStore";
+import { type ContactStore, createContactStore } from "./ContactStore";
 import { ConversationStore } from "./ConversationStore";
 import { RelayClient } from "$store/RelayClient";
 import type {
@@ -27,16 +27,11 @@ import { Privacy } from "../types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
 
 export class RelayStore {
-  public contacts: Writable<ContactStore[]>;
+  public contacts: ContactStore[] = [];
   public conversations: Writable<ConversationStore[]>;
 
   constructor(public client: RelayClient) {
-    this.contacts = writable([]);
     this.conversations = writable([]);
-  }
-
-  get contactData() {
-    return get(this.contacts);
   }
 
   get conversationsData() {
@@ -196,10 +191,10 @@ export class RelayStore {
   /***** Contacts ******/
   async fetchAllContacts() {
     const contactRecords = await this.client.getAllContacts();
-    this.contacts.set(
+    this.contacts = 
       contactRecords.map((contactRecord: any) => {
         const contact = contactRecord.contact;
-        return new ContactStore(
+        return createContactStore(
           this,
           contact.avatar,
           contactRecord.signed_action.hashed.hash,
@@ -208,8 +203,7 @@ export class RelayStore {
           contactRecord.original_action,
           encodeHashToBase64(contact.public_key),
         );
-      }),
-    );
+      });
   }
 
   async createContact(contact: Contact) {
@@ -231,7 +225,7 @@ export class RelayStore {
           [contact.publicKeyB64],
         );
       }
-      const contactStore = new ContactStore(
+      const contactStore = createContactStore(
         this,
         contact.avatar,
         contactResult.signed_action.hashed.hash,
@@ -241,7 +235,7 @@ export class RelayStore {
         contact.publicKeyB64,
         conversation?.data.dnaHashB64,
       );
-      this.contacts.update((contacts) => [...contacts, contactStore]);
+      this.contacts = [...this.contacts, contactStore];
       return contactStore;
     }
   }
@@ -250,7 +244,7 @@ export class RelayStore {
     if (!this.client) return false;
     const contactResult = await this.client.updateContact(contact);
     if (contactResult) {
-      const contactStore = new ContactStore(
+      const contactStore = createContactStore(
         this,
         contact.avatar,
         contactResult.signed_action.hashed.hash,
@@ -259,21 +253,16 @@ export class RelayStore {
         contact.originalActionHash,
         contact.publicKeyB64,
       );
-      this.contacts.update((contacts) => [
-        ...contacts.filter((c) => c.publicKeyB64 !== contact.publicKeyB64),
+      this.contacts = [
+        ...this.contacts.filter((c) => get(c).publicKeyB64 !== contact.publicKeyB64),
         contactStore,
-      ]);
+      ];
       return contactStore;
     }
     return false;
   }
 
   getContact(publicKey: AgentPubKeyB64): ContactStore | undefined {
-    let foundContact;
-    this.contacts.subscribe((contacts) => {
-      foundContact = contacts.find((contact) => contact.data.publicKeyB64 === publicKey);
-    })();
-
-    return foundContact;
+    return this.contacts.find((c) => get(c).publicKeyB64 === publicKey);
   }
 }

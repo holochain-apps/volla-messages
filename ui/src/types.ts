@@ -75,6 +75,17 @@ export interface Contact {
   publicKeyB64: AgentPubKeyB64;
 }
 
+export interface ContactExtended {
+  currentActionHash?: ActionHash;
+  originalActionHash?: ActionHash;
+  avatar: string;
+  privateConversationDnaHashB64?: DnaHashB64;
+  firstName: string;
+  lastName: string;
+  name: string;
+  publicKeyB64: AgentPubKeyB64;
+}
+
 export interface MessageInput {
   content: string;
   bucket: number;
