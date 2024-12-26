@@ -1,7 +1,6 @@
 <script lang="ts">
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
-  import { writable, get } from "svelte/store";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";

@@ -21,6 +21,7 @@
   import ConversationEmpty from "./ConversationEmpty.svelte";
   import ConversationMembers from "./ConversationMembers.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
+  import { get } from 'svelte/store';
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -31,7 +32,6 @@
   let myPubKeyB64 = relayStore.client.myPubKeyB64;
 
   $: conversation = relayStore.getConversation($page.params.id);
-  $: contacts = relayStore.contacts;
 
   let agentProfiles: { [key: AgentPubKeyB64]: Profile } = {};
   let numMembers = 0;
@@ -146,20 +146,14 @@
           return;
         }
 
-        const contact = $contacts.find(
-          (c) => c.publicKeyB64 === message.authorKey
+        const contact = relayStore.contacts.find(
+          (c) => get(c).publicKeyB64 === message.authorKey
         );
 
         const displayMessage = {
           ...message,
-          author:
-            contact?.firstName ||
-            ($value as Conversation).agentProfiles[message.authorKey].fields
-              .firstName,
-          avatar:
-            contact?.avatar ||
-            ($value as Conversation).agentProfiles[message.authorKey].fields
-              .avatar,
+          author: contact ? get(contact).firstName : ($value as Conversation).agentProfiles[message.authorKey].fields.firstName,
+          avatar: contact ? get(contact).avatar : ($value as Conversation).agentProfiles[message.authorKey].fields.avatar,
         };
 
         if (
