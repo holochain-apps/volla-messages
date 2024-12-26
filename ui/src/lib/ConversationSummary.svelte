@@ -2,12 +2,7 @@
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { slide } from "svelte/transition";
   import { quintOut } from "svelte/easing";
-  import {
-    pan,
-    type PanCustomEvent,
-    type GestureCustomEvent,
-  } from "svelte-gestures";
-  import { writable } from "svelte/store";
+  import { pan, type PanCustomEvent } from "svelte-gestures";
   import Avatar from "./Avatar.svelte";
   import SvgIcon from "./SvgIcon.svelte";
   import { t } from "$translations";
@@ -17,15 +12,17 @@
   import { goto } from "$app/navigation";
   import DOMPurify from "dompurify";
 
-  export let store: ConversationStore;
-  $: conversation = store.conversation;
-  $: unread = store.unread;
-  $: lastMessage = store.lastMessage;
-  $: lastMessageAuthor = $lastMessage
-    ? $conversation.agentProfiles[$lastMessage.authorKey]?.fields.firstName
+  export let conversationStore: ConversationStore;
+  $: conversation = $conversationStore.conversation;
+  $: unread = $conversationStore.unread;
+  $: archived = $conversationStore.archived;
+  $: lastMessage = $conversationStore.lastMessage;
+  $: lastMessageAuthor = lastMessage
+    ? conversation.agentProfiles[lastMessage.authorKey]?.fields.firstName
     : null;
-  $: allMembers = store.allMembers;
-  $: joinedMembers = store.memberList();
+
+  let allMembers = conversationStore.getAllMembers();
+  let joinedMembers = conversationStore.getMemberList();
 
   const tAny = t as any;
 
@@ -112,7 +109,7 @@
       e.preventDefault();
       e.stopPropagation();
     } else {
-      goto(`/conversations/${$conversation.dnaHashB64}`);
+      goto(`/conversations/${conversation.dnaHashB64}`);
     }
   }
 
@@ -137,7 +134,7 @@
   }
 
   function archiveConversation() {
-    store.toggleArchived();
+    conversationStore.toggleArchived();
     isVisible = true;
     x = 0;
   }
@@ -163,7 +160,7 @@
       on:mouseleave={handleLeave}
       on:blur={handleLeave}
     >
-      {#if $conversation.privacy === Privacy.Private}
+      {#if conversation.privacy === Privacy.Private}
         <div class="relative flex items-center justify-center">
           {#if allMembers.length == 0}
             <!-- When you join a private conversation and it has not synced yet -->
@@ -211,9 +208,9 @@
             </div>
           {/if}
         </div>
-      {:else if $conversation.config.image}
+      {:else if conversation.config.image}
         <img
-          src={$conversation.config.image}
+          src={conversation.config.image}
           alt="Conversation"
           class="h-10 w-10 rounded-full object-cover"
         />
@@ -228,7 +225,7 @@
         class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden"
         class:unread
       >
-        <span class="text-base">{store.title}</span>
+        <span class="text-base">{conversationStore.getTitle()}</span>
         <span
           class="flex min-w-0 items-center overflow-hidden text-ellipsis text-nowrap text-xs"
         >
@@ -236,17 +233,17 @@
             <span class="bg-primary-500 mr-2 inline-block h-2 w-2 rounded-full"
             ></span>
           {/if}
-          {#if $conversation.privacy === Privacy.Private && joinedMembers.length === 0 && allMembers.length === 1}
+          {#if conversation.privacy === Privacy.Private && joinedMembers.length === 0 && allMembers.length === 1}
             <span class="text-secondary-400"
               >{$t("conversations.unconfirmed")}</span
             >
-          {:else if $lastMessage}
+          {:else if lastMessage}
             {lastMessageAuthor || ""}:&nbsp;
-            {@html DOMPurify.sanitize($lastMessage.content || "")}
-            {#if $lastMessage.images.length > 0}
+            {@html DOMPurify.sanitize(lastMessage.content || "")}
+            {#if lastMessage.images.length > 0}
               &nbsp;<span class="text-secondary-400 italic"
                 >({$tAny("conversations.images", {
-                  count: $lastMessage.images.length,
+                  count: lastMessage.images.length,
                 })})</span
               >
             {/if}
@@ -262,7 +259,7 @@
           color={$modeCurrent ? "#aaa" : "#ccc"}
         />
         <span class="ml-1"
-          >{Object.values($conversation.agentProfiles).length}</span
+          >{Object.values(conversation.agentProfiles).length}</span
         >
       </span>
       {#if !isMobile() && isHovering && x === 0}
@@ -285,7 +282,7 @@
     >
       <!-- <div class="flex flex-1 items-center justify-start ml-1  rounded-lg bg-secondary-500">Mark as Unread</div> -->
       <div
-        class="mr-1 flex flex-1 items-center justify-end rounded-lg {store.archived
+        class="mr-1 flex flex-1 items-center justify-end rounded-lg {archived
           ? 'bg-secondary-900'
           : 'bg-primary-500'}"
       >
@@ -295,7 +292,7 @@
         >
           <SvgIcon icon="archive" size="20" color="white" moreClasses="" />
           <span class="text-xs"
-            >{store.archived
+            >{archived
               ? $t("conversations.restore")
               : $t("conversations.archive")}</span
           >
@@ -324,7 +321,7 @@
           moreClasses="mr-2"
         />
         <span class="text-xs"
-          >{store.archived
+          >{archived
             ? $t("conversations.restore")
             : $t("conversations.archive")}</span
         >

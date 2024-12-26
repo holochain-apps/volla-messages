@@ -74,8 +74,9 @@
         : await relayStore.createContact(newContactData);
       if (newContact) {
         if (!agentPubKeyB64) {
-          if (newContact.getPrivateConversation()) {
-            return goto(`/conversations/${newContact.getPrivateConversation()?.data.dnaHashB64}`);
+          const conversationStore = newContact.getPrivateConversation();
+          if (conversationStore) {
+            return goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
           } else {
             // XXX: this shouldn't happen, but is a backup if the private conversation doesn't get created for some reason
             goto(`/contacts/${get(newContact).publicKeyB64}`);
@@ -94,10 +95,13 @@
   }
 
   function cancel() {
+    imageUrl = $contact?.avatar || "";
+    firstName = $contact?.firstName || "";
+    lastName = $contact?.lastName || "";
+
     if (!agentPubKeyB64 || creating) {
       history.back();
     } else {
-      imageUrl = $contact?.avatar || "";
       editing = false;
     }
   }
@@ -167,10 +171,10 @@
         minlength={1}
       />
       {#if !isEmpty(error)}
-        <p class="ml-1 mt-1 text-xs text-error-500">{error}</p>
+        <p class="text-error-500 ml-1 mt-1 text-xs">{error}</p>
       {/if}
       {#if !agentPubKeyB64}
-        <p class="mb-4 mt-4 text-xs text-secondary-600 dark:text-tertiary-700">
+        <p class="text-secondary-600 dark:text-tertiary-700 mb-4 mt-4 text-xs">
           {$t("contacts.request_contact_code")}
         </p>
       {/if}
@@ -247,10 +251,10 @@
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
       >
         <SvgIcon icon="handshake" size="36" color={$modeCurrent ? "%23232323" : "white"} />
-        <h1 class="mt-2 text-xl font-bold text-secondary-500 dark:text-tertiary-100">
+        <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
           {$t("contacts.pending_connection_header")}
         </h1>
-        <p class="mb-6 mt-4 text-center text-sm text-secondary-400 dark:text-tertiary-700">
+        <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
           {$tAny("contacts.pending_connection_description", {
             name: $contact?.firstName,
           })}
@@ -264,7 +268,7 @@
 
                 const inviteCode = await contact
                   ?.getPrivateConversation()
-                  ?.inviteCodeForAgent($contact?.publicKeyB64);
+                  ?.makeInviteCodeForAgent($contact?.publicKeyB64);
                 if (!inviteCode) throw new Error("Failed to generate invite code");
                 await copyToClipboard(inviteCode);
                 toast.success(`${$t("common.copy_success")}`);
@@ -285,7 +289,7 @@
 
                   const inviteCode = await contact
                     ?.getPrivateConversation()
-                    ?.inviteCodeForAgent($contact?.publicKeyB64);
+                    ?.makeInviteCodeForAgent($contact?.publicKeyB64);
                   if (!inviteCode) throw new Error("Failed to generate invite code");
                   await shareText(inviteCode);
                 } catch (e) {
@@ -302,8 +306,12 @@
     {:else}
       <Button
         moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
-        on:click={() =>
-          goto(`/conversations/${contact?.getPrivateConversation()?.data.dnaHashB64}`)}
+        on:click={() => {
+          const conversationStore = contact?.getPrivateConversation();
+          if (conversationStore) {
+            goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
+          }
+        }}
       >
         <SvgIcon icon="speechBubble" size="20" color="%23FD3524" moreClasses="mr-2" />
         {$t("contacts.send_message")}

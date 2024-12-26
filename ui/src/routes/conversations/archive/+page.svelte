@@ -8,21 +8,30 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let search = "";
 
-  $: conversations = derived(relayStore.conversations, ($value) => {
-    return $value
-      .filter(
-        (c) =>
+  $: conversationStores = derived(relayStore.conversations, ($conversations) =>
+    $conversations
+      .filter((c) => {
+        const conversationStore = relayStore.conversations.find(
+          (conversationStore) =>
+            get(conversationStore).conversation.dnaHashB64 === c.conversation.dnaHashB64,
+        );
+        if (!conversationStore) return false;
+
+        return (
           c.archived &&
-          c.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())
-      )
-      .sort((a, b) => get(b.lastActivityAt) - get(a.lastActivityAt));
-  });
+          conversationStore.getTitle().toLocaleLowerCase().includes(search.toLocaleLowerCase())
+        );
+      })
+      .sort((a, b) => b.lastActivityAt - a.lastActivityAt),
+  );
+  $: conversationStores2 = relayStore.conversations.filter((conversationStore) =>
+    $conversationStores.includes(get(conversationStore)),
+  );
 </script>
 
 <Header backUrl="/conversations" title={$t("conversations.archive")}></Header>
@@ -43,8 +52,8 @@
     />
   </div>
   <ul class="flex-1">
-    {#each $conversations as conversation}
-      <ConversationSummary store={conversation}></ConversationSummary>
+    {#each conversationStores2 as conversationStore}
+      <ConversationSummary {conversationStore}></ConversationSummary>
     {/each}
   </ul>
 </div>
