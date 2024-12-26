@@ -68,7 +68,10 @@ export function createContactStore(
   // Check if the contact has joined the private conversation between you yet
   function getIsPendingConnection() {
     const privateConversation = getPrivateConversation();
-    const conversationAgents = privateConversation?.data.agentProfiles;
+    if (!privateConversation) return false;
+
+    const conversationAgents =
+      get(privateConversation).conversation.agentProfiles;
     return conversationAgents && Object.keys(conversationAgents).length === 1;
   }
 
