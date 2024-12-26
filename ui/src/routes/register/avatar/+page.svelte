@@ -1,7 +1,6 @@
 <script lang="ts">
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
-  import { writable } from "svelte/store";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
@@ -12,8 +11,7 @@
   import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
 
-  const relayClientContext: { getClient: () => RelayClient } =
-    getContext("relayClient");
+  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
   let relayClient = relayClientContext.getClient();
 
   let firstName = "";
@@ -61,28 +59,16 @@
     class="file-icon-label bg-secondary-300 hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full"
   >
     {#if avatarDataUrl}
-      <img
-        src={avatarDataUrl}
-        alt="Avatar"
-        class="h-32 w-32 rounded-full object-cover"
-      />
+      <img src={avatarDataUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
     {:else}
-      <img
-        src="/image-placeholder.png"
-        alt="Avatar Uploader"
-        class="h-16 w-16 rounded-full"
-      />
+      <img src="/image-placeholder.png" alt="Avatar Uploader" class="h-16 w-16 rounded-full" />
     {/if}
   </label>
 </div>
 
 <div class="items-right flex w-full justify-end pr-4">
   <Button on:click={createAccount}>
-    <SvgIcon
-      icon="hand"
-      size="20"
-      color={$modeCurrent ? "white" : "%23FD3524"}
-    />
+    <SvgIcon icon="hand" size="20" color={$modeCurrent ? "white" : "%23FD3524"} />
     <strong class="ml-2">{$t("common.jump_in")}</strong>
   </Button>
 </div>

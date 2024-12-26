@@ -10,26 +10,34 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let search = "";
-  $: hasArchive = false;
 
-  $: conversations = derived(relayStore.conversations, ($value) => {
-    return $value
+  $: hasArchive = derived(
+    relayStore.conversations,
+    ($conversations) => $conversations.filter((c) => c.archived).length > 0,
+  );
+  $: conversationStores = derived(relayStore.conversations, ($conversations) =>
+    $conversations
       .filter((c) => {
-        if (c.archived) {
-          hasArchive = true;
-        }
+        const conversationStore = relayStore.conversations.find(
+          (conversationStore) =>
+            get(conversationStore).conversation.dnaHashB64 === c.conversation.dnaHashB64,
+        );
+        if (!conversationStore) return false;
+
         return (
           !c.archived &&
-          c.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+          conversationStore.getTitle().toLocaleLowerCase().includes(search.toLocaleLowerCase())
         );
       })
-      .sort((a, b) => get(b.lastActivityAt) - get(a.lastActivityAt));
-  });
+      .sort((a, b) => b.lastActivityAt - a.lastActivityAt),
+  );
+  $: conversationStores2 = relayStore.conversations.filter((conversationStore) =>
+    $conversationStores.includes(get(conversationStore)),
+  );
 </script>
 
 <Header>
@@ -58,14 +66,11 @@
     />
   </div>
   <ul class="flex-1">
-    {#if hasArchive}
+    {#if $hasArchive}
       <li
         class="hover:bg-tertiary-500 dark:hover:bg-secondary-500 flex items-center rounded-lg py-2"
       >
-        <button
-          on:click={() => goto("/conversations/archive")}
-          class="flex w-full items-center"
-        >
+        <button on:click={() => goto("/conversations/archive")} class="flex w-full items-center">
           <SvgIcon
             icon="archive"
             size="24"
@@ -76,8 +81,8 @@
         </button>
       </li>
     {/if}
-    {#each $conversations as conversation}
-      <ConversationSummary store={conversation}></ConversationSummary>
+    {#each conversationStores2 as conversationStore}
+      <ConversationSummary {conversationStore}></ConversationSummary>
     {/each}
   </ul>
 </div>
