@@ -12,9 +12,7 @@
   export let message: Message;
 
   $: hasText = !!message?.content && message.content.trim() !== "";
-  $: hasImages = message?.images
-    ? message.images.some((img) => img.status === "loaded")
-    : false;
+  $: hasImages = message?.images ? message.images.some((img) => img.status === "loaded") : false;
 
   const downloadImage = async (image: Image) => {
     if (!image || image.status !== "loaded" || !image.dataURL) {
@@ -26,12 +24,6 @@
       const savePath = await save({
         title: "Save Image",
         defaultPath: `${defaultDir}/${image.name}`,
-        filters: [
-          {
-            name: "Image",
-            extensions: ["png", "jpg", "gif"],
-          },
-        ],
       });
 
       if (!savePath) return;
@@ -76,34 +68,22 @@
   {#if hasText}
     <Button
       on:click={copy}
-      moreClasses="flex items-center gap-1 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+      moreClasses="flex items-center gap-1 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm dark:variant-filled-tertiary bg-tertiary-200"
     >
-      <SvgIcon
-        icon="copy"
-        size="15"
-        color="%23FD3524"
-        moreClasses="w-3 h-3 sm:w-4 sm:h-4"
-      />
-      <span class="text-xs text-black sm:text-sm"
-        >{$t("conversations.copy_text")}</span
-      >
+      <SvgIcon icon="copy" size="15" color="%23FD3524" moreClasses="w-3 h-3 sm:w-4 sm:h-4" />
+      <span class="text-secondary-500 text-xs sm:text-sm">
+        {$t("conversations.copy_text")}
+      </span>
     </Button>
   {/if}
 
   {#if hasImages}
     <Button
       on:click={download}
-      moreClasses="flex items-center gap-1 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+      moreClasses="flex items-center gap-1 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm dark:variant-filled-tertiary bg-tertiary-200"
     >
-      <SvgIcon
-        icon="download"
-        size="15"
-        color="%23FD3524"
-        moreClasses="w-3 h-3 sm:w-4 sm:h-4"
-      />
-      <span class="text-xs text-black sm:text-sm"
-        >{$t("conversations.download")}</span
-      >
+      <SvgIcon icon="download" size="15" color="%23FD3524" moreClasses="w-3 h-3 sm:w-4 sm:h-4" />
+      <span class="text-secondary-500 text-xs sm:text-sm">{$t("conversations.download")}</span>
     </Button>
   {/if}
 </div>

@@ -227,9 +227,11 @@ export class ConversationStore {
       .filter((k) => k !== this.client.myPubKeyB64)
       .map((agentKey) => {
         const agentProfile = joinedAgents[agentKey];
-        const contactProfile = this.relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
+        const contactProfile = this.relayStore.contacts.find(
+          (c) => get(c).publicKeyB64 === agentKey,
+        );
 
-        if(contactProfile) {
+        if (contactProfile) {
           const c = get(contactProfile);
           return {
             publicKeyB64: agentKey,
@@ -244,7 +246,7 @@ export class ConversationStore {
             firstName: agentProfile?.fields.firstName,
             lastName: agentProfile?.fields.lastName, // if any contact profile exists use that data
           };
-        }      
+        }
       })
       .sort((a, b) => a.firstName.localeCompare(b.firstName));
   }
@@ -254,8 +256,10 @@ export class ConversationStore {
     return this.invitedContactKeys
       .filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
       .map((contactKey) => {
-        const contactProfile = this.relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey);
-        if(!contactProfile) return;
+        const contactProfile = this.relayStore.contacts.find(
+          (c) => get(c).publicKeyB64 === contactKey,
+        );
+        if (!contactProfile) return;
         const c = get(contactProfile);
         return {
           publicKeyB64: contactKey,
@@ -348,6 +352,7 @@ export class ConversationStore {
                 messageRecord.signed_action.hashed.content.author,
               );
               message.images = ((message.images as any[]) || []).map((i) => ({
+                id: i.id,
                 fileType: i.file_type,
                 lastModified: i.last_modified,
                 name: i.name,

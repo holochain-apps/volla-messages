@@ -19,4 +19,10 @@ export default defineConfig({
   define: {
     "window.__APP_VERSION__": JSON.stringify(version), // Define a global constant
   },
+  optimizeDeps: {
+    include: ["pdfjs-dist/legacy/build/pdf.js", "pdfjs-dist/legacy/build/pdf.worker.js"],
+  },
+  ssr: {
+    noExternal: ["pdfjs-dist"],
+  },
 });
