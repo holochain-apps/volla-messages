@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { filter, modeCurrent } from "@skeletonlabs/skeleton";
+  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
-  import { derived, get, writable } from "svelte/store";
+  import { derived, get } from "svelte/store";
   import { goto } from "$app/navigation";
   import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
@@ -12,9 +12,9 @@
   import { Privacy } from "../../types";
   import { makeFullName } from "$lib/utils";
   import type { AgentPubKeyB64 } from "@holochain/client";
+  import { xor } from "lodash-es";
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let selectedContacts: AgentPubKeyB64[] = [];
@@ -24,53 +24,44 @@
 
   const tAny = t as any;
 
-  $: {
-    if (selectedContacts.length > 0) {
-      existingConversation = get(relayStore.conversations)
-        .sort((a, b) =>
-          b.privacy === Privacy.Private
-            ? 1
-            : a.privacy === Privacy.Private
-              ? -1
-              : 0
-        )
-        .find(
-          (c) =>
-            c.allMembers.length === selectedContacts.length &&
-            c.allMembers.every((k) =>
-              selectedContacts.find((c) => c === k.publicKeyB64)
-            )
-        );
-    } else {
-      existingConversation = undefined;
-    }
-  }
+  $: selectedContactStores = selectedContacts
+    .map((s) => relayStore.contacts.find((c) => s === get(c).publicKeyB64))
+    .filter((c) => c !== undefined);
 
-  $: contacts = derived(relayStore.contacts, ($contacts) => {
+  $: selectedContactsNames = selectedContactStores.map((c) => get(c).firstName).join(", ");
+
+  $: existingConversation =
+    selectedContacts.length === 0
+      ? undefined
+      : get(relayStore.conversations)
+          .sort((a, b) =>
+            b.privacy === Privacy.Private ? 1 : a.privacy === Privacy.Private ? -1 : 0,
+          )
+          .find(
+            (c) =>
+              c.allMembers.length === selectedContacts.length &&
+              c.allMembers.every((k) => selectedContacts.find((c) => c === k.publicKeyB64)),
+          );
+
+  $: contactsFiltered = derived(relayStore.contacts, ($contacts) => {
     const test = search.trim().toLowerCase();
     return $contacts
       .filter(
         (c) =>
-          c.data.firstName.toLowerCase().includes(test) ||
-          c.data.lastName.toLowerCase().includes(test) ||
-          (test.length > 2 && c.data.publicKeyB64.toLowerCase().includes(test))
+          c.firstName.toLowerCase().includes(test) ||
+          c.lastName.toLowerCase().includes(test) ||
+          (test.length > 2 && c.publicKeyB64.toLowerCase().includes(test)),
       )
-      .sort((a, b) => a.data.firstName.localeCompare(b.data.firstName));
+      .sort((a, b) => a.firstName.localeCompare(b.firstName))
+      .map((c) => c.publicKeyB64);
   });
 
-  function selectContact(publicKey: string) {
-    const contact = $contacts.find((c) => c.data.publicKeyB64 === publicKey);
-    if (contact) {
-      if (selectedContacts.find((c) => c === contact.data.publicKeyB64)) {
-        // If already selected then unselect
-        selectedContacts = selectedContacts.filter(
-          (c) => c !== contact.data.publicKeyB64
-        );
-      } else {
-        // otherwise select the contact
-        selectedContacts = [...selectedContacts, contact.data.publicKeyB64];
-      }
-    }
+  $: contactsFilteredStores = relayStore.contacts.filter((c) =>
+    $contactsFiltered.includes(get(c).publicKeyB64),
+  );
+
+  function toggleSelectContact(publicKey: string) {
+    selectedContacts = xor(selectedContacts, [publicKey]);
   }
 
   async function createConversation() {
@@ -82,35 +73,20 @@
     pendingCreate = true;
 
     let title = "";
-    if (selectedContacts.length === 1) {
-      const firstContact = $contacts.find(
-        (contact) => selectedContacts[0] === contact.publicKeyB64
-      );
-      if (firstContact === undefined) return;
-
-      title = makeFullName(firstContact?.firstName, firstContact?.lastName);
+    if (selectedContactStores.length === 1) {
+      const c = get(selectedContactStores[0]);
+      title = makeFullName(c.firstName, c.lastName);
     } else if (selectedContacts.length === 2) {
-      const firstContact = $contacts.find(
-        (contact) => selectedContacts[0] === contact.publicKeyB64
-      );
-      const secondContact = $contacts.find(
-        (contact) => selectedContacts[1] === contact.publicKeyB64
-      );
-
-      title = `${firstContact?.firstName} & ${secondContact?.firstName}`;
+      title = selectedContactStores.map((c) => get(c).firstName).join(" & ");
     } else if (selectedContacts.length > 2) {
-      const allContacts = selectedContacts
-        .map((s) => $contacts.find((contact) => s === contact.publicKeyB64))
-        .filter((c) => c !== undefined);
-
-      title = allContacts.map((c) => c.firstName).join(", ");
+      title = selectedContactStores.map((c) => get(c).firstName).join(", ");
     }
 
     const conversation = await relayStore.createConversation(
       title,
       "",
       Privacy.Private,
-      selectedContacts
+      selectedContacts,
     );
     if (conversation) {
       goto(`/conversations/${conversation.data.dnaHashB64}/details`);
@@ -180,15 +156,13 @@
     </button>
   </div>
 
-  {#if $contacts.length === 0}
+  {#if contactsFilteredStores.length === 0}
     <img
       src={$modeCurrent ? "/clear-skies-gray.png" : "/clear-skies-white.png"}
       alt="No contacts"
       class="mb-4 mt-10 h-32 w-32"
     />
-    <h2
-      class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold"
-    >
+    <h2 class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold">
       {$t("create.no_contacts_header")}
     </h2>
     <p class="text-secondary-400 dark:text-tertiary-700 text-center text-xs">
@@ -196,23 +170,23 @@
     </p>
   {:else}
     <div class="w-full">
-      {#each $contacts as contact, i}
-        {#if i === 0 || contact.firstName
+      {#each contactsFilteredStores as contactStore, i}
+        {@const contact = get(contactStore)}
+        {@const selected = selectedContacts.includes(contact.publicKeyB64)}
+        {@const prevContact = i === 0 ? undefined : get(contactsFilteredStores[i - 1])}
+
+        {#if prevContact === undefined || contact.firstName
             .charAt(0)
-            .toUpperCase() !== $contacts[i - 1].firstName
-              .charAt(0)
-              .toUpperCase()}
+            .toUpperCase() !== prevContact?.firstName.charAt(0).toUpperCase()}
           <p class="text-secondary-300 mb-1 mt-2 pl-0">
             {contact.firstName[0].toUpperCase()}
           </p>
         {/if}
-        {@const selected = selectedContacts.find(
-          (c) => c === contact.data.publicKeyB64
-        )}
+
         <button
           class="-ml-1 mb-2 flex w-full items-center justify-between rounded-3xl py-1 pl-1 pr-2 {selected &&
             'bg-tertiary-500 dark:bg-secondary-500'}"
-          on:click={() => selectContact(contact.data.publicKeyB64)}
+          on:click={() => toggleSelectContact(contact.publicKeyB64)}
         >
           <Avatar
             size={38}
@@ -221,13 +195,12 @@
             moreClasses="mr-3"
           />
           <p
-            class="dark:text-tertiary-100 flex-1 text-start font-bold {contact.pendingConnection
+            class="dark:text-tertiary-100 flex-1 text-start font-bold {contactStore.getIsPendingConnection()
               ? 'text-secondary-400 dark:!text-secondary-300'
               : ''}"
           >
             {makeFullName(contact.firstName, contact.lastName)}
-            {#if contact.pendingConnection}<span
-                class="text-secondary-400 ml-1 text-xs"
+            {#if contactStore.getIsPendingConnection()}<span class="text-secondary-400 ml-1 text-xs"
                 >{$t("create.unconfirmed")}</span
               >{/if}
           </p>
@@ -269,13 +242,7 @@
             })}
           </div>
           <div class="pb-1 text-start text-xs font-light">
-            with {selectedContacts
-              .map((c) =>
-                $contacts.find((contact) => c === contact.publicKeyB64)
-              )
-              .filter((c) => c !== undefined)
-              .map((c) => c.firstName)
-              .join(", ")}
+            with {selectedContactsNames}
           </div>
         </div>
       </button>

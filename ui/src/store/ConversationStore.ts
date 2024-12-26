@@ -190,9 +190,8 @@ export class ConversationStore {
   }
 
   get invitedContacts() {
-    const contacts = get(this.relayStore.contacts);
     return this.invitedContactKeys.map((contactKey) =>
-      contacts.find((contact) => contact.publicKeyB64 === contactKey),
+      this.relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey),
     );
   }
 
@@ -216,7 +215,6 @@ export class ConversationStore {
   memberList(includeInvited = false) {
     // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
     const joinedAgents = this.data.agentProfiles;
-    const contacts = get(this.relayStore.contacts);
 
     const keys = uniq(
       Object.keys(joinedAgents).concat(includeInvited ? this.invitedContactKeys : []),
@@ -229,35 +227,44 @@ export class ConversationStore {
       .filter((k) => k !== this.client.myPubKeyB64)
       .map((agentKey) => {
         const agentProfile = joinedAgents[agentKey];
-        const contactProfile = contacts.find((contact) => contact.publicKeyB64 === agentKey);
+        const contactProfile = this.relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
 
-        return {
-          publicKeyB64: agentKey,
-          avatar: contactProfile?.data.avatar || agentProfile?.fields.avatar,
-          firstName: contactProfile?.data.firstName || agentProfile?.fields.firstName,
-          lastName: contactProfile?.data.firstName
-            ? contactProfile?.data.lastName
-            : agentProfile?.fields.lastName, // if any contact profile exists use that data
-        };
+        if(contactProfile) {
+          const c = get(contactProfile);
+          return {
+            publicKeyB64: agentKey,
+            avatar: c.avatar,
+            firstName: c.firstName,
+            lastName: c.lastName,
+          };
+        } else {
+          return {
+            publicKeyB64: agentKey,
+            avatar: agentProfile?.fields.avatar,
+            firstName: agentProfile?.fields.firstName,
+            lastName: agentProfile?.fields.lastName, // if any contact profile exists use that data
+          };
+        }      
       })
       .sort((a, b) => a.firstName.localeCompare(b.firstName));
   }
 
   get invitedUnjoined() {
     const joinedAgents = this.data.agentProfiles;
-    const contacts = get(this.relayStore.contacts);
     return this.invitedContactKeys
       .filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
       .map((contactKey) => {
-        const contactProfile = contacts.find((contact) => contact.publicKeyB64 === contactKey);
-
+        const contactProfile = this.relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey);
+        if(!contactProfile) return;
+        const c = get(contactProfile);
         return {
           publicKeyB64: contactKey,
-          avatar: contactProfile?.data.avatar,
-          firstName: contactProfile?.data.firstName,
-          lastName: contactProfile?.data.lastName,
+          avatar: c.avatar,
+          firstName: c.firstName,
+          lastName: c.lastName,
         };
-      });
+      })
+      .filter((c) => c !== undefined);
   }
 
   get title() {
