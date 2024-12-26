@@ -9,19 +9,16 @@
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
 
-  const profilesContext: { getStore: () => ProfilesStore } =
-    getContext("profiles");
+  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
   let profilesStore = profilesContext.getStore();
   $: prof = profilesStore ? profilesStore.myProfile : undefined;
-  $: loggedIn =
-    $prof && $prof.status == "complete" && $prof.value !== undefined;
+  $: loggedIn = $prof && $prof.status == "complete" && $prof.value !== undefined;
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   $: if (loggedIn) {
-    if (relayStore.conversationsData.length > 0) {
+    if (relayStore.conversations.length > 0) {
       goto("/conversations");
     }
     goto("/welcome");

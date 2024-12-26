@@ -309,27 +309,21 @@ export class RelayClient {
     dnaHashB64: DnaHashB64,
     forAgent: AgentPubKey,
     role: number = 0,
-  ): Promise<MembraneProof | undefined> {
-    try {
-      const conversation = this.conversations[dnaHashB64];
+  ): Promise<MembraneProof> {
+    const conversation = this.conversations[dnaHashB64];
+    const data: MembraneProofData = {
+      conversation_id: conversation.cell.dna_modifiers.network_seed,
+      for_agent: forAgent,
+      as_role: role,
+    };
+    const r = await this.client.callZome({
+      cell_id: conversation.cell.cell_id,
+      zome_name: this.zomeName,
+      fn_name: "generate_membrane_proof",
+      payload: data,
+    });
 
-      const data: MembraneProofData = {
-        conversation_id: conversation.cell.dna_modifiers.network_seed,
-        for_agent: forAgent,
-        as_role: role,
-      };
-
-      const r = await this.client.callZome({
-        cell_id: conversation.cell.cell_id,
-        zome_name: this.zomeName,
-        fn_name: "generate_membrane_proof",
-        payload: data,
-      });
-      return r;
-    } catch (e) {
-      console.error("Error generating membrane proof", e);
-    }
-    return undefined;
+    return r;
   }
 
   /********* Contacts **********/

@@ -1,42 +1,28 @@
 <script lang="ts">
   import { debounce } from "lodash-es";
-  import { type AgentPubKeyB64, encodeHashToBase64 } from "@holochain/client";
-  import { type Profile } from "@holochain-open-dev/profiles";
+  import { encodeHashToBase64 } from "@holochain/client";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext, onDestroy, onMount } from "svelte";
-  import { type Unsubscriber, derived } from "svelte/store";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import {
-    Privacy,
-    type Conversation,
-    type Image,
-    type Message,
-  } from "../../../types";
+  import { Privacy, type Image } from "../../../types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
   import ConversationMembers from "./ConversationMembers.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
-  import { get } from 'svelte/store';
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   let myPubKeyB64 = relayStore.client.myPubKeyB64;
 
-  $: conversation = relayStore.getConversation($page.params.id);
-
-  let agentProfiles: { [key: AgentPubKeyB64]: Profile } = {};
-  let numMembers = 0;
-
-  let unsubscribe: Unsubscriber;
+  let conversationStore = relayStore.getConversation($page.params.id);
 
   let configTimeout: NodeJS.Timeout;
   let agentTimeout: NodeJS.Timeout;
@@ -50,11 +36,14 @@
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
 
-  const checkForAgents = async () => {
-    if (!conversation) return;
+  $: agentProfiles = $conversationStore ? $conversationStore.conversation.agentProfiles : {};
+  $: numMembers = Object.keys(agentProfiles).length;
 
-    const agentProfiles = await conversation.fetchAgents();
-    if (Object.values(agentProfiles).length < 2) {
+  const checkForAgents = async () => {
+    if (!conversationStore) return;
+
+    const a = await conversationStore.fetchAgents();
+    if (Object.values(a).length < 2) {
       agentTimeout = setTimeout(() => {
         checkForAgents();
       }, 2000);
@@ -62,10 +51,10 @@
   };
 
   const checkForConfig = async () => {
-    if (!conversation) return;
+    if (!conversationStore) return;
 
-    const config = await conversation.getConfig();
-    if (!config?.title) {
+    const c = await conversationStore.fetchConfig();
+    if (!c?.title) {
       configTimeout = setTimeout(() => {
         checkForConfig();
       }, 2000);
@@ -73,17 +62,12 @@
   };
 
   const checkForMessages = async () => {
-    if (!conversation) return;
+    if (!conversationStore || !$conversationStore) return;
 
-    const [_, hashes] = await conversation.loadMessageSetFrom(
-      conversation.currentBucket()
-    );
+    const [_, h] = await conversationStore.loadMessageSetFromCurrentBucket();
     // If this we aren't getting anything back and there are no messages loaded at all
     // then keep trying as this is probably a no network, or a just joined situation
-    if (
-      hashes.length == 0 &&
-      Object.keys(conversation.data.messages).length == 0
-    ) {
+    if (h.length == 0 && Object.keys($conversationStore?.conversation.messages).length == 0) {
       messageTimeout = setTimeout(() => {
         checkForMessages();
       }, 2000);
@@ -104,94 +88,29 @@
   const debouncedHandleResize = debounce(handleResize, 100);
 
   onMount(() => {
-    if (!conversation) {
+    if (!conversationStore) {
       goto("/conversations");
     } else {
-      unsubscribe = conversation.subscribe((c: Conversation) => {
-        agentProfiles = c.agentProfiles;
-        // messages = c.messages;
-        numMembers = Object.values(agentProfiles).length;
-      });
       checkForData();
       conversationContainer.addEventListener("scroll", handleScroll);
       window.addEventListener("resize", debouncedHandleResize);
       conversationMessageInputRef.focus();
-      conversation.setUnread(false);
+      conversationStore.setUnread(false);
     }
   });
 
   // Cleanup
   onDestroy(() => {
-    unsubscribe && unsubscribe();
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-    conversationContainer &&
-      conversationContainer.removeEventListener("scroll", handleScroll);
+    conversationContainer && conversationContainer.removeEventListener("scroll", handleScroll);
     window.removeEventListener("resize", debouncedHandleResize);
   });
 
-  // Derived store to process messages and add headers
-  $: processedMessages =
-    conversation &&
-    derived(conversation, ($value) => {
-      const messages = Object.values(($value as Conversation).messages).sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-      );
-      const result: Message[] = [];
-
-      let lastMessage: Message | null = null;
-
-      messages.forEach((message) => {
-        // Don't display message if we don't have a profile from the author yet.
-        if (!agentProfiles[message.authorKey]) {
-          return;
-        }
-
-        const contact = relayStore.contacts.find(
-          (c) => get(c).publicKeyB64 === message.authorKey
-        );
-
-        const displayMessage = {
-          ...message,
-          author: contact ? get(contact).firstName : ($value as Conversation).agentProfiles[message.authorKey].fields.firstName,
-          avatar: contact ? get(contact).avatar : ($value as Conversation).agentProfiles[message.authorKey].fields.avatar,
-        };
-
-        if (
-          !lastMessage ||
-          message.timestamp.toDateString() !==
-            lastMessage.timestamp.toDateString()
-        ) {
-          displayMessage.header = message.timestamp.toLocaleDateString(
-            "en-US",
-            {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            }
-          );
-        }
-
-        // If same person is posting a bunch of messages in a row, hide their name and avatar
-        if (
-          lastMessage?.authorKey === message.authorKey &&
-          message.timestamp.getTime() - lastMessage.timestamp.getTime() <
-            1000 * 60 * 5
-        ) {
-          displayMessage.hideDetails = true;
-        }
-
-        result.push(displayMessage);
-        lastMessage = message;
-      });
-
-      return result;
-    });
-
   // Reactive update to scroll to the bottom every time the messages update,
   // but only if the user is near the bottom already
-  $: if ($processedMessages && $processedMessages.length > 0) {
+  $: if ($conversationStore && $conversationStore.processedMessages.length > 0) {
     if (scrollAtBottom) {
       setTimeout(scrollToBottom, 100);
     }
@@ -199,8 +118,8 @@
 
   const handleScroll = debounce(() => {
     const atTop = conversationContainer.scrollTop < SCROLL_TOP_THRESHOLD;
-    if (!scrollAtTop && atTop && conversation) {
-      conversation.loadMessagesSet();
+    if (!scrollAtTop && atTop && conversationStore) {
+      conversationStore.loadMessagesSet();
     }
     scrollAtTop = atTop;
     scrollAtBottom =
@@ -216,49 +135,36 @@
   }
 
   async function sendMessage(text: string, images: Image[]) {
-    if (conversation && (text.trim() || images.length > 0)) {
-      conversation.sendMessage(myPubKeyB64, text, images);
+    if (conversationStore && (text.trim() || images.length > 0)) {
+      conversationStore.sendMessage(myPubKeyB64, text, images);
       setTimeout(scrollToBottom, 100);
       conversationMessageInputRef.focus();
     }
   }
 </script>
 
-<Header backUrl={`/conversations${conversation?.archived ? "/archive" : ""}`}>
-  {#if conversation}
-    <h1
-      class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center"
-    >
-      <button
-        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
-        class="w-full"
-      >
-        {conversation.title}
+<Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
+  {#if conversationStore}
+    <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
+      <button on:click={() => goto(`/conversations/${$page.params.id}/details`)} class="w-full">
+        {conversationStore.getTitle()}
       </button>
     </h1>
     <button
       class="self-center pl-2"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     >
-      <SvgIcon
-        icon="gear"
-        size="18"
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-      />
+      <SvgIcon icon="gear" size="18" color={$modeCurrent ? "%232e2e2e" : "white"} />
     </button>
-    {#if conversation.data.privacy === Privacy.Public || encodeHashToBase64(conversation.data.progenitor) === myPubKeyB64}
+    {#if $conversationStore && ($conversationStore.conversation.privacy === Privacy.Public || encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64)}
       <button
         class="flex-none pl-5"
         on:click={() =>
           goto(
-            `/conversations/${conversation.data.dnaHashB64}/${conversation.data.privacy === Privacy.Public ? "details" : "invite"}`
+            `/conversations/${$conversationStore?.conversation.dnaHashB64}/${$conversationStore.conversation.privacy === Privacy.Public ? "details" : "invite"}`,
           )}
       >
-        <SvgIcon
-          icon="addPerson"
-          size="24"
-          color={$modeCurrent ? "%232e2e2e" : "white"}
-        />
+        <SvgIcon icon="addPerson" size="24" color={$modeCurrent ? "%232e2e2e" : "white"} />
       </button>
     {:else}
       <span class="flex-none pl-8">&nbsp;</span>
@@ -266,7 +172,7 @@
   {/if}
 </Header>
 
-{#if conversation && typeof $processedMessages !== "undefined"}
+{#if conversationStore && $conversationStore && typeof $conversationStore.processedMessages !== undefined}
   <div
     class="container mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden"
   >
@@ -275,9 +181,9 @@
       bind:this={conversationContainer}
       id="message-container"
     >
-      {#if conversation.privacy === Privacy.Private}
+      {#if $conversationStore.conversation.privacy === Privacy.Private}
         <div class="flex items-center justify-center gap-4">
-          {#if encodeHashToBase64(conversation.data.progenitor) !== myPubKeyB64 && numMembers === 1}
+          {#if encodeHashToBase64($conversationStore.conversation.progenitor) !== myPubKeyB64 && numMembers === 1}
             <!-- When you join a private conversation and it has not synced yet -->
             <SvgIcon
               icon="spinner"
@@ -287,16 +193,16 @@
             />
           {/if}
 
-          <ConversationMembers {conversation} />
+          <ConversationMembers {conversationStore} />
         </div>
-      {:else if conversation.data?.config.image}
+      {:else if $conversationStore.conversation.config.image}
         <img
-          src={conversation.data?.config.image}
+          src={$conversationStore.conversation.config.image}
           alt="Conversation"
           class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
         />
       {/if}
-      <h1 class="b-1 break-all text-3xl">{conversation.title}</h1>
+      <h1 class="b-1 break-all text-3xl">{conversationStore.getTitle()}</h1>
 
       <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
       <button
@@ -306,12 +212,12 @@
         {$tAny("conversations.num_members", { count: numMembers })}
       </button>
 
-      {#if $processedMessages.length === 0 && encodeHashToBase64(conversation.data.progenitor) === myPubKeyB64 && numMembers === 1}
+      {#if $conversationStore.processedMessages.length === 0 && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64 && numMembers === 1}
         <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
-        <ConversationEmpty {conversation} />
+        <ConversationEmpty {conversationStore} />
       {:else}
         <!-- Display conversation messages -->
-        <ConversationMessages messages={$processedMessages} />
+        <ConversationMessages messages={$conversationStore.processedMessages} />
       {/if}
     </div>
   </div>

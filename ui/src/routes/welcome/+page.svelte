@@ -10,15 +10,13 @@
   import { RelayClient } from "$store/RelayClient";
   import { RelayStore } from "$store/RelayStore";
 
-  const relayClientContext: { getClient: () => RelayClient } =
-    getContext("relayClient");
+  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
   let relayClient = relayClientContext.getClient();
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
-  $: if (relayStore.conversationsData.length > 0) {
+  $: if (relayStore.conversations.length > 0) {
     goto("/conversations");
   }
 </script>
@@ -33,9 +31,7 @@
   </button>
 </Header>
 
-<div
-  class="container mx-auto flex grow flex-col items-center justify-center px-10 text-center"
->
+<div class="container mx-auto flex grow flex-col items-center justify-center px-10 text-center">
   <SvgIcon icon="hand" size="48" />
   <h1 class="h1 mb-4 mt-12">{$t("common.welcome")}</h1>
   <p class="mb-4">{$t("common.welcome_text_1")}</p>

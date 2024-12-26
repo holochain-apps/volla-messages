@@ -106,9 +106,9 @@ export interface Conversation {
 }
 
 export interface LocalConversationData {
-  archived?: boolean;
+  archived: boolean;
   invitedContactKeys: string[];
-  unread?: boolean;
+  unread: boolean;
 }
 
 export interface MembraneProofData {
