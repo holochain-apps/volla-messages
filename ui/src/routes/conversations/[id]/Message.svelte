@@ -15,6 +15,7 @@
   import PdfThumbnail from "$lib/PdfThumbnail.svelte";
   import { isMobile } from "$lib/utils";
   import prettyBytes from "pretty-bytes";
+  import FileIcon from "../../../lib/FileIcon.svelte";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
@@ -23,7 +24,6 @@
   export let message: MessageType;
   export let isSelected: boolean = false;
   export let formatFileName: (file: Image, maxLength?: number) => string;
-  export let formatFileIcon: (file: Image) => string;
 
   $: fromMe = message.authorKey === myPubKeyB64;
 </script>
@@ -127,26 +127,20 @@
                   >
                     {#if !fromMe}
                       <div class="flex flex-shrink-0 items-center justify-center">
-                        <SvgIcon
-                          icon={formatFileIcon(file)}
-                          color={$modeCurrent ? "black" : "white"}
-                          size="50"
-                        />
+                        <FileIcon {file} size={50} />
                       </div>
                     {/if}
                     <div class="min-w-0 flex-grow">
-                      <div class="break-all text-sm sm:text-base">{file.name}</div>
+                      <div class="break-all text-sm sm:text-base">
+                        {isMobile() ? formatFileName(file, 20) : formatFileName(file, 50)}
+                      </div>
                       <div class="mt-1 text-xs font-bold text-yellow-400 sm:text-sm">
                         {prettyBytes(file.size)}
                       </div>
                     </div>
                     {#if fromMe}
                       <div class="flex flex-shrink-0 items-center justify-center">
-                        <SvgIcon
-                          icon={formatFileIcon(file)}
-                          color={$modeCurrent ? "black" : "white"}
-                          size="50"
-                        />
+                        <FileIcon {file} size={50} />
                       </div>
                     {/if}
                   </div>

@@ -41,6 +41,5 @@
   "create_conversation_error": "Failed to create conversation",
   "add_contact_to_conversation_error": "Failed to add contact to conversation",
   "download_file_error": "Failed to download file",
-  "download_file_success": "File downloaded successfully",
-  "large_file_error": "Attached files are limited to {{maxSize}}"
+  "download_file_success": "File downloaded successfully"
 }

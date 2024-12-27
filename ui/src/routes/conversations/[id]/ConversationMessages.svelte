@@ -7,7 +7,6 @@
 
   export let messages: Message[];
   export let formatFileName: (file: Image, maxLength?: number) => string;
-  export let formatFileIcon: (file: Image) => string;
 
   let selected: ActionHashB64 | undefined;
 
@@ -50,7 +49,6 @@
         on:click={(e) => handleClick(e, message.hash)}
         on:clickoutside={handleClickOutside}
         {formatFileName}
-        {formatFileIcon}
       />
     {/each}
   </ul>

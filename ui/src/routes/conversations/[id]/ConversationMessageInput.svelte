@@ -7,6 +7,8 @@
   import toast from "svelte-french-toast";
   import prettyBytes from "pretty-bytes";
   import PdfThumbnail from "$lib/PdfThumbnail.svelte";
+  import FileIcon from "$lib/FileIcon.svelte";
+  import { MAX_FILE_SIZE } from "$config";
 
   const dispatch = createEventDispatcher<{
     send: {
@@ -15,13 +17,10 @@
     };
   }>();
 
-  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
-
   export let text = "";
   export let images: Image[] = [];
   export let ref: HTMLElement;
   export let formatFileName: (file: Image, maxLength?: number) => string;
-  export let formatFileIcon: (file: Image) => string;
 
   async function handleImagesSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -29,7 +28,7 @@
       const files = Array.from(input.files);
       const validFiles = files.filter((file) => {
         if (file.size > MAX_FILE_SIZE) {
-          toast.error(`${$t("common.large_file_error", { maxSize: "15MB" } as any)}`);
+          toast.error(`${$t("conversations.large_file_error", { maxSize: "15MB" } as any)}`);
           return false;
         }
         return true;
@@ -207,11 +206,7 @@
                 </div>
               </div>
               <div class="flex items-center justify-center">
-                <SvgIcon
-                  icon={formatFileIcon(file)}
-                  color={$modeCurrent ? "black" : "white"}
-                  size="50"
-                />
+                <FileIcon {file} size={50} />
               </div>
             </div>
           {/if}

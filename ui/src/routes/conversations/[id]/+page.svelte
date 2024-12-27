@@ -222,36 +222,12 @@
     }
   }
 
-  function formatFileName(file: Image, maxLength: number = 10): string {
+function formatFileName(file: Image, maxLength: number = 10): string {
     const fileName = file.name.trim();
     if (fileName.length <= maxLength) {
       return fileName;
     }
     return fileName.slice(0, maxLength) + "...";
-  }
-
-  // To get the icon name based on the file type
-  function formatFileIcon(file: Image): string {
-    const commonFileTypes: { [key: string]: string[] } = {
-      document: ["doc", "docx", "rtf", "txt", "odt"],
-      spreadsheet: ["xls", "xlsx", "csv", "ods"],
-      presentation: ["ppt", "pptx", "odp"],
-      audio: ["mp3", "wav", "ogg", "flac"],
-      video: ["mp4", "avi", "mkv", "mov"],
-      archivefile: ["zip", "rar", "7z", "tar", "gz"],
-    };
-    if (file.name) {
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      if (extension) {
-        for (const [type, extensions] of Object.entries(commonFileTypes)) {
-          if (extensions.includes(extension)) {
-            return type;
-          }
-        }
-      }
-    }
-    // Final fallback
-    return "file";
   }
 </script>
 
@@ -342,7 +318,7 @@
         <ConversationEmpty {conversation} />
       {:else}
         <!-- Display conversation messages -->
-        <ConversationMessages messages={$processedMessages} {formatFileName} {formatFileIcon} />
+        <ConversationMessages messages={$processedMessages} {formatFileName} />
       {/if}
     </div>
   </div>
@@ -351,6 +327,5 @@
     bind:ref={conversationMessageInputRef}
     on:send={(e) => sendMessage(e.detail.text, e.detail.images)}
     {formatFileName}
-    {formatFileIcon}
   />
 {/if}
