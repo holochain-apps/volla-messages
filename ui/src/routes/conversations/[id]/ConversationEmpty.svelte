@@ -26,7 +26,7 @@
       <div
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 mb-3 flex flex-col items-center rounded-xl p-4"
       >
-        <SvgIcon icon="handshake" size="36" color={$modeCurrent ? "%23232323" : "white"} />
+        <SvgIcon icon="handshake" size={36} color={$modeCurrent ? "%23232323" : "white"} />
         <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
           {$t("contacts.pending_connection_header")}
         </h1>
@@ -54,7 +54,7 @@
           goto(`/conversations/${$conversationStore.conversation.dnaHashB64}/details`)}
         moreClasses="w-72 justify-center"
       >
-        <SvgIcon icon="ticket" size="24" color={$modeCurrent ? "white" : "%23FD3524"} />
+        <SvgIcon icon="ticket" size={24} color={$modeCurrent ? "white" : "%23FD3524"} />
         <strong class="ml-2">{$t("conversations.send_invitations")}</strong>
       </Button>
     {/if}
@@ -64,10 +64,12 @@
       {$t("conversations.share_invitation_code_msg")}
     </p>
 
-    <ButtonsCopyShare
-      text={$conversationStore.publicInviteCode}
-      copyLabel={$t("conversations.copy_invite_code")}
-      shareLabel={$t("conversations.share_invite_code")}
-    />
+    <div class="mb-8">
+      <ButtonsCopyShare
+        text={$conversationStore.publicInviteCode}
+        copyLabel={$t("conversations.copy_invite_code")}
+        shareLabel={$t("conversations.share_invite_code")}
+      />
+    </div>
   {/if}
 </div>

@@ -58,14 +58,15 @@
     />
   </div>
 
-  <div class="items-right flex w-full justify-end pr-4">
-    <Button on:click={saveName} disabled={!isFirstNameValid}>
+  <div class="items-right my-8 flex w-full justify-end pr-4">
+    <Button
+      on:click={saveName}
+      disabled={!isFirstNameValid}
+      icon="arrowRight"
+      iconSize={42}
+      iconAlign="right"
+    >
       {@html $t("common.next_avatar")}
-      <SvgIcon
-        icon="arrowRight"
-        size="42"
-        color={$modeCurrent ? "white" : "%23FD3524"}
-      />
     </Button>
   </div>
 </form>

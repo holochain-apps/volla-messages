@@ -154,7 +154,7 @@
       class="self-center pl-2"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     >
-      <SvgIcon icon="gear" size="18" color={$modeCurrent ? "%232e2e2e" : "white"} />
+      <SvgIcon icon="gear" size={18} color={$modeCurrent ? "%232e2e2e" : "white"} />
     </button>
     {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <button
@@ -162,7 +162,7 @@
         on:click={() =>
           goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
       >
-        <SvgIcon icon="addPerson" size="24" color={$modeCurrent ? "%232e2e2e" : "white"} />
+        <SvgIcon icon="addPerson" size={24} color={$modeCurrent ? "%232e2e2e" : "white"} />
       </button>
     {/if}
   {/if}
@@ -183,7 +183,7 @@
             <!-- When you join a private conversation and it has not synced yet -->
             <SvgIcon
               icon="spinner"
-              size="44"
+              size={44}
               color={$modeCurrent ? "%232e2e2e" : "white"}
               moreClasses="mb-5"
             />

@@ -134,7 +134,7 @@
         for="avatarInput"
         class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
       >
-        <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
+        <SvgIcon icon="image" size={44} color={$modeCurrent ? "%232e2e2e" : "white"} />
       </label>
     {/if}
   </div>
@@ -196,9 +196,9 @@
         }}
         disabled={!valid || pendingSave}
       >
-        <strong class=""
-          >{#if agentPubKeyB64}{$t("common.save")}{:else}{$t("common.done")}{/if}</strong
-        >
+        <strong>
+          {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
+        </strong>
       </Button>
     </div>
   {:else}
@@ -207,7 +207,7 @@
         <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.name}</h1>
 
         <button on:click={() => (editing = true)}>
-          <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
+          <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
         </button>
       </div>
       <div class="mt-2 flex items-center justify-center">
@@ -226,7 +226,7 @@
       <div
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
       >
-        <SvgIcon icon="handshake" size="36" color={$modeCurrent ? "%23232323" : "white"} />
+        <SvgIcon icon="handshake" size={36} color={$modeCurrent ? "%23232323" : "white"} />
         <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
           {$t("contacts.pending_connection_header")}
         </h1>
@@ -262,7 +262,7 @@
             }
           }}
         >
-          <SvgIcon icon="speechBubble" size="20" color="%23FD3524" moreClasses="mr-2" />
+          <SvgIcon icon="speechBubble" size={20} color="%23FD3524" moreClasses="mr-2" />
           {$t("contacts.send_message")}
         </Button>
       </div>
