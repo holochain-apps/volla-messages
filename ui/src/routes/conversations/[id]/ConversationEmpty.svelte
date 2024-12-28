@@ -64,10 +64,12 @@
       {$t("conversations.share_invitation_code_msg")}
     </p>
 
-    <ButtonsCopyShare
-      text={$conversationStore.publicInviteCode}
-      copyLabel={$t("conversations.copy_invite_code")}
-      shareLabel={$t("conversations.share_invite_code")}
-    />
+    <div class="mb-8">
+      <ButtonsCopyShare
+        text={$conversationStore.publicInviteCode}
+        copyLabel={$t("conversations.copy_invite_code")}
+        shareLabel={$t("conversations.share_invite_code")}
+      />
+    </div>
   {/if}
 </div>
