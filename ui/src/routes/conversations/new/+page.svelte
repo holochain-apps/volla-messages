@@ -59,7 +59,7 @@
     {#if imageUrl}
       <img src={imageUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
     {:else}
-      <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
+      <SvgIcon icon="image" size={44} color={$modeCurrent ? "%232e2e2e" : "white"} />
     {/if}
   </label>
 </div>

@@ -76,12 +76,12 @@
     />
 
     <div style="position:relative">
-      <Avatar agentPubKey={relayClient.myPubKey} size="128" moreClasses="mb-4" />
+      <Avatar agentPubKey={relayClient.myPubKey} size={128} moreClasses="mb-4" />
       <label
         for="avatarInput"
         class="bg-tertiary-500 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
       >
-        <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} size="26" />
+        <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} size={26} />
       </label>
     </div>
 
@@ -117,13 +117,13 @@
           on:click={() => saveName()}
           disabled={!isFirstNameValid}
         >
-          <SvgIcon icon="checkMark" color="%23FD3524" size="12" />
+          <SvgIcon icon="checkMark" color="%23FD3524" size={12} />
         </Button>
         <Button
           moreClasses="h-6 w-6 !px-0 py-0 mb-0 rounded-md bg-surface-400 flex items-center justify-center"
           on:click={() => cancelEditName()}
         >
-          <SvgIcon icon="x" color="gray" size="12" />
+          <SvgIcon icon="x" color="gray" size={12} />
         </Button>
       </div>
     {:else}
@@ -133,7 +133,7 @@
         </h1>
 
         <button on:click={() => (editingName = true)}>
-          <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
+          <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
         </button>
       </div>
     {/if}

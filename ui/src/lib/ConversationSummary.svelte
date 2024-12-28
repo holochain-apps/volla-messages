@@ -84,9 +84,7 @@
         let progress = elapsed / animationDuration;
         // Use easeOutElastic for bouncy effect
         progress =
-          1 -
-          Math.pow(2, -10 * progress) *
-            Math.cos(((progress * 10 - 0.75) * Math.PI) / 3);
+          1 - Math.pow(2, -10 * progress) * Math.cos(((progress * 10 - 0.75) * Math.PI) / 3);
         x = start + (targetX - start) * progress;
         requestAnimationFrame(animate);
       } else {
@@ -122,10 +120,7 @@
   }
 
   function toggleMenu(e: MouseEvent) {
-    menuOpen =
-      menuOpen === 0
-        ? (e.currentTarget as HTMLElement).getBoundingClientRect().y
-        : 0;
+    menuOpen = menuOpen === 0 ? (e.currentTarget as HTMLElement).getBoundingClientRect().y : 0;
   }
 
   function startArchive() {
@@ -167,7 +162,7 @@
             <span
               class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
             >
-              <SvgIcon icon="group" size="20" color="#ccc" />
+              <SvgIcon icon="group" size={20} color="#ccc" />
             </span>
           {:else if allMembers.length == 1}
             <Avatar
@@ -218,25 +213,17 @@
         <span
           class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
         >
-          <SvgIcon icon="group" size="20" color="#ccc" />
+          <SvgIcon icon="group" size={20} color="#ccc" />
         </span>
       {/if}
-      <div
-        class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden"
-        class:unread
-      >
+      <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden" class:unread>
         <span class="text-base">{conversationStore.getTitle()}</span>
-        <span
-          class="flex min-w-0 items-center overflow-hidden text-ellipsis text-nowrap text-xs"
-        >
+        <span class="flex min-w-0 items-center overflow-hidden text-ellipsis text-nowrap text-xs">
           {#if unread}
-            <span class="bg-primary-500 mr-2 inline-block h-2 w-2 rounded-full"
-            ></span>
+            <span class="bg-primary-500 mr-2 inline-block h-2 w-2 rounded-full"></span>
           {/if}
           {#if conversation.privacy === Privacy.Private && joinedMembers.length === 0 && allMembers.length === 1}
-            <span class="text-secondary-400"
-              >{$t("conversations.unconfirmed")}</span
-            >
+            <span class="text-secondary-400">{$t("conversations.unconfirmed")}</span>
           {:else if lastMessage}
             {lastMessageAuthor || ""}:&nbsp;
             {@html DOMPurify.sanitize(lastMessage.content || "")}
@@ -250,26 +237,15 @@
           {/if}
         </span>
       </div>
-      <span
-        class="text-secondary-300 relative flex flex-row items-center text-xs"
-      >
-        <SvgIcon
-          icon="person"
-          size="8"
-          color={$modeCurrent ? "#aaa" : "#ccc"}
-        />
-        <span class="ml-1"
-          >{Object.values(conversation.agentProfiles).length}</span
-        >
+      <span class="text-secondary-300 relative flex flex-row items-center text-xs">
+        <SvgIcon icon="person" size={8} color={$modeCurrent ? "#aaa" : "#ccc"} />
+        <span class="ml-1">{Object.values(conversation.agentProfiles).length}</span>
       </span>
       {#if !isMobile() && isHovering && x === 0}
-        <button
-          class="z-10"
-          on:click|preventDefault|stopPropagation={toggleMenu}
-        >
+        <button class="z-10" on:click|preventDefault|stopPropagation={toggleMenu}>
           <SvgIcon
             icon="caretDown"
-            size="24"
+            size={24}
             color={$modeCurrent ? "#aaa" : "#ccc"}
             moreClasses="border-2 rounded-md ml-2 shadow-md"
           />
@@ -277,9 +253,7 @@
       {/if}
     </button>
 
-    <div
-      class="absolute left-0 top-0 flex h-full w-full flex-row rounded-lg px-[1px] py-[1px]"
-    >
+    <div class="absolute left-0 top-0 flex h-full w-full flex-row rounded-lg px-[1px] py-[1px]">
       <!-- <div class="flex flex-1 items-center justify-start ml-1  rounded-lg bg-secondary-500">Mark as Unread</div> -->
       <div
         class="mr-1 flex flex-1 items-center justify-end rounded-lg {archived
@@ -290,11 +264,9 @@
           class="text-surface-100 dark:text-tertiary-100 mr-2 flex flex-col items-center justify-center font-bold"
           on:click={startArchive}
         >
-          <SvgIcon icon="archive" size="20" color="white" moreClasses="" />
+          <SvgIcon icon="archive" size={20} color="white" moreClasses="" />
           <span class="text-xs"
-            >{archived
-              ? $t("conversations.restore")
-              : $t("conversations.archive")}</span
+            >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
           >
         </button>
       </div>
@@ -310,20 +282,15 @@
     on:focus={handleHover}
   >
     <li>
-      <button
-        class="flex flex-row items-center justify-start"
-        on:click={startArchive}
-      >
+      <button class="flex flex-row items-center justify-start" on:click={startArchive}>
         <SvgIcon
           icon="archive"
-          size="20"
+          size={20}
           color={$modeCurrent ? "#aaa" : "#ccc"}
           moreClasses="mr-2"
         />
         <span class="text-xs"
-          >{archived
-            ? $t("conversations.restore")
-            : $t("conversations.archive")}</span
+          >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
         >
       </button>
     </li>

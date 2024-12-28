@@ -27,12 +27,12 @@
   </button>
 
   <button on:click={() => goto("/create")} class="absolute right-4">
-    <SvgIcon icon="plusCircle" size="24" />
+    <SvgIcon icon="plusCircle" size={24} />
   </button>
 </Header>
 
 <div class="container mx-auto flex grow flex-col items-center justify-center px-10 text-center">
-  <SvgIcon icon="hand" size="48" />
+  <SvgIcon icon="hand" size={48} />
   <h1 class="h1 mb-4 mt-12">{$t("common.welcome")}</h1>
   <p class="mb-4">{$t("common.welcome_text_1")}</p>
   <p>{$t("common.welcome_text_2")}</p>
@@ -45,7 +45,7 @@
   >
     <SvgIcon
       icon="ticket"
-      size="32"
+      size={32}
       color={$modeCurrent ? "%23FD3524" : "white"}
       moreClasses="flex-grow"
     />
@@ -58,7 +58,7 @@
   >
     <SvgIcon
       icon="newPerson"
-      size="32"
+      size={32}
       color={$modeCurrent ? "%23FD3524" : "white"}
       moreClasses="flex-grow"
     />
@@ -71,7 +71,7 @@
   >
     <SvgIcon
       icon="people"
-      size="32"
+      size={32}
       color={$modeCurrent ? "%23FD3524" : "white"}
       moreClasses="flex-grow"
     />
