@@ -65,7 +65,7 @@
       icon="newConversation"
       moreClasses="variant-filled-tertiary"
     >
-      <strong class="ml-2">{$t("conversations.join_conversation")}</strong>
+      {$t("conversations.join_conversation")}
     </Button>
   </div>
 </form>
