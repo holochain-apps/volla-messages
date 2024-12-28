@@ -18,8 +18,7 @@
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
   let myPubKeyB64 = relayStore.client.myPubKeyB64;
 
@@ -37,9 +36,7 @@
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
 
-  $: agentProfiles = $conversationStore
-    ? $conversationStore.conversation.agentProfiles
-    : {};
+  $: agentProfiles = $conversationStore ? $conversationStore.conversation.agentProfiles : {};
   $: numMembers = Object.keys(agentProfiles).length;
 
   const checkForAgents = async () => {
@@ -70,10 +67,7 @@
     const [_, h] = await conversationStore.loadMessageSetFromCurrentBucket();
     // If this we aren't getting anything back and there are no messages loaded at all
     // then keep trying as this is probably a no network, or a just joined situation
-    if (
-      h.length == 0 &&
-      Object.keys($conversationStore?.conversation.messages).length == 0
-    ) {
+    if (h.length == 0 && Object.keys($conversationStore?.conversation.messages).length == 0) {
       messageTimeout = setTimeout(() => {
         checkForMessages();
       }, 2000);
@@ -104,17 +98,13 @@
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-    conversationContainer &&
-      conversationContainer.removeEventListener("scroll", handleScroll);
+    conversationContainer && conversationContainer.removeEventListener("scroll", handleScroll);
     window.removeEventListener("resize", debouncedHandleResize);
   });
 
   // Reactive update to scroll to the bottom every time the messages update,
   // but only if the user is near the bottom already
-  $: if (
-    $conversationStore &&
-    $conversationStore.processedMessages.length > 0
-  ) {
+  $: if ($conversationStore && $conversationStore.processedMessages.length > 0) {
     if (scrollAtBottom) {
       setTimeout(scrollToBottom, 100);
     }
@@ -147,17 +137,10 @@
   }
 </script>
 
-<Header
-  backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}
->
+<Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
   {#if conversationStore}
-    <h1
-      class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center"
-    >
-      <button
-        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
-        class="w-full"
-      >
+    <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
+      <button on:click={() => goto(`/conversations/${$page.params.id}/details`)} class="w-full">
         {conversationStore.getTitle()}
       </button>
     </h1>
@@ -165,28 +148,16 @@
       class="self-center pl-2"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     >
-      <SvgIcon
-        icon="gear"
-        size="18"
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-      />
+      <SvgIcon icon="gear" size="18" color={$modeCurrent ? "%232e2e2e" : "white"} />
     </button>
-    {#if $conversationStore && ($conversationStore.conversation.privacy === Privacy.Public || encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64)}
+    {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <button
         class="flex-none pl-5"
         on:click={() =>
-          goto(
-            `/conversations/${$conversationStore?.conversation.dnaHashB64}/${$conversationStore.conversation.privacy === Privacy.Public ? "details" : "invite"}`
-          )}
+          goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
       >
-        <SvgIcon
-          icon="addPerson"
-          size="24"
-          color={$modeCurrent ? "%232e2e2e" : "white"}
-        />
+        <SvgIcon icon="addPerson" size="24" color={$modeCurrent ? "%232e2e2e" : "white"} />
       </button>
-    {:else}
-      <span class="flex-none pl-8">&nbsp;</span>
     {/if}
   {/if}
 </Header>
