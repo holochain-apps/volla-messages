@@ -82,7 +82,7 @@
       />
       <SvgIcon
         icon="search"
-        size="24"
+        size={24}
         color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
         moreClasses="absolute top-3 left-3"
       />
@@ -151,7 +151,7 @@
           <span
             class="bg-surface-500 text-primary-500 mr-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-extrabold"
           >
-            <SvgIcon icon="person" size="12" color="%23FD3524" moreClasses="mr-1" />
+            <SvgIcon icon="person" size={12} color="%23FD3524" moreClasses="mr-1" />
             {selectedContacts.length}
           </span>
           <div class="nowrap overflow-hidden text-ellipsis">

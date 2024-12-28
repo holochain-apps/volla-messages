@@ -46,7 +46,7 @@
     />
     <SvgIcon
       icon="search"
-      size="24"
+      size={24}
       color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
       moreClasses="absolute top-3 left-3"
     />

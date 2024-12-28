@@ -27,11 +27,11 @@
 </script>
 
 <button on:click={copy}>
-  <SvgIcon icon="copy" size="22" color="%23999" />
+  <SvgIcon icon="copy" size={22} color="%23999" />
 </button>
 
 {#if isMobile()}
   <button on:click={share}>
-    <SvgIcon icon="share" size="22" color="%23999" moreClasses="ml-3" />
+    <SvgIcon icon="share" size={22} color="%23999" moreClasses="ml-3" />
   </button>
 {/if}
