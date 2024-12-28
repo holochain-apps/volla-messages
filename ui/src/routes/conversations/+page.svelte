@@ -46,7 +46,7 @@
   </button>
 
   <button on:click={() => goto("/create")} class="">
-    <SvgIcon icon="plusCircle" size="24" />
+    <SvgIcon icon="plusCircle" size={24} />
   </button>
 </Header>
 
@@ -60,7 +60,7 @@
     />
     <SvgIcon
       icon="search"
-      size="24"
+      size={24}
       color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
       moreClasses="absolute top-3 left-3"
     />
@@ -73,7 +73,7 @@
         <button on:click={() => goto("/conversations/archive")} class="flex w-full items-center">
           <SvgIcon
             icon="archive"
-            size="24"
+            size={24}
             color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
             moreClasses="ml-4 mr-6"
           />

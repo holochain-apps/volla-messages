@@ -111,7 +111,7 @@
     />
     <SvgIcon
       icon="search"
-      size="24"
+      size={24}
       color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
       moreClasses="absolute top-3 left-3"
     />
@@ -124,7 +124,7 @@
     >
       <SvgIcon
         icon="ticket"
-        size="32"
+        size={32}
         color={$modeCurrent ? "%232e2e2e" : "white"}
         moreClasses="flex-grow"
       />
@@ -137,7 +137,7 @@
     >
       <SvgIcon
         icon="newPerson"
-        size="32"
+        size={32}
         color={$modeCurrent ? "%232e2e2e" : "white"}
         moreClasses="flex-grow"
       />
@@ -150,7 +150,7 @@
     >
       <SvgIcon
         icon="people"
-        size="32"
+        size={32}
         color={$modeCurrent ? "%232e2e2e" : "white"}
         moreClasses="flex-grow"
       />
@@ -231,7 +231,7 @@
         >
           <SvgIcon
             icon={pendingCreate ? "spinner" : "person"}
-            size="12"
+            size={12}
             color="%23FD3524"
             moreClasses="mr-1"
           />

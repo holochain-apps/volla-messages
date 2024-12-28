@@ -34,7 +34,7 @@
     <span class="mt-3 flex text-xs"
       >v{window.__APP_VERSION__}<SvgIcon
         icon="betaTag"
-        size="24"
+        size={24}
         moreClasses="ml-1"
         color={$modeCurrent ? "#000" : "#fff"}
       /></span
@@ -54,7 +54,7 @@
       class="variant-filled-tertiary dark:variant-filled-tertiary mb-8 flex items-center rounded-full px-6 py-3 text-left"
       on:click={() => goto("/register")}
     >
-      <SvgIcon icon="lock" size="24" color="%23fd3524" />
+      <SvgIcon icon="lock" size={24} color="%23fd3524" />
       <span class="ml-2">{$t("common.create_an_account")}</span>
     </button>
   {/if}

@@ -57,8 +57,7 @@
   function setBackgroundColor(backgroundColor: string): () => void {
     // Save current bg color
     const current = document.body.style["background-color" as any];
-    const reset = () =>
-      (document.body.style["background-color" as any] = current);
+    const reset = () => (document.body.style["background-color" as any] = current);
 
     // Update bg color
     document.body.style["background-color" as any] = backgroundColor;
@@ -79,12 +78,10 @@
   <div class="fixed left-0 top-0 z-10 h-screen w-screen text-black">
     <div class="flex h-screen w-screen flex-col items-center justify-center">
       <!-- Scanning Area -->
-      <div
-        class="shadow-full h-64 w-64 rounded-lg border-2 border-solid border-white"
-      >
+      <div class="shadow-full h-64 w-64 rounded-lg border-2 border-solid border-white">
         {#if needsPermission}
           <div class="flex h-full w-full items-center justify-center">
-            <SvgIcon icon="warning" color="%232e2e2e" size="120" />
+            <SvgIcon icon="warning" color="%232e2e2e" size={120} />
           </div>
         {/if}
       </div>
