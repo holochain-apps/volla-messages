@@ -79,11 +79,11 @@
 
 <div class="my-8">
   <Button
-    moreClasses="w-72 justify-center variant-filled-tertiary"
     on:click={() => createConversation(Privacy.Public)}
     disabled={!valid || pendingCreate}
     loading={pendingCreate}
+    big
   >
-    <strong class="ml-2">{$t("conversations.create_group")}</strong>
+    <strong>{$t("conversations.create_group")}</strong>
   </Button>
 </div>

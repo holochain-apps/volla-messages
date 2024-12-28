@@ -196,9 +196,9 @@
         }}
         disabled={!valid || pendingSave}
       >
-        <strong class=""
-          >{#if agentPubKeyB64}{$t("common.save")}{:else}{$t("common.done")}{/if}</strong
-        >
+        <strong>
+          {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
+        </strong>
       </Button>
     </div>
   {:else}

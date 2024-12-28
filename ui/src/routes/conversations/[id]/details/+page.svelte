@@ -7,14 +7,13 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { makeFullName } from "$lib/utils";
   import type { RelayStore } from "$store/RelayStore";
   import { Privacy } from "../../../../types";
-  import Button from "$lib/Button.svelte";
   import { goto } from "$app/navigation";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
-  import { MIN_TITLE_LENGTH } from "$config";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
+  import TitleInput from "./TitleInput.svelte";
+  import { makeFullName } from "$lib/utils";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -29,12 +28,11 @@
   let title = conversationStore?.getTitle() || "";
   let editingTitle = false;
 
-  const saveTitle = async () => {
+  const saveTitle = async (newTitle: string) => {
     if (!conversationStore) return;
 
-    const newTitle = title.trim();
-    conversationStore.updateConfig({ title: newTitle });
-    title = newTitle;
+    conversationStore.updateConfig({ title: newTitle.trim() });
+    title = newTitle.trim();
     editingTitle = false;
   };
 
@@ -43,11 +41,6 @@
 
     conversationStore.updateConfig({ image: newImage });
     image = newImage;
-  };
-
-  const cancelEditTitle = () => {
-    editingTitle = false;
-    title = conversationStore?.getTitle() || "";
   };
 </script>
 
@@ -121,39 +114,16 @@
         </label>
       {/if}
     {/if}
-    {#if editingTitle}
-      <div class="flex flex-row flex-wrap items-center justify-center">
-        <input
-          autofocus
-          class="bg-surface-900 grow border-none pl-0.5 pt-0 text-center text-3xl outline-none focus:outline-none focus:ring-0"
-          type="text"
-          placeholder={$t("conversations.enter_name_here")}
-          name="title"
-          bind:value={title}
-          minlength={MIN_TITLE_LENGTH}
-          on:keydown={(event) => {
-            if (event.key === "Enter") saveTitle();
-            if (event.key === "Escape") cancelEditTitle();
-          }}
+
+    <div class="flex items-center justify-center space-x-2">
+      {#if editingTitle}
+        <TitleInput
+          initialValue={title}
+          on:save={(e) => saveTitle(e.detail)}
+          on:cancel={() => (editingTitle = false)}
         />
-        <div class="flex flex-none items-center justify-center">
-          <Button
-            moreClasses="h-6 w-6 rounded-md py-0 !px-0 mb-0 mr-2 bg-primary-100 flex items-center justify-center"
-            on:click={() => saveTitle()}
-          >
-            <SvgIcon icon="checkMark" color="%23FD3524" size={12} />
-          </Button>
-          <Button
-            moreClasses="h-6 w-6 !px-0 py-0 mb-0 rounded-md bg-surface-400 flex items-center justify-center"
-            on:click={() => cancelEditTitle()}
-          >
-            <SvgIcon icon="x" color="gray" size={12} />
-          </Button>
-        </div>
-      </div>
-    {:else}
-      <div class="flex">
-        <h1 class="mb-1 mr-1 break-all text-3xl">
+      {:else}
+        <h1 class="break-all text-3xl">
           {title}
         </h1>
         {#if $conversationStore.conversation.privacy !== Privacy.Private}
@@ -161,8 +131,9 @@
             <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
           </button>
         {/if}
-      </div>
-    {/if}
+      {/if}
+    </div>
+
     <p class="text-sm">
       {$tAny("conversations.created", { date: $conversationStore.created })}
     </p>
@@ -190,9 +161,7 @@
               big={false}
             />
           </li>
-        {/if}
-
-        {#if $conversationStore.conversation.privacy === Privacy.Private}
+        {:else}
           {#if conversationStore.getInvitedUnjoined().length > 0}
             <h3 class="text-md text-secondary-300 mb-2 font-light">
               {$t("conversations.unconfirmed_invitations")}
