@@ -156,18 +156,14 @@
     >
       <SvgIcon icon="gear" size="18" color={$modeCurrent ? "%232e2e2e" : "white"} />
     </button>
-    {#if $conversationStore && ($conversationStore.conversation.privacy === Privacy.Public || encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64)}
+    {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <button
         class="flex-none pl-5"
         on:click={() =>
-          goto(
-            `/conversations/${$conversationStore?.conversation.dnaHashB64}/${$conversationStore.conversation.privacy === Privacy.Public ? "details" : "invite"}`,
-          )}
+          goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
       >
         <SvgIcon icon="addPerson" size="24" color={$modeCurrent ? "%232e2e2e" : "white"} />
       </button>
-    {:else}
-      <span class="flex-none pl-8">&nbsp;</span>
     {/if}
   {/if}
 </Header>

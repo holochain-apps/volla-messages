@@ -216,39 +216,24 @@
             {/if}
           </li>
         {/if}
-        {#if conversationStore.getInvitedUnjoined().length > 0}
-          <h3 class="text-md text-secondary-300 mb-2 font-light">
-            {$t("conversations.unconfirmed_invitations")}
-          </h3>
-          {#each conversationStore.getInvitedUnjoined() as contact}
-            <li class="mb-4 flex flex-row items-center px-2 text-xl">
-              <Avatar
-                image={contact.avatar}
-                agentPubKey={contact.publicKeyB64}
-                size="38"
-                moreClasses="-ml-30"
-              />
-              <span class="ml-4 flex-1 text-sm"
-                >{makeFullName(contact.firstName || "", contact.lastName)}</span
-              >
-              <button
-                class="variant-filled-tertiary flex items-center justify-center rounded-2xl p-2 px-3 text-sm font-bold"
-                on:click={async () => {
-                  try {
-                    const inviteCode = await conversationStore.makeInviteCodeForAgent(
-                      contact.publicKeyB64,
-                    );
-                    await copyToClipboard(inviteCode);
-                    toast.success(`${$t("common.copy_success")}`);
-                  } catch (e) {
-                    toast.error(`${$t("common.copy_error")}: ${e.message}`);
-                  }
-                }}
-              >
-                <SvgIcon icon="copy" size="18" color="%23FD3524" moreClasses="mr-2" />
-                {$t("conversations.copy_invite")}
-              </button>
-              {#if isMobile()}
+
+        {#if $conversationStore.conversation.privacy === Privacy.Private}
+          {#if conversationStore.getInvitedUnjoined().length > 0}
+            <h3 class="text-md text-secondary-300 mb-2 font-light">
+              {$t("conversations.unconfirmed_invitations")}
+            </h3>
+
+            {#each conversationStore.getInvitedUnjoined() as contact}
+              <li class="mb-4 flex flex-row items-center px-2 text-xl">
+                <Avatar
+                  image={contact.avatar}
+                  agentPubKey={contact.publicKeyB64}
+                  size="38"
+                  moreClasses="-ml-30"
+                />
+                <span class="ml-4 flex-1 text-sm"
+                  >{makeFullName(contact.firstName || "", contact.lastName)}</span
+                >
                 <button
                   class="variant-filled-tertiary flex items-center justify-center rounded-2xl p-2 px-3 text-sm font-bold"
                   on:click={async () => {
@@ -256,21 +241,38 @@
                       const inviteCode = await conversationStore.makeInviteCodeForAgent(
                         contact.publicKeyB64,
                       );
-                      if (!inviteCode) throw new Error("Failed to generate invite code");
-                      await shareText(inviteCode);
+                      await copyToClipboard(inviteCode);
+                      toast.success(`${$t("common.copy_success")}`);
                     } catch (e) {
-                      toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+                      toast.error(`${$t("common.copy_error")}: ${e.message}`);
                     }
                   }}
                 >
-                  <SvgIcon icon="share" size="18" color="%23FD3524" moreClasses="mr-2" />
+                  <SvgIcon icon="copy" size="18" color="%23FD3524" moreClasses="mr-2" />
+                  {$t("conversations.copy_invite")}
                 </button>
-              {/if}
-            </li>
-          {/each}
-        {/if}
+                {#if isMobile()}
+                  <button
+                    class="variant-filled-tertiary flex items-center justify-center rounded-2xl p-2 px-3 text-sm font-bold"
+                    on:click={async () => {
+                      try {
+                        const inviteCode = await conversationStore.makeInviteCodeForAgent(
+                          contact.publicKeyB64,
+                        );
+                        if (!inviteCode) throw new Error("Failed to generate invite code");
+                        await shareText(inviteCode);
+                      } catch (e) {
+                        toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+                      }
+                    }}
+                  >
+                    <SvgIcon icon="share" size="18" color="%23FD3524" moreClasses="mr-2" />
+                  </button>
+                {/if}
+              </li>
+            {/each}
+          {/if}
 
-        {#if $conversationStore.conversation.privacy === Privacy.Private}
           <h3 class="text-md text-secondary-300 mb-2 mt-4 font-light">
             {$t("conversations.members")}
           </h3>
