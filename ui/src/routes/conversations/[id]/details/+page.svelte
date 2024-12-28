@@ -203,7 +203,7 @@
                 <Avatar
                   image={contact.avatar}
                   agentPubKey={contact.publicKeyB64}
-                  size="38"
+                  size={38}
                   moreClasses="-ml-30"
                 />
                 <span class="ml-4 flex-1 text-sm"
@@ -226,7 +226,7 @@
           </h3>
         {/if}
         <li class="mb-4 flex flex-row items-center px-2 text-xl">
-          <Avatar agentPubKey={myPublicKey64} size="38" moreClasses="-ml-30" />
+          <Avatar agentPubKey={myPublicKey64} size={38} moreClasses="-ml-30" />
           <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.you")}</span>
           {#if myPublicKey64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
             <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
@@ -237,7 +237,7 @@
             <Avatar
               image={contact.avatar}
               agentPubKey={contact.publicKeyB64}
-              size="38"
+              size={38}
               moreClasses="-ml-30"
             />
             <span class="ml-4 flex-1 text-sm font-bold"
