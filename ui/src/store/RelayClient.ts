@@ -11,6 +11,7 @@ import {
   type AgentPubKeyB64,
   type ActionHash,
   type DnaHashB64,
+  type Record,
 } from "@holochain/client";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import type { Profile, ProfilesStore } from "@holochain-open-dev/profiles";
@@ -18,6 +19,7 @@ import { get } from "svelte/store";
 import type {
   Config,
   Contact,
+  ContactRecord,
   ConversationCellAndConfig,
   ImageStruct,
   Invitation,
@@ -50,7 +52,7 @@ export class RelayClient {
     firstName: string,
     lastName: string,
     avatar: string
-  ): Promise<Profile> {
+  ): Promise<Record> {
     return this.client.callZome({
       role_name: this.roleName,
       zome_name: "profiles",
@@ -66,8 +68,8 @@ export class RelayClient {
     firstName: string,
     lastName: string,
     avatar: string
-  ): Promise<Profile> {
-    const profile = await this.client.callZome({
+  ): Promise<Record> {
+    const record = await this.client.callZome({
       role_name: this.roleName,
       zome_name: "profiles",
       fn_name: "update_profile",
@@ -90,7 +92,7 @@ export class RelayClient {
       });
     });
 
-    return profile;
+    return record;
   }
 
   /********* Conversations **********/
@@ -107,20 +109,14 @@ export class RelayClient {
         const cell = c[CellType.Cloned];
 
         try {
-          console.log("get config for ", encodeHashToBase64(cell.cell_id[0]));
-          const configRecord = await this._getConfig(cell.cell_id);
-
-          const config = configRecord
-            ? configRecord.entry
+          const maybeConfig = await this.getConfig(cell.cell_id);
+          const config = maybeConfig
+            ? maybeConfig
             : { title: cell.name, image: "" };
-
-          const convoCellAndConfig: ConversationCellAndConfig = {
+          this.conversations[encodeHashToBase64(cell.cell_id[0])] = {
             cell,
             config,
           };
-
-          this.conversations[encodeHashToBase64(cell.cell_id[0])] =
-            convoCellAndConfig;
         } catch (e) {
           console.error("Unable to get config for cell:", cell, e);
         }
@@ -185,7 +181,7 @@ export class RelayClient {
       const config: Config = { title, image };
 
       if (!networkSeed) {
-        await this._setConfig(config, cell.cell_id);
+        await this.setConfig(config, cell.cell_id);
       }
 
       await this._setMyProfileForConversation(cell.cell_id);
@@ -273,7 +269,7 @@ export class RelayClient {
     return Object.fromEntries(profileEntries);
   }
 
-  async _setConfig(config: Config, cellId: CellId): Promise<null> {
+  async setConfig(config: Config, cellId: CellId): Promise<null> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: this.zomeName,
@@ -282,7 +278,7 @@ export class RelayClient {
     });
   }
 
-  async _getConfig(cellId: CellId): Promise<EntryRecord<Config> | undefined> {
+  async getConfig(cellId: CellId): Promise<Config | undefined> {
     console.log("cell id is", cellId);
 
     const config = await this.client.callZome({
@@ -291,7 +287,7 @@ export class RelayClient {
       fn_name: "get_config",
       payload: null,
     });
-    return config ? new EntryRecord(config) : undefined;
+    return config ? new EntryRecord<Config>(config).entry : undefined;
   }
 
   public async sendMessage(
@@ -301,7 +297,7 @@ export class RelayClient {
     images: ImageStruct[],
     agents: AgentPubKey[]
   ): Promise<EntryRecord<Message>> {
-    const message = await this.client.callZome({
+    const record = await this.client.callZome({
       cell_id: this.conversations[dnaHashB64].cell.cell_id,
       zome_name: this.zomeName,
       fn_name: "create_message",
@@ -310,7 +306,7 @@ export class RelayClient {
         agents,
       },
     });
-    return new EntryRecord(message);
+    return new EntryRecord(record);
   }
 
   async _setMyProfileForConversation(cellId: CellId): Promise<null> {
@@ -352,7 +348,7 @@ export class RelayClient {
 
   /********* Contacts **********/
 
-  public async getAllContacts() {
+  public async getAllContacts(): Promise<ContactRecord[]> {
     return this.client.callZome({
       role_name: this.roleName,
       zome_name: this.zomeName,
@@ -361,7 +357,7 @@ export class RelayClient {
     });
   }
 
-  public async createContact(contact: Contact) {
+  public async createContact(contact: Contact): Promise<Record> {
     return this.client.callZome({
       role_name: this.roleName,
       zome_name: this.zomeName,
@@ -375,7 +371,7 @@ export class RelayClient {
     });
   }
 
-  public async updateContact(contact: Contact) {
+  public async updateContact(contact: Contact): Promise<Record> {
     return this.client.callZome({
       role_name: this.roleName,
       zome_name: this.zomeName,

@@ -527,7 +527,7 @@ export function createConversationStore(
   async function updateConfig(config: Partial<Config>) {
     const newConfig = { ...get(conversation).config, ...config };
     const cellAndConfig = client.conversations[dnaHashB64];
-    await relayStore.client._setConfig(newConfig, cellAndConfig.cell.cell_id);
+    await relayStore.client.setConfig(newConfig, cellAndConfig.cell.cell_id);
     conversation.update((c) => ({ ...c, config: newConfig }));
   }
 
@@ -547,14 +547,14 @@ export function createConversationStore(
   }
 
   async function fetchConfig() {
-    const config = await client._getConfig(get(conversation).cellId);
+    const config = await client.getConfig(get(conversation).cellId);
     if (!config) return;
 
     conversation.update((c) => {
-      c.config = config.entry;
+      c.config = config;
       return c;
     });
-    return config.entry;
+    return config;
   }
 
   async function fetchAgents() {
