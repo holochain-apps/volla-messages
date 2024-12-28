@@ -187,7 +187,7 @@
           cancel();
         }}
       >
-        <strong class="">{$t("common.cancel")}</strong>
+        {$t("common.cancel")}
       </Button>
       <Button
         moreClasses="w-48 ml-4 justify-center !variant-filled-secondary dark:!variant-filled-tertiary disabled:border disabled:!border-tertiary-700 disabled:!bg-surface-500 disabled:!text-tertiary-700 disabled:!opacity-100 dark:disabled:!bg-secondary-900 dark:disabled:!text-tertiary-700"
@@ -196,9 +196,7 @@
         }}
         disabled={!valid || pendingSave}
       >
-        <strong>
-          {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
-        </strong>
+        {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
       </Button>
     </div>
   {:else}
@@ -255,6 +253,7 @@
       <div class="my-4">
         <Button
           moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
+          icon="speechBubble"
           on:click={() => {
             const conversationStore = contact?.getPrivateConversation();
             if (conversationStore) {
@@ -262,7 +261,6 @@
             }
           }}
         >
-          <SvgIcon icon="speechBubble" size={20} color="%23FD3524" moreClasses="mr-2" />
           {$t("contacts.send_message")}
         </Button>
       </div>

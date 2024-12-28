@@ -96,22 +96,19 @@
       {/if}
 
       <div class="my-8 flex items-center justify-center space-x-4">
-        <Button
-          moreClasses="w-36 justify-center !variant-filled-tertiary dark:!variant-filled-secondary"
-          on:click={() => scanCancel()}
-        >
-          <strong>{$t("common.cancel")}</strong>
+        <Button on:click={() => scanCancel()} big={false}>
+          {$t("common.cancel")}
         </Button>
 
         {#if needsPermission}
           <Button
-            moreClasses="w-36 justify-center !variant-filled-tertiary dark:!variant-filled-secondary"
             on:click={() => {
               scanCancel();
               openAppSettings();
             }}
+            big={false}
           >
-            <strong>{$t("common.open_app_settings")}</strong>
+            {$t("common.open_app_settings")}
           </Button>
         {/if}
       </div>
