@@ -33,7 +33,7 @@
   on:click={copy}
   icon="copy"
   {big}
-  moreClasses="{big ? 'w-64 h-12 px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
+  moreClasses="{big ? 'px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
     text-sm variant-filled-tertiary dark:!bg-tertiary-200"
 >
   {copyLabel}
@@ -44,7 +44,7 @@
     on:click={share}
     icon="share"
     {big}
-    moreClasses="{big ? 'w-64 h-12 px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
+    moreClasses="{big ? 'px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
       text-sm variant-filled-tertiary dark:!bg-tertiary-200"
   >
     <div class="flex w-full justify-center {big ? 'font-bold' : ''}">
