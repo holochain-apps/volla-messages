@@ -1,13 +1,12 @@
 <script lang="ts">
   import Button from "$lib/Button.svelte";
-  import toast from "svelte-french-toast";
-  import { copyToClipboard, isMobile, shareText } from "$lib/utils";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import SvgIcon from "../../../lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { Privacy } from "../../../types";
   import { goto } from "$app/navigation";
   import type { ConversationStore } from "$store/ConversationStore";
+  import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -36,45 +35,15 @@
             name: conversationStore.getTitle(),
           })}
         </p>
-        <div class="flex justify-center">
-          <Button
-            moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
-            on:click={async () => {
-              try {
-                const inviteCode = await conversationStore.makeInviteCodeForAgent(
-                  conversationStore.getAllMembers()[0]?.publicKeyB64,
-                );
-                if (!inviteCode) throw new Error("Failed to generate invite code");
-                await copyToClipboard(inviteCode);
-                toast.success(`${$t("common.copy_success")}`);
-              } catch (e) {
-                toast.error(`${$t("common.copy_error")}: ${e.message}`);
-              }
-            }}
-          >
-            <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
-            {$t("contacts.copy_invite_code")}
-          </Button>
-          {#if isMobile()}
-            <Button
-              moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
-              on:click={async () => {
-                try {
-                  const inviteCode = await conversationStore.makeInviteCodeForAgent(
-                    conversationStore.getAllMembers()[0]?.publicKeyB64,
-                  );
-                  if (!inviteCode) throw new Error("Failed to generate invite code");
-                  await shareText(inviteCode);
-                } catch (e) {
-                  toast.error(`${$t("common.share_code_error")}: ${e.message}`);
-                }
-              }}
-            >
-              <SvgIcon icon="share" size="20" color="%23FD3524" moreClasses="mr-2" />
-              {$t("contacts.share_invite_code")}
-            </Button>
-          {/if}
-        </div>
+        {#await conversationStore.makeInviteCodeForAgent(conversationStore.getAllMembers()[0].publicKeyB64) then res}
+          <div class="flex justify-center">
+            <ButtonsCopyShare
+              text={res}
+              copyLabel={$t("contacts.copy_invite_code")}
+              shareLabel={$t("contacts.share_invite_code")}
+            />
+          </div>
+        {/await}
       </div>
     {:else}
       <p class="text-secondary-500 dark:text-tertiary-500 mx-10 mb-8 text-center text-xs">
@@ -94,34 +63,11 @@
     <p class="text-secondary-500 dark:text-tertiary-700 mx-10 mb-8 text-center text-xs">
       {$t("conversations.share_invitation_code_msg")}
     </p>
-    <Button
-      moreClasses="w-64 justify-center variant-filled-tertiary"
-      on:click={async () => {
-        try {
-          await copyToClipboard($conversationStore.publicInviteCode);
-          toast.success(`${$t("common.copy_success")}`);
-        } catch (e) {
-          toast.error(`${$t("common.copy_error")}: ${e.message}`);
-        }
-      }}
-    >
-      <SvgIcon icon="copy" size="18" color="%23FD3524" />
-      <strong class="ml-2 text-sm">{$t("conversations.copy_invite_code")}</strong>
-    </Button>
-    {#if isMobile()}
-      <Button
-        on:click={async () => {
-          try {
-            await shareText($conversationStore.publicInviteCode);
-          } catch (e) {
-            toast.error(`${$t("common.share_code_error")}: ${e.message}`);
-          }
-        }}
-        moreClasses="w-64 justify-center variant-filled-tertiary"
-      >
-        <SvgIcon icon="share" size="18" color="%23FD3524" />
-        <strong class="ml-2 text-sm">{$t("conversations.share_invite_code")}</strong>
-      </Button>
-    {/if}
+
+    <ButtonsCopyShare
+      text={$conversationStore.publicInviteCode}
+      copyLabel={$t("conversations.copy_invite_code")}
+      shareLabel={$t("conversations.share_invite_code")}
+    />
   {/if}
 </div>

@@ -58,7 +58,7 @@
     {/if}
   </div>
 
-  <footer>
+  <div class="my-8">
     <Button
       disabled={!inviteCode || joining}
       loading={joining}
@@ -67,5 +67,5 @@
     >
       <strong class="ml-2">{$t("conversations.join_conversation")}</strong>
     </Button>
-  </footer>
+  </div>
 </form>
