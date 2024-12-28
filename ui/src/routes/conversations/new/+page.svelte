@@ -82,8 +82,7 @@
     on:click={() => createConversation(Privacy.Public)}
     disabled={!valid || pendingCreate}
     loading={pendingCreate}
-    big
   >
-    <strong>{$t("conversations.create_group")}</strong>
+    {$t("conversations.create_group")}
   </Button>
 </div>

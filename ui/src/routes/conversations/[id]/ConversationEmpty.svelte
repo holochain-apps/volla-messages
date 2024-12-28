@@ -45,18 +45,6 @@
           </div>
         {/await}
       </div>
-    {:else}
-      <p class="text-secondary-500 dark:text-tertiary-500 mx-10 mb-8 text-center text-xs">
-        {$t("conversations.share_personal_invitations")}
-      </p>
-      <Button
-        on:click={() =>
-          goto(`/conversations/${$conversationStore.conversation.dnaHashB64}/details`)}
-        moreClasses="w-72 justify-center"
-      >
-        <SvgIcon icon="ticket" size={24} color={$modeCurrent ? "white" : "%23FD3524"} />
-        <strong class="ml-2">{$t("conversations.send_invitations")}</strong>
-      </Button>
     {/if}
   {:else}
     <!-- Public conversation, make it easy to copy invite code-->

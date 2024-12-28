@@ -11,7 +11,7 @@
 
 <button
   class="variant-filled-primary dark:variant-filled-tertiary flex items-center rounded-full px-5 py-2 disabled:opacity-50
-  {big ? 'h-12 w-72' : ''} 
+  {big ? 'h-12 w-72' : ' space-x-2'} 
   {moreClasses}"
   on:click
   {...$$restProps}

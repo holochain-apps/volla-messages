@@ -70,24 +70,22 @@
   };
 </script>
 
-<div class="flex w-full items-center justify-center space-x-2">
+<div class="my-1 flex w-full items-center justify-center space-x-2">
   {#if hasText}
-    <Button
-      on:click={copy}
-      moreClasses="flex items-center gap-1 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm variant-filled-tertiary dark:!bg-tertiary-200"
-    >
-      <SvgIcon icon="copy" size={15} color="%23FD3524" moreClasses="w-3 h-3 sm:w-4 sm:h-4" />
-      <span class="text-xs text-black sm:text-sm">{$t("conversations.copy_text")}</span>
+    <Button on:click={copy} icon="copy" big={false} moreClasses="px-2 md:px-2">
+      <span class="text-xs md:text-sm">{$t("conversations.copy_text")}</span>
     </Button>
   {/if}
 
   {#if hasImages}
     <Button
       on:click={download}
-      moreClasses="flex items-center gap-1 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+      icon="download"
+      iconSize={25}
+      big={false}
+      moreClasses="px-2 md:px-2"
     >
-      <SvgIcon icon="download" size={15} color="%23FD3524" moreClasses="w-3 h-3 sm:w-4 sm:h-4" />
-      <span class="text-xs text-black sm:text-sm">{$t("conversations.download")}</span>
+      <span class="text-xs md:text-sm">{$t("conversations.download")}</span>
     </Button>
   {/if}
 </div>
