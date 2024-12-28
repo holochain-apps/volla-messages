@@ -4,7 +4,7 @@
   export let icon: string;
   export let style: string = "";
   export let color: string = "#FF3615";
-  export let size: string = "20";
+  export let size: number = 20;
   export let moreClasses: string = "";
 
   $: iconStr = () => {

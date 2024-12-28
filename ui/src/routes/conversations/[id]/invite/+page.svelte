@@ -1,16 +1,15 @@
 <script lang="ts">
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
-  import { derived, writable } from "svelte/store";
+  import { derived } from "svelte/store";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import Avatar from "$lib/Avatar.svelte";
-  import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import { copyToClipboard, isMobile, makeFullName, shareText } from "$lib/utils";
+  import { makeFullName } from "$lib/utils";
   import { Privacy } from "../../../../types";
   import toast from "svelte-french-toast";
   import type { AgentPubKeyB64 } from "@holochain/client";
