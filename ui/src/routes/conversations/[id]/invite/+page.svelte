@@ -11,7 +11,7 @@
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
   import { copyToClipboard, isMobile, makeFullName, shareText } from "$lib/utils";
-  import { Privacy } from "../../../../types";
+  import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
   import type { AgentPubKeyB64 } from "@holochain/client";
 
@@ -20,7 +20,7 @@
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
-  $: conversation = relayStore.getConversation($page.params.id);
+  let conversationStore = relayStore.getConversation($page.params.id);
 
   let selectedContacts: AgentPubKeyB64[] = [];
   let search = "";
@@ -53,9 +53,9 @@
   async function addContactsToConversation() {
     // TODO: update config.title?
     try {
-      if (conversation) {
-        conversation.addContacts(selectedContacts);
-        goto(`/conversations/${conversation.data.dnaHashB64}/details`);
+      if (conversationStore) {
+        conversationStore.addContacts(selectedContacts);
+        goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/details`);
       }
     } catch (e) {
       toast.error(`${$t("common.add_contact_to_conversation_error")}: ${e.message}`);
@@ -66,12 +66,12 @@
 <Header
   back
   title={$tAny("conversations.add_people", {
-    public: conversation && conversation.data.privacy === Privacy.Public,
+    public: $conversationStore?.conversation.privacy === Privacy.Public,
   })}
 />
 
-{#if conversation}
-  {#if conversation.data.privacy === Privacy.Public}
+{#if $conversationStore}
+  {#if $conversationStore.conversation.privacy === Privacy.Public}
     <div class="container mx-auto flex grow flex-col items-center justify-center px-10">
       <img src="/share-public-invite.png" alt="Share Key" class="mb-4" />
       <h1 class="h1 mb-2">{$t("conversations.open_invite_code")}</h1>
@@ -83,7 +83,7 @@
         moreClasses="w-64"
         on:click={async () => {
           try {
-            await copyToClipboard(conversation.publicInviteCode);
+            await copyToClipboard($conversationStore.publicInviteCode);
             toast.success(`${$t("common.copy_success")}`);
           } catch (e) {
             toast.error(`${$t("common.copy_error")}: ${e.message}`);
@@ -91,7 +91,7 @@
         }}
       >
         <p class="w-64 overflow-hidden text-ellipsis text-nowrap">
-          {conversation.publicInviteCode}
+          {$conversationStore.publicInviteCode}
         </p>
         <img src="/copy.svg" alt="Copy Icon" width="16" />&nbsp;<span
           class="text-tertiary-500 text-xs">{$t("common.copy")}</span
@@ -101,7 +101,7 @@
         <Button
           on:click={async () => {
             try {
-              await shareText(conversation.publicInviteCode);
+              await shareText($conversationStore.publicInviteCode);
             } catch (e) {
               toast.error(`${$t("common.share_code_error")}: ${e.message}`);
             }
@@ -109,7 +109,7 @@
           moreClasses="w-64"
         >
           <p class="w-64 overflow-hidden text-ellipsis text-nowrap">
-            {conversation.publicInviteCode}
+            {$conversationStore.publicInviteCode}
           </p>
           <img src="/share.svg" alt="Share Icon" width="16" />&nbsp;<span
             class="text-tertiary-500 text-xs">{$t("common.share")}</span
@@ -161,12 +161,14 @@
               </p>
             {/if}
             {@const selected = selectedContacts.find((c) => c === contact.publicKeyB64)}
-            {@const alreadyInvited = !!conversation.invitedContactKeys.find(
+            {@const alreadyInvited = !!$conversationStore.invitedContactKeys.find(
               (k) => k === contact.publicKeyB64,
             )}
-            {@const alreadyInConversation = !!conversation
-              .memberList()
-              .find((m) => m?.publicKeyB64 === contact.publicKeyB64)}
+            {@const alreadyInConversation = conversationStore
+              ? !!conversationStore
+                  .getMemberList()
+                  .find((m) => m?.publicKeyB64 === contact.publicKeyB64)
+              : false}
             <button
               class="-ml-1 mb-2 flex w-full items-center justify-between rounded-3xl p-2 {selected &&
                 'bg-tertiary-500 dark:bg-secondary-500'} dark:disabled:text-tertiary-700 font-normal disabled:font-light"

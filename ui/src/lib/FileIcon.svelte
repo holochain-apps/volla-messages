@@ -1,7 +1,7 @@
 <script lang="ts">
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import type { Image } from "../types";
+  import type { Image } from "$lib/types";
 
   export let file: Image;
   export let size = 50;

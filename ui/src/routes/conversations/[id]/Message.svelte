@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { RelayStore } from "$store/RelayStore";
   import { getContext } from "svelte";
-  import { type Message as MessageType, type Image } from "../../../types";
+  import { type Message as MessageType, type Image } from "$lib/types";
   import Time from "svelte-time";
   import LightboxImage from "$lib/LightboxImage.svelte";
   import MessageActions from "./MessageActions.svelte";
@@ -15,7 +15,7 @@
   import PdfThumbnail from "$lib/PdfThumbnail.svelte";
   import { isMobile } from "$lib/utils";
   import prettyBytes from "pretty-bytes";
-  import FileIcon from "../../../lib/FileIcon.svelte";
+  import FileIcon from "$lib/FileIcon.svelte";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();

@@ -1,4 +1,4 @@
-import { isEmpty, uniq } from "lodash-es";
+import { uniq } from "lodash-es";
 import { encode } from "@msgpack/msgpack";
 import { Base64 } from "js-base64";
 import {
@@ -11,13 +11,18 @@ import {
   type AgentPubKeyB64,
 } from "@holochain/client";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
-import { derived, get, writable, type Writable } from "svelte/store";
+import {
+  derived,
+  get,
+  writable,
+  type Invalidator,
+  type Subscriber,
+  type Unsubscriber,
+} from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
-import { t } from "$translations";
 import { RelayStore } from "$store/RelayStore";
 import {
   type Config,
-  type Contact,
   type Conversation,
   type Image,
   type Invitation,
@@ -25,69 +30,227 @@ import {
   type Message,
   type MessageRecord,
   Privacy,
-  type Messages,
-} from "../types";
-import { createMessageHistoryStore, type MessageHistoryStore } from "./MessageHistoryStore";
+} from "$lib/types";
+import { createMessageHistoryStore } from "./MessageHistoryStore";
 import pRetry from "p-retry";
 import { fileToDataUrl, makeFullName } from "$lib/utils";
-import toast from "svelte-french-toast";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
-import { persisted, type Persisted } from "svelte-persisted-store";
+import { persisted } from "svelte-persisted-store";
+import type { Profile } from "@holochain-open-dev/profiles";
 
-export class ConversationStore {
-  public conversation: Writable<Conversation>;
-  public history: MessageHistoryStore;
-  public lastBucketLoaded: number = -1;
-  public lastMessage: Writable<Message | null>;
-  public localDataStore: Persisted<LocalConversationData>;
-  private client;
-  private fileStorageClient: FileStorageClient;
+export interface ConversationStoreData {
+  conversation: Conversation;
+  localData: LocalConversationData;
+  lastMessage: Message | null;
+  lastActivityAt: number;
+  lastBucketLoaded: number;
+  publicInviteCode: string;
+  invitedContactKeys: AgentPubKeyB64[];
+  archived: boolean;
+  open: boolean;
+  unread: boolean | undefined;
+  created: number;
+  processedMessages: Message[];
+}
 
-  constructor(
-    public relayStore: RelayStore,
-    public networkSeed: string,
-    public cellId: CellId,
-    public config: Config,
-    public created: number,
-    public privacy: Privacy,
-    public progenitor: AgentPubKey,
-  ) {
-    const messages: Messages = {};
+export interface ConversationStore {
+  initialize: () => Promise<void>;
+  loadMessagesSet: () => Promise<Array<ActionHashB64>>;
+  loadMessageSetFromCurrentBucket: () => Promise<[number, ActionHashB64[]]>;
+  loadImagesForMessage: (message: Message) => Promise<void>;
+  fetchAgents: () => Promise<{
+    [key: AgentPubKeyB64]: Profile;
+  }>;
+  fetchConfig: () => Promise<Config | undefined>;
+  sendMessage: (authorKey: string, content: string, images: Image[]) => Promise<void>;
+  addMessage: (message: Message) => void;
+  updateConfig: (config: Partial<Config>) => Promise<void>;
+  addContacts: (agentPubKeyB64s: AgentPubKeyB64[]) => void;
+  toggleArchived: () => void;
+  setUnread: (unread: boolean) => void;
+  makeInviteCodeForAgent: (publicKeyB64: string) => Promise<string>;
+  getAllMembers: () => {
+    publicKeyB64: string;
+    avatar: string;
+    firstName: string;
+    lastName: string;
+  }[];
+  getMemberList: (includeInvited?: boolean) => {
+    publicKeyB64: string;
+    avatar: string;
+    firstName: string;
+    lastName: string;
+  }[];
+  getInvitedUnjoined: () => {
+    publicKeyB64: string;
+    avatar: string;
+    firstName: string;
+    lastName: string;
+  }[];
+  getTitle: () => string;
+  subscribe: (
+    this: void,
+    run: Subscriber<ConversationStoreData>,
+    invalidate?: Invalidator<ConversationStoreData> | undefined,
+  ) => Unsubscriber;
+}
 
-    const currentBucket = this.currentBucket();
+export function createConversationStore(
+  relayStore: RelayStore,
+  networkSeed: string,
+  cellId: CellId,
+  config: Config,
+  created: number,
+  privacy: Privacy,
+  progenitor: AgentPubKey,
+): ConversationStore {
+  const client = relayStore.client;
+  const fileStorageClient = new FileStorageClient(
+    relayStore.client.client,
+    "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
+    "file_storage",
+    cellId,
+  );
 
-    const dnaHashB64 = encodeHashToBase64(this.cellId[0]);
-    this.history = createMessageHistoryStore(dnaHashB64, currentBucket);
-
-    this.conversation = writable({
-      networkSeed,
-      dnaHashB64,
-      cellId,
-      config,
-      privacy,
-      progenitor,
-      agentProfiles: {},
-      messages,
-    });
-    this.localDataStore = persisted(`CONVERSATION.${this.data.dnaHashB64}.LOCAL_DATA_STORE`, {
-      archived: false,
-      invitedContactKeys: [],
-      unread: false,
-    });
-    this.lastMessage = writable(null);
-    this.client = relayStore.client;
-    this.fileStorageClient = new FileStorageClient(
-      this.client.client,
-      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
-      "file_storage",
-      cellId,
+  const dnaHashB64 = encodeHashToBase64(cellId[0]);
+  const conversation = writable<Conversation>({
+    networkSeed,
+    dnaHashB64,
+    cellId,
+    config,
+    privacy,
+    progenitor,
+    agentProfiles: {},
+    messages: {},
+  });
+  const history = createMessageHistoryStore(dnaHashB64, currentBucket());
+  const lastBucketLoaded = writable<number>(-1);
+  const localData = persisted<LocalConversationData>(`CONVERSATION.${dnaHashB64}.LOCAL_DATA`, {
+    archived: false,
+    invitedContactKeys: [],
+    unread: false,
+  });
+  const lastMessage = writable<Message | null>(null);
+  const publicInviteCode = derived(conversation, ($conversation) => {
+    return Base64.fromUint8Array(
+      encode({
+        created: created,
+        networkSeed: $conversation.networkSeed,
+        privacy: $conversation.privacy,
+        progenitor: $conversation.progenitor,
+        title: getTitle(),
+      }),
     );
+  });
+  const isOpen = derived(
+    page,
+    ($page) => $page.route.id === "/conversations/[id]" && $page.params.id === dnaHashB64,
+  );
+  const processedMessages = derived(conversation, ($conversation) => {
+    const messages = Object.values(($conversation as Conversation).messages).sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
+    const result: Message[] = [];
+
+    let newLastMessage: Message | null = null;
+
+    messages.forEach((message) => {
+      // Don't display message if we don't have a profile from the author yet.
+      if (!$conversation.agentProfiles[message.authorKey]) {
+        return;
+      }
+
+      const contact = relayStore.contacts.find((c) => get(c).publicKeyB64 === message.authorKey);
+
+      const displayMessage = {
+        ...message,
+        author: contact
+          ? get(contact).firstName
+          : $conversation.agentProfiles[message.authorKey].fields.firstName,
+        avatar: contact
+          ? get(contact).avatar
+          : $conversation.agentProfiles[message.authorKey].fields.avatar,
+      };
+
+      if (
+        !newLastMessage ||
+        message.timestamp.toDateString() !== newLastMessage.timestamp.toDateString()
+      ) {
+        displayMessage.header = message.timestamp.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        });
+      }
+
+      // If same person is posting a bunch of messages in a row, hide their name and avatar
+      if (
+        newLastMessage?.authorKey === message.authorKey &&
+        message.timestamp.getTime() - newLastMessage.timestamp.getTime() < 1000 * 60 * 5
+      ) {
+        displayMessage.hideDetails = true;
+      }
+
+      result.push(displayMessage);
+      newLastMessage = message;
+    });
+
+    lastMessage.set(newLastMessage);
+
+    return result;
+  });
+
+  const { subscribe } = derived(
+    [
+      conversation,
+      localData,
+      lastMessage,
+      lastBucketLoaded,
+      publicInviteCode,
+      isOpen,
+      processedMessages,
+    ],
+    ([
+      $conversation,
+      $localData,
+      $lastMessage,
+      $lastBucketLoaded,
+      $publicInviteCode,
+      $isOpen,
+      $processedMessages,
+    ]) => ({
+      conversation: $conversation,
+      localData: $localData,
+      lastMessage: $lastMessage,
+      lastActivityAt: $lastMessage ? $lastMessage.timestamp.getTime() : created,
+      lastBucketLoaded: $lastBucketLoaded,
+      publicInviteCode: $publicInviteCode,
+      invitedContactKeys: $localData.invitedContactKeys,
+      archived: $localData.archived,
+      open: $isOpen,
+      unread: $localData.unread,
+      created,
+      processedMessages: $processedMessages,
+    }),
+  );
+
+  function bucketFromTimestamp(timestamp: number): number {
+    const diff = timestamp - created;
+    return Math.round(diff / BUCKET_RANGE_MS);
   }
 
-  async initialize() {
-    await this.fetchAgents();
-    await this.loadMessagesSet();
+  function bucketFromDate(date: Date): number {
+    return bucketFromTimestamp(date.getTime());
+  }
+
+  function currentBucket(): number {
+    return bucketFromDate(new Date());
+  }
+
+  async function initialize() {
+    await fetchAgents();
+    await loadMessagesSet();
   }
 
   // 1. looks in the history, starting at a current bucket, for hashes, and retrieves all
@@ -95,230 +258,44 @@ export class ConversationStore {
   // such that at least TARGET_MESSAGES_COUNT messages.
   // 2. then updates the "lateBucketLoaded" state variable so the next time earlier buckets
   // will be loaded.
-  async loadMessagesSet(): Promise<Array<ActionHashB64>> {
-    if (this.lastBucketLoaded == 0) return [];
+  async function loadMessagesSet(): Promise<Array<ActionHashB64>> {
+    const lastBucket = get(lastBucketLoaded);
+    if (lastBucket === 0) return [];
 
-    let bucket = this.lastBucketLoaded < 0 ? this.currentBucket() : this.lastBucketLoaded - 1;
-    let [lastBucketLoaded, messageHashes] = await this.loadMessageSetFrom(bucket);
-    this.lastBucketLoaded = lastBucketLoaded;
+    let bucket = lastBucket < 0 ? currentBucket() : lastBucket - 1;
+    let [bucketLoaded, messageHashes] = await _loadMessageSetFrom(bucket);
+    lastBucketLoaded.set(bucketLoaded);
+
     return messageHashes;
+  }
+
+  async function loadMessageSetFromCurrentBucket(): Promise<[number, ActionHashB64[]]> {
+    return _loadMessageSetFrom(currentBucket());
   }
 
   // looks in the history starting at a bucket number for hashes, and retrieves all
   // the actual messages in that bucket as well as any earlier buckets necessary
   // such that at least TARGET_MESSAGES_COUNT messages.
-  async loadMessageSetFrom(bucket: number): Promise<[number, ActionHashB64[]]> {
-    const buckets = this.history.bucketsForSet(TARGET_MESSAGES_COUNT, bucket);
+  async function _loadMessageSetFrom(bucket: number): Promise<[number, ActionHashB64[]]> {
+    const buckets = history.bucketsForSet(TARGET_MESSAGES_COUNT, bucket);
     const messageHashes: ActionHashB64[] = [];
     for (const b of buckets) {
-      messageHashes.push(...(await this.getMessagesForBucket(b)));
+      messageHashes.push(...(await _getMessagesForBucket(b)));
     }
     return [bucket - buckets.length + 1, messageHashes];
   }
 
-  async fetchAgents() {
-    const agentProfiles = await this.client.getAllAgents(this.data.dnaHashB64);
-    this.conversation.update((c) => {
-      c.agentProfiles = { ...agentProfiles };
-      return c;
-    });
-    return agentProfiles;
-  }
-
-  subscribe(run: any) {
-    return this.conversation.subscribe(run);
-  }
-
-  /****** Getters ******/
-  get data() {
-    return get(this.conversation);
-  }
-
-  get publicInviteCode() {
-    if (this.data.privacy === Privacy.Public) {
-      const invitation: Invitation = {
-        created: this.created,
-        networkSeed: this.data.networkSeed,
-        privacy: this.data.privacy,
-        progenitor: this.data.progenitor,
-        title: this.title,
-      };
-      const msgpck = encode(invitation);
-      return Base64.fromUint8Array(msgpck);
-    } else {
-      return "";
-    }
-  }
-
-  async inviteCodeForAgent(publicKeyB64: string) {
-    if (this.data.privacy === Privacy.Public) {
-      return this.publicInviteCode;
-    }
-    const proof = await this.relayStore.inviteAgentToConversation(
-      this.data.dnaHashB64,
-      decodeHashFromBase64(publicKeyB64),
-    );
-    if (proof !== undefined) {
-      // The name of the conversation we are inviting to should be our name + # of other people invited
-      let myProfile = get(this.client.profilesStore.myProfile);
-      const profileData = myProfile.status === "complete" ? myProfile.value?.entry : undefined;
-      let title = (profileData?.fields.firstName || "") + " " + profileData?.fields.lastName;
-      if (this.invitedContactKeys.length > 1) {
-        title = `${title} + ${this.invitedContactKeys.length - 1}`;
-      }
-
-      const invitation: Invitation = {
-        created: this.created,
-        progenitor: this.data.progenitor,
-        privacy: this.data.privacy,
-        proof,
-        networkSeed: this.data.networkSeed,
-        title,
-      };
-      const msgpck = encode(invitation);
-      return Base64.fromUint8Array(msgpck);
-    } else {
-      toast.error(get(t)("conversations.unable_to_create_code"));
-      return "";
-    }
-  }
-
-  get invitedContactKeys(): string[] {
-    if (this.data.privacy === Privacy.Public) return [];
-    const currentValue = get(this.localDataStore).invitedContactKeys;
-    return isEmpty(currentValue) ? [] : currentValue;
-  }
-
-  get invitedContacts() {
-    return this.invitedContactKeys.map((contactKey) =>
-      this.relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey),
-    );
-  }
-
-  get archived() {
-    return get(this.localDataStore).archived;
-  }
-
-  private get open() {
-    const { route, params } = get(page);
-    return route.id === "/conversations/[id]" && params.id === this.data.dnaHashB64;
-  }
-
-  get unread() {
-    return get(this.localDataStore).unread;
-  }
-
-  get allMembers() {
-    return this.memberList(true);
-  }
-
-  memberList(includeInvited = false) {
-    // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
-    const joinedAgents = this.data.agentProfiles;
-
-    const keys = uniq(
-      Object.keys(joinedAgents).concat(includeInvited ? this.invitedContactKeys : []),
-    );
-
-    // Filter out progenitor, as they are always in the list,
-    // use contact data for each agent if it exists locally, otherwise use their profile
-    // sort by first name (for now)
-    return keys
-      .filter((k) => k !== this.client.myPubKeyB64)
-      .map((agentKey) => {
-        const agentProfile = joinedAgents[agentKey];
-        const contactProfile = this.relayStore.contacts.find(
-          (c) => get(c).publicKeyB64 === agentKey,
-        );
-
-        if (contactProfile) {
-          const c = get(contactProfile);
-          return {
-            publicKeyB64: agentKey,
-            avatar: c.avatar,
-            firstName: c.firstName,
-            lastName: c.lastName,
-          };
-        } else {
-          return {
-            publicKeyB64: agentKey,
-            avatar: agentProfile?.fields.avatar,
-            firstName: agentProfile?.fields.firstName,
-            lastName: agentProfile?.fields.lastName, // if any contact profile exists use that data
-          };
-        }
-      })
-      .sort((a, b) => a.firstName.localeCompare(b.firstName));
-  }
-
-  get invitedUnjoined() {
-    const joinedAgents = this.data.agentProfiles;
-    return this.invitedContactKeys
-      .filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
-      .map((contactKey) => {
-        const contactProfile = this.relayStore.contacts.find(
-          (c) => get(c).publicKeyB64 === contactKey,
-        );
-        if (!contactProfile) return;
-        const c = get(contactProfile);
-        return {
-          publicKeyB64: contactKey,
-          avatar: c.avatar,
-          firstName: c.firstName,
-          lastName: c.lastName,
-        };
-      })
-      .filter((c) => c !== undefined);
-  }
-
-  get title() {
-    const numInvited = this.allMembers.length;
-    if (this.data?.privacy === Privacy.Public) {
-      return this.data?.config.title;
-    }
-
-    if (numInvited === 0) {
-      // When joining a private converstion that has not synced yet
-      return this.data?.config.title;
-    } else if (numInvited === 1) {
-      // Use full name of the one other person in the chat
-      return this.allMembers[0]
-        ? makeFullName(this.allMembers[0].firstName, this.allMembers[0].lastName)
-        : this.data?.config.title;
-    } else if (numInvited === 2) {
-      return this.allMembers.map((c) => c?.firstName).join(" & ");
-    } else {
-      return this.allMembers.map((c) => c?.firstName).join(", ");
-    }
-  }
-
-  async getConfig() {
-    const config = await this.client._getConfig(this.data.cellId);
-    if (config) {
-      this.conversation.update((c) => {
-        c.config = { ...config.entry };
-        return c;
-      });
-      return config.entry;
-    }
-    return null;
-  }
-
-  async getMessagesForBucket(b: number) {
+  async function _getMessagesForBucket(b: number) {
     try {
-      const newMessages: { [key: string]: Message } = this.data.messages;
-      let bucket = this.history.getBucket(b);
-      const messageHashes = await this.client.getMessageHashes(
-        this.data.dnaHashB64,
-        b,
-        get(bucket).count,
-      );
+      const newMessages: { [key: string]: Message } = get(conversation).messages;
+      let bucket = history.getBucket(b);
+      const messageHashes = await client.getMessageHashes(dnaHashB64, b, get(bucket).count);
 
       const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
       const missingHashes = bucket.missingHashes(messageHashesB64);
       if (missingHashes.length > 0) {
-        if (this.open == false) {
-          this.localDataStore.update((data) => ({ ...data, unread: true }));
+        if (get(isOpen) == false) {
+          setUnread(true);
         }
         bucket.add(missingHashes);
       }
@@ -329,14 +306,14 @@ export class ConversationStore {
       });
 
       if (hashesToLoad.length > 0) {
-        const messageRecords: Array<MessageRecord> = await this.client.getMessageEntries(
-          this.data.dnaHashB64,
+        const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
+          dnaHashB64,
           hashesToLoad,
         );
         if (hashesToLoad.length != messageRecords.length) {
           console.log("Warning: not all requested hashes were loaded");
         }
-        let lastMessage = get(this.lastMessage);
+        let l = get(lastMessage);
         for (const messageRecord of messageRecords) {
           try {
             const message = messageRecord.message;
@@ -345,8 +322,8 @@ export class ConversationStore {
               message.timestamp = new Date(
                 messageRecord.signed_action.hashed.content.timestamp / 1000,
               );
-              if (!lastMessage || message.timestamp > lastMessage.timestamp) {
-                lastMessage = message;
+              if (!l || message.timestamp > l.timestamp) {
+                lastMessage.set(message);
               }
               message.authorKey = encodeHashToBase64(
                 messageRecord.signed_action.hashed.content.author,
@@ -363,10 +340,10 @@ export class ConversationStore {
               message.status = "confirmed";
 
               // Async load the images
-              this.loadImagesForMessage(message);
+              loadImagesForMessage(message);
 
               if (!newMessages[message.hash]) {
-                const matchesPending = Object.values(this.data.messages).find(
+                const matchesPending = Object.values(get(conversation).messages).find(
                   (m) =>
                     m.status === "pending" &&
                     m.authorKey === message.authorKey &&
@@ -382,11 +359,11 @@ export class ConversationStore {
             console.error("Unable to parse message, ignoring", messageRecord, e);
           }
         }
-        this.conversation.update((c) => {
-          c.messages = { ...newMessages };
-          return c;
-        });
-        this.lastMessage.set(lastMessage);
+        conversation.update((c) => ({
+          ...c,
+          messages: newMessages,
+        }));
+        lastMessage.set(l);
         return Object.keys(newMessages);
       }
     } catch (e) {
@@ -396,31 +373,12 @@ export class ConversationStore {
     return [];
   }
 
-  bucketFromTimestamp(timestamp: number): number {
-    const diff = timestamp - this.created;
-    return Math.round(diff / BUCKET_RANGE_MS);
-  }
-
-  bucketFromDate(date: Date): number {
-    return this.bucketFromTimestamp(date.getTime());
-  }
-
-  currentBucket(): number {
-    return this.bucketFromDate(new Date());
-  }
-
-  get lastActivityAt() {
-    return derived(this.lastMessage, ($lastMessage) => {
-      return $lastMessage ? $lastMessage.timestamp.getTime() : this.created;
-    });
-  }
-
   /***** Setters & actions ******/
 
-  async sendMessage(authorKey: string, content: string, images: Image[]) {
+  async function sendMessage(authorKey: string, content: string, images: Image[]) {
     // Use temporary uuid as the hash until we get the real one back from the network
     const now = new Date();
-    const bucket = this.bucketFromDate(now);
+    const bucket = bucketFromDate(now);
     const id = uuidv4();
     const oldMessage: Message = {
       authorKey,
@@ -431,12 +389,12 @@ export class ConversationStore {
       bucket,
       images,
     };
-    this.addMessage(oldMessage);
+    addMessage(oldMessage);
     const imageStructs = await Promise.all(
       images
         .filter((i) => !!i.file)
         .map(async (image) => {
-          const hash = await this.fileStorageClient.uploadFile(image.file!);
+          const hash = await fileStorageClient.uploadFile(image.file!);
           return {
             last_modified: image.file!.lastModified,
             name: image.file!.name,
@@ -446,12 +404,12 @@ export class ConversationStore {
           };
         }),
     );
-    const newMessageEntry = await this.client.sendMessage(
-      this.data.dnaHashB64,
+    const newMessageEntry = await client.sendMessage(
+      dnaHashB64,
       content,
       bucket,
       imageStructs,
-      Object.keys(this.data.agentProfiles).map((k) => decodeHashFromBase64(k)),
+      Object.keys(get(conversation).agentProfiles).map((k) => decodeHashFromBase64(k)),
     );
     const newMessage: Message = {
       ...oldMessage,
@@ -459,55 +417,55 @@ export class ConversationStore {
       status: "confirmed",
       images: images.map((i) => ({ ...i, status: "loaded" })),
     };
-    this.updateMessage(oldMessage, newMessage);
+    _updateMessage(oldMessage, newMessage);
   }
 
-  addMessage(message: Message): void {
-    this.conversation.update((conversation) => {
+  function _updateMessage(oldMessage: Message, newMessage: Message): void {
+    conversation.update((c) => {
+      const messages = { ...c.messages };
+      delete messages[oldMessage.hash];
+      return { ...c, messages: { ...messages, [newMessage.hash]: newMessage } };
+    });
+    history.add(newMessage);
+  }
+
+  function addMessage(message: Message): void {
+    conversation.update((c) => {
       message.images = message.images || [];
-      const lastMessage = get(this.lastMessage);
-      if (!lastMessage || message.timestamp > lastMessage.timestamp) {
-        this.lastMessage.set(message);
+      const l = get(lastMessage);
+      if (!l || message.timestamp > l.timestamp) {
+        lastMessage.set(message);
       }
-      return { ...conversation, messages: { ...conversation.messages, [message.hash]: message } };
+      return { ...c, messages: { ...c.messages, [message.hash]: message } };
     });
 
     if (message.hash.startsWith("uhCkk")) {
       // don't add placeholder to bucket yet.
-      this.history.add(message);
-      if (!this.open && message.authorKey !== this.client.myPubKeyB64) {
-        this.localDataStore.update((data) => ({ ...data, unread: true }));
+      history.add(message);
+      if (!get(isOpen) && message.authorKey !== client.myPubKeyB64) {
+        setUnread(true);
       }
     }
   }
 
-  updateMessage(oldMessage: Message, newMessage: Message): void {
-    this.conversation.update((conversation) => {
-      const messages = { ...conversation.messages };
-      delete messages[oldMessage.hash];
-      return { ...conversation, messages: { ...messages, [newMessage.hash]: newMessage } };
-    });
-    this.history.add(newMessage);
-  }
-
-  async loadImagesForMessage(message: Message) {
+  async function loadImagesForMessage(message: Message) {
     if (message.images?.length === 0) return;
 
-    const images = await Promise.all(message.images.map((image) => this.loadImage(image)));
-    this.conversation.update((conversation) => {
-      conversation.messages[message.hash].images = images;
-      return conversation;
+    const images = await Promise.all(message.images.map((image) => _loadImage(image)));
+    conversation.update((c) => {
+      c.messages[message.hash].images = images;
+      return c;
     });
   }
 
-  async loadImage(image: Image): Promise<Image> {
+  async function _loadImage(image: Image): Promise<Image> {
     try {
       if (image.status === "loaded") return image;
       if (image.storageEntryHash === undefined) return image;
 
       // Download image file, retrying up to 10 times if download fails
       const file = await pRetry(
-        () => this.fileStorageClient.downloadFile(image.storageEntryHash as Uint8Array),
+        () => fileStorageClient.downloadFile(image.storageEntryHash as Uint8Array),
         {
           retries: 10,
           minTimeout: 1000,
@@ -531,25 +489,197 @@ export class ConversationStore {
     }
   }
 
-  async updateConfig(config: Config) {
-    const cellAndConfig = this.relayStore.client.conversations[this.data.dnaHashB64];
-    await this.relayStore.client._setConfig(config, cellAndConfig.cell.cell_id);
-    this.conversation.update((conversation) => ({ ...conversation, config }));
+  async function updateConfig(config: Partial<Config>) {
+    const newConfig = { ...get(conversation).config, ...config };
+    const cellAndConfig = client.conversations[dnaHashB64];
+    await relayStore.client._setConfig(newConfig, cellAndConfig.cell.cell_id);
+    conversation.update((c) => ({ ...c, config: newConfig }));
   }
 
-  // Invite more contacts to this private conversation
-  addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
-    this.localDataStore.update((data) => ({
-      ...data,
-      invitedContactKeys: [...this.invitedContactKeys, ...agentPubKeyB64s],
+  function addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
+    localData.update((d) => ({
+      ...d,
+      invitedContactKeys: [...d.invitedContactKeys, ...agentPubKeyB64s],
     }));
   }
 
-  toggleArchived() {
-    this.localDataStore.update((data) => ({ ...data, archived: !data.archived }));
+  function toggleArchived() {
+    localData.update((d) => ({ ...d, archived: !d.archived }));
   }
 
-  setUnread(unread: boolean) {
-    this.localDataStore.update((data) => ({ ...data, unread }));
+  function setUnread(unread: boolean) {
+    localData.update((d) => ({ ...d, unread }));
   }
+
+  async function fetchConfig() {
+    const config = await client._getConfig(get(conversation).cellId);
+    if (!config) return;
+
+    conversation.update((c) => {
+      c.config = config.entry;
+      return c;
+    });
+    return config.entry;
+  }
+
+  async function fetchAgents() {
+    const agentProfiles = await client.getAllAgents(dnaHashB64);
+    conversation.update((c) => {
+      c.agentProfiles = agentProfiles;
+      return c;
+    });
+    return agentProfiles;
+  }
+
+  async function makeInviteCodeForAgent(publicKeyB64: string) {
+    const c = get(conversation);
+    if (c.privacy === Privacy.Public) {
+      const publicCode = get(publicInviteCode);
+      if (!publicCode) throw new Error("Failed to get public invite code");
+      return publicCode;
+    }
+
+    const proof = await relayStore.inviteAgentToConversation(
+      dnaHashB64,
+      decodeHashFromBase64(publicKeyB64),
+    );
+
+    // The name of the conversation we are inviting to should be our name + # of other people invited
+    let myProfile = get(client.profilesStore.myProfile);
+    const profileData = myProfile.status === "complete" ? myProfile.value?.entry : undefined;
+    let title = (profileData?.fields.firstName || "") + " " + profileData?.fields.lastName;
+    if (get(localData).invitedContactKeys.length > 1) {
+      title = `${title} + ${get(localData).invitedContactKeys.length - 1}`;
+    }
+
+    const invitation: Invitation = {
+      created,
+      progenitor: c.progenitor,
+      privacy: c.privacy,
+      proof,
+      networkSeed: c.networkSeed,
+      title,
+    };
+    const msgpck = encode(invitation);
+    return Base64.fromUint8Array(msgpck);
+  }
+
+  function getInvitedUnjoined() {
+    const joinedAgents = get(conversation).agentProfiles;
+    return get(localData)
+      .invitedContactKeys.filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
+      .map((contactKey) => {
+        const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey);
+        if (!contactProfile) return;
+        const c = get(contactProfile);
+        return {
+          publicKeyB64: contactKey,
+          avatar: c.avatar,
+          firstName: c.firstName,
+          lastName: c.lastName,
+        };
+      })
+      .filter((c) => c !== undefined);
+  }
+
+  function getAllMembers() {
+    return getMemberList(true);
+  }
+
+  function getMemberList(includeInvited = false) {
+    // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
+    const joinedAgents = get(conversation).agentProfiles;
+
+    const keys = uniq(
+      Object.keys(joinedAgents).concat(includeInvited ? get(localData).invitedContactKeys : []),
+    );
+
+    // Filter out progenitor, as they are always in the list,
+    // use contact data for each agent if it exists locally, otherwise use their profile
+    // sort by first name (for now)
+    return keys
+      .filter((k) => k !== client.myPubKeyB64)
+      .map((agentKey) => {
+        const agentProfile = joinedAgents[agentKey];
+        const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
+
+        if (contactProfile) {
+          const c = get(contactProfile);
+          return {
+            publicKeyB64: agentKey,
+            avatar: c.avatar,
+            firstName: c.firstName,
+            lastName: c.lastName,
+          };
+        } else {
+          return {
+            publicKeyB64: agentKey,
+            avatar: agentProfile?.fields.avatar,
+            firstName: agentProfile?.fields.firstName,
+            lastName: agentProfile?.fields.lastName, // if any contact profile exists use that data
+          };
+        }
+      })
+      .sort((a, b) => a.firstName.localeCompare(b.firstName));
+  }
+
+  function getTitle() {
+    const allMembers = getAllMembers();
+    const c = get(conversation);
+    if (c.privacy === Privacy.Public) {
+      return c.config.title;
+    }
+
+    if (allMembers.length === 0) {
+      // When joining a private converstion that has not synced yet
+      return c.config.title;
+    } else if (allMembers.length === 1) {
+      // Use full name of the one other person in the chat
+      return getAllMembers()[0]
+        ? makeFullName(allMembers[0].firstName, allMembers[0].lastName)
+        : c.config.title;
+    } else if (allMembers.length === 2) {
+      return allMembers.map((m) => m?.firstName).join(" & ");
+    } else {
+      return allMembers.map((m) => m?.firstName).join(", ");
+    }
+  }
+
+  return {
+    initialize,
+
+    // load messages
+    loadMessagesSet,
+    loadMessageSetFromCurrentBucket,
+    loadImagesForMessage,
+
+    // load agents
+    fetchAgents,
+
+    // load config
+    fetchConfig,
+
+    // send message
+    sendMessage,
+    addMessage,
+
+    // update config
+    updateConfig,
+
+    // update local data
+    addContacts,
+    toggleArchived,
+    setUnread,
+
+    // invite agents
+    makeInviteCodeForAgent,
+
+    // get filtered data
+    getAllMembers,
+    getMemberList,
+    getInvitedUnjoined,
+    getTitle,
+
+    subscribe,
+  };
 }

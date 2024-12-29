@@ -1,10 +1,9 @@
 import { decode } from "@msgpack/msgpack";
-import { isEqual, camelCase, mapKeys } from "lodash-es";
-import { writable, get, type Writable } from "svelte/store";
+import { camelCase, mapKeys } from "lodash-es";
+import { derived, get, type Readable } from "svelte/store";
 import {
   type AgentPubKey,
   type AgentPubKeyB64,
-  type DnaHash,
   decodeHashFromBase64,
   encodeHashToBase64,
   type Signal,
@@ -12,7 +11,7 @@ import {
   type DnaHashB64,
 } from "@holochain/client";
 import { type ContactStore, createContactStore } from "./ContactStore";
-import { ConversationStore } from "./ConversationStore";
+import { type ConversationStore, createConversationStore } from "./ConversationStore";
 import { RelayClient } from "$store/RelayClient";
 import type {
   Contact,
@@ -22,21 +21,21 @@ import type {
   Message,
   Properties,
   RelaySignal,
-} from "../types";
-import { Privacy } from "../types";
+} from "$lib/types";
+import { Privacy } from "$lib/types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
 
 export class RelayStore {
   public contacts: ContactStore[] = [];
-  public conversations: Writable<ConversationStore[]>;
+  public conversations: ConversationStore[] = [];
+  public archivedConversations = derived(this.conversations, ($conversations) =>
+    $conversations.filter((c) => c.archived),
+  );
+  public activeConversations = derived(this.conversations, ($conversations) =>
+    $conversations.filter((c) => !c.archived),
+  );
 
-  constructor(public client: RelayClient) {
-    this.conversations = writable([]);
-  }
-
-  get conversationsData() {
-    return get(this.conversations);
-  }
+  constructor(public client: RelayClient) {}
 
   async initialize() {
     await this.client.initConversations();
@@ -55,7 +54,9 @@ export class RelayStore {
       const payload: RelaySignal = signal[SignalType.App].payload as RelaySignal;
 
       if (payload.type == "Message") {
-        const conversation = this.getConversationByCellDnaHash(signal[SignalType.App].cell_id[0]);
+        const conversation = this.getConversation(
+          encodeHashToBase64(signal[SignalType.App].cell_id[0]),
+        );
 
         const from: AgentPubKey = payload.from;
         const message: Message = {
@@ -72,9 +73,11 @@ export class RelayStore {
         };
 
         if (conversation && message.authorKey !== this.client.myPubKeyB64) {
-          const sender = conversation.allMembers.find((m) => m.publicKeyB64 == message.authorKey);
+          const sender = conversation
+            .getAllMembers()
+            .find((m) => m.publicKeyB64 == message.authorKey);
           conversation.addMessage(message);
-          if (!conversation.archived) {
+          if (!get(conversation).archived) {
             const msgShort =
               message.content.length > 125 ? message.content.slice(0, 50) + "..." : message.content;
             if (isMobile()) {
@@ -102,7 +105,7 @@ export class RelayStore {
     ) as Properties;
     const progenitor = decodeHashFromBase64(properties.progenitor);
     const privacy = properties.privacy;
-    const newConversation = new ConversationStore(
+    const newConversation = createConversationStore(
       this,
       convoCellAndConfig.cell.dna_modifiers.network_seed,
       convoCellAndConfig.cell.cell_id,
@@ -112,21 +115,7 @@ export class RelayStore {
       progenitor,
     );
 
-    const unsub = newConversation.lastMessage.subscribe(() => {
-      // Trigger update to conversations store whenever lastMessage changes
-      this.conversations.update((convs) => {
-        return [...convs]; // Force reactivity by returning a new array reference
-      });
-    });
-
-    const unsub2 = newConversation.localDataStore.subscribe(() => {
-      // Trigger update to conversations store whenever localDataStore changes
-      this.conversations.update((convs) => {
-        return [...convs]; // Force reactivity by returning a new array reference
-      });
-    });
-
-    this.conversations.update((conversations) => [...conversations, newConversation]);
+    this.conversations = [...this.conversations, newConversation];
 
     await newConversation.initialize();
     return newConversation;
@@ -167,43 +156,24 @@ export class RelayStore {
   }
 
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
-    let foundConversation;
-    this.conversations.subscribe((conversations) => {
-      foundConversation = conversations.find(
-        (conversation) => conversation.data.dnaHashB64 === dnaHashB64,
-      );
-    })();
-
-    return foundConversation;
-  }
-
-  getConversationByCellDnaHash(cellDnaHash: DnaHash): ConversationStore | undefined {
-    let foundConversation;
-    this.conversations.subscribe((conversations) => {
-      foundConversation = conversations.find((conversation) =>
-        isEqual(conversation.data.cellId[0], cellDnaHash),
-      );
-    })();
-
-    return foundConversation;
+    return this.conversations.find((c) => get(c).conversation.dnaHashB64 === dnaHashB64);
   }
 
   /***** Contacts ******/
   async fetchAllContacts() {
     const contactRecords = await this.client.getAllContacts();
-    this.contacts = 
-      contactRecords.map((contactRecord: any) => {
-        const contact = contactRecord.contact;
-        return createContactStore(
-          this,
-          contact.avatar,
-          contactRecord.signed_action.hashed.hash,
-          contact.first_name,
-          contact.last_name,
-          contactRecord.original_action,
-          encodeHashToBase64(contact.public_key),
-        );
-      });
+    this.contacts = contactRecords.map((contactRecord: any) => {
+      const contact = contactRecord.contact;
+      return createContactStore(
+        this,
+        contact.avatar,
+        contactRecord.signed_action.hashed.hash,
+        contact.first_name,
+        contact.last_name,
+        contactRecord.original_action,
+        encodeHashToBase64(contact.public_key),
+      );
+    });
   }
 
   async createContact(contact: Contact) {
@@ -212,10 +182,10 @@ export class RelayStore {
     if (contactResult) {
       // Immediately add a conversation with the new contact, unless you already have one with them
       let conversation =
-        this.conversationsData.find(
+        this.conversations.find(
           (c) =>
-            c.privacy === Privacy.Private &&
-            c.allMembers.every((m) => m.publicKeyB64 === contact.publicKeyB64),
+            get(c).conversation.privacy === Privacy.Private &&
+            c.getAllMembers().every((m) => m.publicKeyB64 === contact.publicKeyB64),
         ) || null;
       if (!conversation) {
         conversation = await this.createConversation(
@@ -233,7 +203,7 @@ export class RelayStore {
         contact.lastName,
         contactResult.signed_action.hashed.hash,
         contact.publicKeyB64,
-        conversation?.data.dnaHashB64,
+        conversation ? get(conversation).conversation.dnaHashB64 : undefined,
       );
       this.contacts = [...this.contacts, contactStore];
       return contactStore;

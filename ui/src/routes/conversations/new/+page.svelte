@@ -8,12 +8,12 @@
   import { t } from "$translations";
   import { MIN_TITLE_LENGTH } from "$config";
   import { RelayStore } from "$store/RelayStore";
-  import { Privacy } from "../../../types";
+  import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
+  import { get } from "svelte/store";
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let title = "";
@@ -23,13 +23,9 @@
   async function createConversation(privacy: Privacy) {
     pendingCreate = true;
     try {
-      const conversation = await relayStore.createConversation(
-        title,
-        imageUrl,
-        privacy
-      );
-      if (conversation) {
-        goto(`/conversations/${conversation.data.dnaHashB64}`);
+      const conversationStore = await relayStore.createConversation(title, imageUrl, privacy);
+      if (conversationStore) {
+        goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
         pendingCreate = false;
       }
     } catch (e) {
@@ -61,17 +57,9 @@
     class="file-icon-label bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full"
   >
     {#if imageUrl}
-      <img
-        src={imageUrl}
-        alt="Avatar"
-        class="h-32 w-32 rounded-full object-cover"
-      />
+      <img src={imageUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
     {:else}
-      <SvgIcon
-        icon="image"
-        size="44"
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-      />
+      <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
     {/if}
   </label>
 </div>

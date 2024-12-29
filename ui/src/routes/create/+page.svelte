@@ -7,9 +7,8 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { ConversationStore } from "$store/ConversationStore";
   import { RelayStore } from "$store/RelayStore";
-  import { Privacy } from "../../types";
+  import { Privacy } from "$lib/types";
   import { makeFullName } from "$lib/utils";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { xor } from "lodash-es";
@@ -19,7 +18,6 @@
 
   let selectedContacts: AgentPubKeyB64[] = [];
   let search = "";
-  let existingConversation: ConversationStore | undefined = undefined;
   let pendingCreate = false;
 
   const tAny = t as any;
@@ -30,17 +28,21 @@
 
   $: selectedContactsNames = selectedContactStores.map((c) => get(c).firstName).join(", ");
 
-  $: existingConversation =
+  $: existingConversationStore =
     selectedContacts.length === 0
       ? undefined
-      : get(relayStore.conversations)
+      : relayStore.conversations
           .sort((a, b) =>
-            b.privacy === Privacy.Private ? 1 : a.privacy === Privacy.Private ? -1 : 0,
+            get(b).conversation.privacy === Privacy.Private
+              ? 1
+              : get(a).conversation.privacy === Privacy.Private
+                ? -1
+                : 0,
           )
           .find(
             (c) =>
-              c.allMembers.length === selectedContacts.length &&
-              c.allMembers.every((k) => selectedContacts.find((c) => c === k.publicKeyB64)),
+              c.getAllMembers().length === selectedContacts.length &&
+              c.getAllMembers().every((k) => selectedContacts.find((c) => c === k.publicKeyB64)),
           );
 
   $: contactsFiltered = derived(relayStore.contacts, ($contacts) => {
@@ -65,8 +67,8 @@
   }
 
   async function createConversation() {
-    if (existingConversation) {
-      goto(`/conversations/${existingConversation.data.dnaHashB64}`);
+    if (existingConversationStore) {
+      goto(`/conversations/${get(existingConversationStore).conversation.dnaHashB64}`);
       return;
     }
 
@@ -82,14 +84,14 @@
       title = selectedContactStores.map((c) => get(c).firstName).join(", ");
     }
 
-    const conversation = await relayStore.createConversation(
+    const conversationStore = await relayStore.createConversation(
       title,
       "",
       Privacy.Private,
       selectedContacts,
     );
-    if (conversation) {
-      goto(`/conversations/${conversation.data.dnaHashB64}/details`);
+    if (conversationStore) {
+      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}/details`);
     }
     pendingCreate = false;
   }
@@ -238,7 +240,7 @@
         <div class="nowrap overflow-hidden text-ellipsis">
           <div class="text-md text-start">
             {$tAny("create.open_conversation", {
-              existingConversation: !!existingConversation,
+              existingConversation: !!existingConversationStore,
             })}
           </div>
           <div class="pb-1 text-start text-xs font-light">

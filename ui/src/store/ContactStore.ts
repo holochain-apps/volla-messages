@@ -1,16 +1,26 @@
 import { type ActionHash, type AgentPubKeyB64, type DnaHashB64 } from "@holochain/client";
-import { writable, get, derived, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
+import {
+  writable,
+  get,
+  derived,
+  type Invalidator,
+  type Subscriber,
+  type Unsubscriber,
+} from "svelte/store";
 import { RelayStore } from "$store/RelayStore";
 import { makeFullName } from "$lib/utils";
 import { persisted } from "svelte-persisted-store";
 import type { ConversationStore } from "./ConversationStore";
-import type { Contact, ContactExtended } from "../types";
-
+import type { Contact, ContactExtended } from "$lib/types";
 
 export interface ContactStore {
-  getPrivateConversation: () => ConversationStore | undefined,
-  getIsPendingConnection: () => boolean | undefined,
-  subscribe: (this: void, run: Subscriber<ContactExtended>, invalidate?: Invalidator<ContactExtended> | undefined) => Unsubscriber
+  getPrivateConversation: () => ConversationStore | undefined;
+  getIsPendingConnection: () => boolean | undefined;
+  subscribe: (
+    this: void,
+    run: Subscriber<ContactExtended>,
+    invalidate?: Invalidator<ContactExtended> | undefined,
+  ) => Unsubscriber;
 }
 
 export function createContactStore(
@@ -38,12 +48,12 @@ export function createContactStore(
   });
   const { subscribe } = derived<typeof contact, ContactExtended>(contact, ($contact) => ({
     ...$contact,
-    name:  makeFullName($contact.firstName, $contact.lastName),
+    name: makeFullName($contact.firstName, $contact.lastName),
   }));
 
   function getPrivateConversation() {
     const val = get(privateConversationDnaHashB64);
-    if(val === undefined) return undefined;
+    if (val === undefined) return undefined;
 
     return relayStore.getConversation(val);
   }
@@ -51,13 +61,15 @@ export function createContactStore(
   // Check if the contact has joined the private conversation between you yet
   function getIsPendingConnection() {
     const privateConversation = getPrivateConversation();
-    const conversationAgents = privateConversation?.data.agentProfiles;
+    if (!privateConversation) return false;
+
+    const conversationAgents = get(privateConversation).conversation.agentProfiles;
     return conversationAgents && Object.keys(conversationAgents).length === 1;
   }
 
   return {
     getPrivateConversation,
     getIsPendingConnection,
-    subscribe
+    subscribe,
   };
 }

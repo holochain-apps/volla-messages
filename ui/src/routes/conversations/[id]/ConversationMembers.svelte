@@ -1,11 +1,11 @@
 <script lang="ts">
   import Avatar from "$lib/Avatar.svelte";
-  import { ConversationStore } from "$store/ConversationStore";
+  import { type ConversationStore } from "$store/ConversationStore";
 
-  export let conversation: ConversationStore;
+  export let conversationStore: ConversationStore;
 </script>
 
-{#each conversation.allMembers.slice(0, 2) as contact, i}
+{#each conversationStore.getAllMembers().slice(0, 2) as contact, i}
   {#if contact}
     <Avatar
       image={contact.avatar}
@@ -16,10 +16,10 @@
   {/if}
 {/each}
 
-{#if conversation.allMembers.length > 2}
+{#if conversationStore.getAllMembers().length > 2}
   <div
     class="variant-filled-tertiary mb-5 flex h-10 min-h-10 w-10 items-center justify-center rounded-full"
   >
-    <span class="text-xl">+{conversation.allMembers.length - 2}</span>
+    <span class="text-xl">+{conversationStore.getAllMembers().length - 2}</span>
   </div>
 {/if}

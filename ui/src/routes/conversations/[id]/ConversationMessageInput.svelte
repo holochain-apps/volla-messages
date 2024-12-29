@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Image } from "../../../types";
+  import type { Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { t } from "$translations";

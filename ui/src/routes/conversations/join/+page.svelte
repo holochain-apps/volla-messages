@@ -7,10 +7,10 @@
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import type { Invitation } from "../../../types";
+  import type { Invitation } from "$lib/types";
+  import { get } from "svelte/store";
 
-  const relayStoreContext: { getStore: () => RelayStore } =
-    getContext("relayStore");
+  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
 
   let inviteCode = "";
@@ -22,14 +22,12 @@
     try {
       const msgpack = Base64.toUint8Array(inviteCode);
       const invitation: Invitation = decode(msgpack) as Invitation;
-      const conversation = await relayStore.joinConversation(invitation);
-      if (conversation) {
-        goto(`/conversations/${conversation.data.dnaHashB64}`);
+      const conversationStore = await relayStore.joinConversation(invitation);
+      if (conversationStore) {
+        goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
         joining = false;
       } else {
-        console.error(
-          "Error joining conversation, couldn't create the conversation"
-        );
+        console.error("Error joining conversation, couldn't create the conversation");
         error = true;
         joining = false;
       }
@@ -44,9 +42,7 @@
 <Header back title={$t("conversations.join_conversation")} />
 
 <form on:submit|preventDefault={() => joinConversation()} class="contents">
-  <div
-    class="container mx-auto flex grow flex-col items-start justify-center px-10"
-  >
+  <div class="container mx-auto flex grow flex-col items-start justify-center px-10">
     <h1 class="h1">{$t("conversations.enter_invite_code")}</h1>
     <input
       class="bg-surface-900 mt-2 w-full overflow-hidden text-ellipsis border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
