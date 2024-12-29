@@ -3,19 +3,14 @@
   import { getContext } from "svelte";
   import { type Message as MessageType, type Image } from "$lib/types";
   import Time from "svelte-time";
-  import LightboxImage from "$lib/LightboxImage.svelte";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
   import { press } from "svelte-gestures";
-  import SvgIcon from "../../../lib/SvgIcon.svelte";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import DOMPurify from "dompurify";
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
-  import PdfThumbnail from "$lib/PdfThumbnail.svelte";
   import { isMobile } from "$lib/utils";
-  import prettyBytes from "pretty-bytes";
-  import FileIcon from "$lib/FileIcon.svelte";
+  import FilePreview from "$lib/FilePreview.svelte";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
@@ -23,7 +18,6 @@
 
   export let message: MessageType;
   export let isSelected: boolean = false;
-  export let formatFileName: (file: Image, maxLength?: number) => string;
 
   $: fromMe = message.authorKey === myPubKeyB64;
 </script>
@@ -74,92 +68,12 @@
       {#if message.images && message.images.length > 0}
         {#each message.images as file}
           <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-            <!-- if file is loaded -->
-            {#if file.status === "loaded"}
-              <div class="mb-2 flex w-auto max-w-full items-start justify-between">
-                <!-- Display image thumbnail -->
-                {#if file.fileType.startsWith("image/")}
-                  <div class="w-full">
-                    <LightboxImage
-                      btnClass="inline w-full sm:max-w-md lg:max-w-lg transition-all duration-200"
-                      src={file.dataURL}
-                      alt={file.name}
-                    />
-                  </div>
-                  <!-- Display pdf thumbnail -->
-                {:else if file.fileType === "application/pdf"}
-                  <div
-                    class="bg-surface-800/10 flex w-auto flex-row items-start gap-3 rounded-xl p-3"
-                  >
-                    {#if !fromMe}
-                      <div class="flex flex-shrink-0 items-center justify-center">
-                        <PdfThumbnail
-                          pdfDataUrl={file.dataURL ?? ""}
-                          width={70}
-                          height={90}
-                          fallbackIcon="pdf"
-                        />
-                      </div>
-                    {/if}
-                    <div class="min-w-0 flex-grow">
-                      <div class="break-all text-sm sm:text-base">
-                        {isMobile() ? formatFileName(file, 20) : formatFileName(file, 50)}
-                      </div>
-                      <div class="mt-1 text-xs font-bold text-yellow-400 sm:text-sm">
-                        {prettyBytes(file.size)}
-                      </div>
-                    </div>
-                    {#if fromMe}
-                      <div class="flex flex-shrink-0 items-center justify-center">
-                        <PdfThumbnail
-                          pdfDataUrl={file.dataURL ?? ""}
-                          width={70}
-                          height={90}
-                          fallbackIcon="pdf"
-                        />
-                      </div>
-                    {/if}
-                  </div>
-                  <!-- Display icons for other file types -->
-                {:else}
-                  <div
-                    class="bg-surface-800/10 flex w-auto flex-row items-start gap-3 rounded-xl p-3"
-                  >
-                    {#if !fromMe}
-                      <div class="flex flex-shrink-0 items-center justify-center">
-                        <FileIcon {file} size={50} />
-                      </div>
-                    {/if}
-                    <div class="min-w-0 flex-grow">
-                      <div class="break-all text-sm sm:text-base">
-                        {isMobile() ? formatFileName(file, 20) : formatFileName(file, 50)}
-                      </div>
-                      <div class="mt-1 text-xs font-bold text-yellow-400 sm:text-sm">
-                        {prettyBytes(file.size)}
-                      </div>
-                    </div>
-                    {#if fromMe}
-                      <div class="flex flex-shrink-0 items-center justify-center">
-                        <FileIcon {file} size={50} />
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-              <!-- if file is loading -->
-            {:else if file.status === "loading" || file.status === "pending"}
-              <div
-                class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg"
-              >
-                <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
-              </div>
-            {:else}
-              <div
-                class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg"
-              >
-                <SvgIcon icon="x" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
-              </div>
-            {/if}
+            <FilePreview
+              {file}
+              {fromMe}
+              isMessage={true}
+              maxFilenameLength={isMobile() ? 20 : 50}
+            />
           </div>
         {/each}
       {/if}

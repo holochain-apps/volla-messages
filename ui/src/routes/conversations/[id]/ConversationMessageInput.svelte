@@ -5,10 +5,8 @@
   import { t } from "$translations";
   import { createEventDispatcher } from "svelte";
   import toast from "svelte-french-toast";
-  import prettyBytes from "pretty-bytes";
-  import PdfThumbnail from "$lib/PdfThumbnail.svelte";
-  import FileIcon from "$lib/FileIcon.svelte";
   import { MAX_FILE_SIZE } from "$config";
+  import FilePreview from "$lib/FilePreview.svelte";
 
   const dispatch = createEventDispatcher<{
     send: {
@@ -20,7 +18,6 @@
   export let text = "";
   export let images: Image[] = [];
   export let ref: HTMLElement;
-  export let formatFileName: (file: Image, maxLength?: number) => string;
 
   async function handleImagesSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -122,93 +119,7 @@
       />
       <div class="flex flex-row flex-wrap px-4">
         {#each images as file (file.id)}
-          {#if file.status === "loading"}
-            <div
-              class="bg-primary-500 relative mr-3 flex items-start justify-between rounded-xl p-2"
-            >
-              <button
-                class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-                on:click={() => cancelUpload(file.id)}
-                aria-label="Cancel Upload"
-              >
-                <SvgIcon icon="x" size={8} />
-              </button>
-              <div class="flex flex-col">
-                {formatFileName(file)}
-                <div class="file-size text-sm font-bold text-yellow-400">
-                  {prettyBytes(file.size)}
-                </div>
-              </div>
-              <div class="justify-cente relative ml-4 flex items-center">
-                <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={20} />
-              </div>
-            </div>
-          {:else if file.dataURL && file.fileType.startsWith("image/")}
-            <!-- Display image thumbnail -->
-            <div class="relative mr-3 h-16 w-16">
-              <img src={file.dataURL} class="h-16 w-16 rounded-lg object-cover" alt="thumbnail" />
-              <button
-                class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-                on:click={() => cancelUpload(file.id)}
-                aria-label="Cancel Upload"
-              >
-                <SvgIcon icon="x" size={8} />
-              </button>
-            </div>
-          {:else if file.dataURL && file.fileType.startsWith("application/pdf")}
-            <!-- Display pdf thumbnail -->
-            <div
-              class="bg-surface-800/10 relative mb-2 mr-2 flex flex-row items-start justify-between gap-1.5 rounded-xl p-2"
-            >
-              <button
-                class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-                on:click={() => cancelUpload(file.id)}
-                aria-label="Cancel Upload"
-              >
-                <SvgIcon icon="x" size={8} />
-              </button>
-              <div class="flex flex-col break-all text-sm sm:text-base">
-                <div>
-                  {formatFileName(file, 10)}
-                </div>
-                <div class="mt-1 text-xs font-bold text-yellow-400 sm:text-sm">
-                  {prettyBytes(file.size)}
-                </div>
-              </div>
-              <div class="flex items-center justify-center">
-                <PdfThumbnail
-                  pdfDataUrl={file.dataURL ?? ""}
-                  width={30}
-                  height={43}
-                  fallbackIcon="pdf"
-                />
-              </div>
-            </div>
-          {:else}
-            <!-- If not pdf or image -->
-            <div
-              class="bg-surface-800/10 relative mb-2 mr-2 flex flex-row items-start justify-between gap-1.5 rounded-xl p-2"
-            >
-              <button
-                class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-                on:click={() => cancelUpload(file.id)}
-                aria-label="Cancel Upload"
-              >
-                <SvgIcon icon="x" size={8} />
-              </button>
-              <div class="flex flex-col break-all text-sm sm:text-base">
-                <div>
-                  {formatFileName(file, 10)}
-                </div>
-                <div class="mt-1 text-xs font-bold text-yellow-400 sm:text-sm">
-                  {prettyBytes(file.size)}
-                </div>
-              </div>
-              <div class="flex items-center justify-center">
-                <FileIcon {file} size={50} />
-              </div>
-            </div>
-          {/if}
+          <FilePreview {file} showCancel={true} onCancel={cancelUpload} />
         {/each}
       </div>
     </div>
