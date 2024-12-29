@@ -72,14 +72,7 @@
       images = [...images, ...newImages];
       // Resetting the file input, so user can upload the same file again
       input.value = "";
-
-      // Resetting the file input, so user can upload the same file again
-      input.value = "";
     }
-  }
-
-  function cancelUpload(id: string) {
-    images = images.filter((img) => img.id !== id);
   }
 
   function cancelUpload(id: string) {
@@ -101,10 +94,7 @@
   <form class="flex" method="POST" on:submit|preventDefault={send}>
     <input type="file" multiple id="files" class="hidden" on:change={handleImagesSelected} />
     <label for="files" class="flex cursor-pointer">
-    <input type="file" multiple id="files" class="hidden" on:change={handleImagesSelected} />
-    <label for="files" class="flex cursor-pointer">
       <SvgIcon
-        icon="fileClip"
         icon="fileClip"
         color={$modeCurrent ? "%232e2e2e" : "white"}
         size={26}
@@ -129,15 +119,6 @@
             }
           }
         }}
-        on:keydown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (text.trim() || images.length > 0) {
-              const submitEvent = new SubmitEvent("submit");
-              e.currentTarget.form?.dispatchEvent(submitEvent);
-            }
-          }
-        }}
       />
       <div class="flex flex-row flex-wrap px-4">
         {#each images as file (file.id)}
@@ -150,7 +131,7 @@
                 on:click={() => cancelUpload(file.id)}
                 aria-label="Cancel Upload"
               >
-                <SvgIcon icon="x" size="8" />
+                <SvgIcon icon="x" size={8} />
               </button>
               <div class="flex flex-col">
                 {formatFileName(file)}
@@ -159,7 +140,7 @@
                 </div>
               </div>
               <div class="justify-cente relative ml-4 flex items-center">
-                <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size="20" />
+                <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={20} />
               </div>
             </div>
           {:else if file.dataURL && file.fileType.startsWith("image/")}
@@ -171,7 +152,7 @@
                 on:click={() => cancelUpload(file.id)}
                 aria-label="Cancel Upload"
               >
-                <SvgIcon icon="x" size="8" />
+                <SvgIcon icon="x" size={8} />
               </button>
             </div>
           {:else if file.dataURL && file.fileType.startsWith("application/pdf")}
@@ -184,7 +165,7 @@
                 on:click={() => cancelUpload(file.id)}
                 aria-label="Cancel Upload"
               >
-                <SvgIcon icon="x" size="8" />
+                <SvgIcon icon="x" size={8} />
               </button>
               <div class="flex flex-col break-all text-sm sm:text-base">
                 <div>
@@ -204,7 +185,7 @@
               </div>
             </div>
           {:else}
-            <!-- Display pdf thumbnail -->
+            <!-- If not pdf or image -->
             <div
               class="bg-surface-800/10 relative mb-2 mr-2 flex flex-row items-start justify-between gap-1.5 rounded-xl p-2"
             >
@@ -213,7 +194,7 @@
                 on:click={() => cancelUpload(file.id)}
                 aria-label="Cancel Upload"
               >
-                <SvgIcon icon="x" size="8" />
+                <SvgIcon icon="x" size={8} />
               </button>
               <div class="flex flex-col break-all text-sm sm:text-base">
                 <div>
@@ -232,7 +213,7 @@
       </div>
     </div>
     <button disabled={text.trim() === "" && images.length === 0} class="pr-2 disabled:opacity-50">
-      <SvgIcon icon="caretRight" color={$modeCurrent ? "#2e2e2e" : "white"} size="10" />
+      <SvgIcon icon="caretRight" color={$modeCurrent ? "#2e2e2e" : "white"} size={10} />
     </button>
   </form>
 </div>
