@@ -136,6 +136,7 @@ export interface ImageStruct {
 }
 
 export interface Image {
+  id: string;
   dataURL?: string;
   fileType: string;
   file?: File;

@@ -3,8 +3,10 @@
   import type { ActionHashB64 } from "@holochain/client";
   import type { Message } from "../../../types";
   import BaseMessage from "./Message.svelte";
+  import type { Image } from "../../../types";
 
   export let messages: Message[];
+  export let formatFileName: (file: Image, maxLength?: number) => string;
 
   let selected: ActionHashB64 | undefined;
 
@@ -46,6 +48,7 @@
         on:press={() => handlePress(message.hash)}
         on:click={(e) => handleClick(e, message.hash)}
         on:clickoutside={handleClickOutside}
+        {formatFileName}
       />
     {/each}
   </ul>

@@ -329,6 +329,7 @@ export function createConversationStore(
                 messageRecord.signed_action.hashed.content.author,
               );
               message.images = ((message.images as any[]) || []).map((i) => ({
+                id: i.id,
                 fileType: i.file_type,
                 lastModified: i.last_modified,
                 name: i.name,

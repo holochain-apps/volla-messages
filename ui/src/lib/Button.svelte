@@ -1,5 +1,6 @@
 <script lang="ts">
   import SvgIcon from "./SvgIcon.svelte";
+  import { modeCurrent } from "@skeletonlabs/skeleton";
 
   export let moreClasses = "";
   export let loading = false;
@@ -20,7 +21,7 @@
     {#if loading}
       <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
     {:else if icon !== undefined}
-      <SvgIcon {icon} size={iconSize} color="%23FD3524" />
+      <SvgIcon {icon} size={iconSize} color={$modeCurrent ? "white" : "%23FD3524"} />
     {/if}
   {/if}
 
