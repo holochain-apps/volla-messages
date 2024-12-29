@@ -58,14 +58,14 @@
     {/if}
   </div>
 
-  <footer>
+  <div class="my-8">
     <Button
       disabled={!inviteCode || joining}
       loading={joining}
       icon="newConversation"
       moreClasses="variant-filled-tertiary"
     >
-      <strong class="ml-2">{$t("conversations.join_conversation")}</strong>
+      {$t("conversations.join_conversation")}
     </Button>
-  </footer>
+  </div>
 </form>

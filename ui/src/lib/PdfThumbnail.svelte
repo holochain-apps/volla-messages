@@ -11,9 +11,7 @@
     "pdfjs-dist/build/pdf.worker.min.mjs",
     import.meta.url,
   ).toString();
-
   let thumbnailUrl: string | null = null;
-
   onMount(async () => {
     try {
       const pdf = await pdfjs.getDocument(pdfDataUrl).promise;
@@ -49,5 +47,5 @@
     style="width: {width}px; height: {height}px;"
   />
 {:else}
-  <SvgIcon icon={fallbackIcon} color={$modeCurrent ? "black" : "white"} size="50" />
+  <SvgIcon icon={fallbackIcon} color={$modeCurrent ? "black" : "white"} size={50} />
 {/if}

@@ -181,3 +181,9 @@ export interface ConversationCellAndConfig {
   cell: ClonedCell;
   config: Config;
 }
+
+export interface ContactRecord {
+  original_action: ActionHash;
+  signed_action: SignedActionHashed;
+  contact?: Contact;
+}

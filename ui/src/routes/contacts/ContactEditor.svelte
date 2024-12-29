@@ -1,17 +1,17 @@
 <script lang="ts">
   import { isEmpty } from "lodash-es";
   import { modeCurrent } from "@skeletonlabs/skeleton";
-  import { getContext } from "svelte";
+  import { getContext, onMount } from "svelte";
   import { decodeHashFromBase64, type AgentPubKeyB64, type HoloHash } from "@holochain/client";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { copyToClipboard, isMobile, shareText } from "$lib/utils";
   import { RelayStore } from "$store/RelayStore";
-  import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import { get } from "svelte/store";
+  import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
+  import ButtonsCopyShareIcon from "$lib/ButtonsCopyShareIcon.svelte";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -134,7 +134,7 @@
         for="avatarInput"
         class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
       >
-        <SvgIcon icon="image" size="44" color={$modeCurrent ? "%232e2e2e" : "white"} />
+        <SvgIcon icon="image" size={44} color={$modeCurrent ? "%232e2e2e" : "white"} />
       </label>
     {/if}
   </div>
@@ -180,14 +180,14 @@
       {/if}
     </div>
 
-    <footer class="flex justify-center">
+    <div class="my-4 flex justify-center">
       <Button
         moreClasses="w-36 justify-center !variant-filled-tertiary dark:!variant-filled-secondary"
         on:click={() => {
           cancel();
         }}
       >
-        <strong class="">{$t("common.cancel")}</strong>
+        {$t("common.cancel")}
       </Button>
       <Button
         moreClasses="w-48 ml-4 justify-center !variant-filled-secondary dark:!variant-filled-tertiary disabled:border disabled:!border-tertiary-700 disabled:!bg-surface-500 disabled:!text-tertiary-700 disabled:!opacity-100 dark:disabled:!bg-secondary-900 dark:disabled:!text-tertiary-700"
@@ -196,18 +196,16 @@
         }}
         disabled={!valid || pendingSave}
       >
-        <strong class=""
-          >{#if agentPubKeyB64}{$t("common.save")}{:else}{$t("common.done")}{/if}</strong
-        >
+        {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
       </Button>
-    </footer>
+    </div>
   {:else}
     <div class="flex flex-1 flex-col items-center">
       <div class="flex flex-row justify-center">
         <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.name}</h1>
 
         <button on:click={() => (editing = true)}>
-          <SvgIcon icon="write" size="24" color="gray" moreClasses="cursor-pointer" />
+          <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
         </button>
       </div>
       <div class="mt-2 flex items-center justify-center">
@@ -216,32 +214,8 @@
         >
           {$contact?.publicKeyB64}
         </span>
-        <button
-          on:click={async () => {
-            try {
-              if (!$contact?.publicKeyB64) throw new Error("Contact Public Key not found");
-              await copyToClipboard($contact.publicKeyB64);
-              toast.success(`${$t("common.copy_success")}`);
-            } catch (e) {
-              toast.error(`${$t("common.copy_error")}: ${e.message}`);
-            }
-          }}
-        >
-          <SvgIcon icon="copy" size="20" color="%23999" />
-        </button>
-        {#if isMobile()}
-          <button
-            on:click={async () => {
-              try {
-                if (!$contact?.publicKeyB64) throw new Error("Contact Pub Key not found");
-                await shareText($contact.publicKeyB64);
-              } catch (e) {
-                toast.error(`${$t("common.share_code_error")}: ${e.message}`);
-              }
-            }}
-          >
-            <SvgIcon icon="share" size="20" color="%23999" />
-          </button>
+        {#if $contact}
+          <ButtonsCopyShareIcon text={$contact.publicKeyB64} />
         {/if}
       </div>
     </div>
@@ -250,7 +224,7 @@
       <div
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
       >
-        <SvgIcon icon="handshake" size="36" color={$modeCurrent ? "%23232323" : "white"} />
+        <SvgIcon icon="handshake" size={36} color={$modeCurrent ? "%23232323" : "white"} />
         <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
           {$t("contacts.pending_connection_header")}
         </h1>
@@ -259,63 +233,37 @@
             name: $contact?.firstName,
           })}
         </p>
-        <div class="flex justify-center">
-          <Button
-            moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
-            on:click={async () => {
-              try {
-                if (!$contact?.publicKeyB64) throw new Error();
-
-                const inviteCode = await contact
-                  ?.getPrivateConversation()
-                  ?.makeInviteCodeForAgent($contact?.publicKeyB64);
-                if (!inviteCode) throw new Error("Failed to generate invite code");
-                await copyToClipboard(inviteCode);
-                toast.success(`${$t("common.copy_success")}`);
-              } catch (e) {
-                toast.error(`${$t("common.copy_error")}: ${e.message}`);
-              }
-            }}
-          >
-            <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
-            {$t("contacts.copy_invite_code")}
-          </Button>
-          {#if isMobile()}
-            <Button
-              moreClasses="bg-surface-100 text-sm text-secondary-500 dark:text-tertiary-100 font-bold dark:bg-secondary-900"
-              on:click={async () => {
-                try {
-                  if (!$contact?.publicKeyB64) throw new Error();
-
-                  const inviteCode = await contact
-                    ?.getPrivateConversation()
-                    ?.makeInviteCodeForAgent($contact?.publicKeyB64);
-                  if (!inviteCode) throw new Error("Failed to generate invite code");
-                  await shareText(inviteCode);
-                } catch (e) {
-                  toast.error(`${$t("common.share_code_error")}: ${e.message}`);
-                }
-              }}
-            >
-              <SvgIcon icon="copy" size="20" color="%23FD3524" moreClasses="mr-2" />
-              <strong>{$t("contacts.share_invite_code")}</strong>
-            </Button>
-          {/if}
-        </div>
+        {#if $contact}
+          {#await contact
+            .getPrivateConversation()
+            ?.makeInviteCodeForAgent($contact.publicKeyB64) then res}
+            {#if res}
+              <div class="flex justify-center">
+                <ButtonsCopyShare
+                  text={res}
+                  copyLabel={$t("contacts.copy_invite_code")}
+                  shareLabel={$t("contacts.share_invite_code")}
+                />
+              </div>
+            {/if}
+          {/await}
+        {/if}
       </div>
     {:else}
-      <Button
-        moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
-        on:click={() => {
-          const conversationStore = contact?.getPrivateConversation();
-          if (conversationStore) {
-            goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
-          }
-        }}
-      >
-        <SvgIcon icon="speechBubble" size="20" color="%23FD3524" moreClasses="mr-2" />
-        {$t("contacts.send_message")}
-      </Button>
+      <div class="my-4">
+        <Button
+          moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
+          icon="speechBubble"
+          on:click={() => {
+            const conversationStore = contact?.getPrivateConversation();
+            if (conversationStore) {
+              goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
+            }
+          }}
+        >
+          {$t("contacts.send_message")}
+        </Button>
+      </div>
     {/if}
   {/if}
 </div>

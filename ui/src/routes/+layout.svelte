@@ -25,10 +25,7 @@
 
   function updateAppHeight() {
     appHeight = window.innerHeight;
-    document.documentElement.style.setProperty(
-      "--app-height",
-      `${appHeight}px`
-    );
+    document.documentElement.style.setProperty("--app-height", `${appHeight}px`);
   }
 
   async function initHolochain() {
@@ -51,7 +48,7 @@
         },
 
         // 5m timeout
-        5 * 60 * 1000
+        5 * 60 * 1000,
       );
       const appInfo = await client.appInfo();
       console.log("Relay cell ready. App Info is ", appInfo);
@@ -59,12 +56,7 @@
       // Setup stores
       let profilesClient = new ProfilesClient(client, ROLE_NAME);
       profilesStore = new ProfilesStore(profilesClient);
-      relayClient = new RelayClient(
-        client,
-        profilesStore,
-        ROLE_NAME,
-        ZOME_NAME
-      );
+      relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
       relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
 
@@ -106,9 +98,7 @@
   });
 </script>
 
-<div
-  class="wrapper full-screen mx-auto flex h-screen flex-col items-center px-5 py-4"
->
+<div class="wrapper full-screen mx-auto flex h-screen flex-col items-center px-5 py-4">
   {#if !connected || ($prof && $prof.status === "pending")}
     <div class="flex grow flex-col items-center justify-center">
       <img src="/icon.png" alt="Icon" width="58" class="mb-4" />
@@ -116,7 +106,7 @@
       <span class="mt-3 flex text-xs"
         >v{window.__APP_VERSION__}<SvgIcon
           icon="betaTag"
-          size="24"
+          size={24}
           moreClasses="ml-1"
           color={$modeCurrent ? "#000" : "#fff"}
         /></span

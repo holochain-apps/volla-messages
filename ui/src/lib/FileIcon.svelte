@@ -33,4 +33,4 @@
   $: iconName = getIconName(file);
 </script>
 
-<SvgIcon icon={iconName} color={$modeCurrent ? "black" : "white"} size={size.toString()} />
+<SvgIcon icon={iconName} color={$modeCurrent ? "black" : "white"} {size} />

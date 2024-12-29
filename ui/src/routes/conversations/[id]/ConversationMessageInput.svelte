@@ -70,10 +70,16 @@
       // When all files are read, update the images store
       const newImages: Image[] = await Promise.all(readers);
       images = [...images, ...newImages];
+      // Resetting the file input, so user can upload the same file again
+      input.value = "";
 
       // Resetting the file input, so user can upload the same file again
       input.value = "";
     }
+  }
+
+  function cancelUpload(id: string) {
+    images = images.filter((img) => img.id !== id);
   }
 
   function cancelUpload(id: string) {
@@ -95,10 +101,13 @@
   <form class="flex" method="POST" on:submit|preventDefault={send}>
     <input type="file" multiple id="files" class="hidden" on:change={handleImagesSelected} />
     <label for="files" class="flex cursor-pointer">
+    <input type="file" multiple id="files" class="hidden" on:change={handleImagesSelected} />
+    <label for="files" class="flex cursor-pointer">
       <SvgIcon
         icon="fileClip"
+        icon="fileClip"
         color={$modeCurrent ? "%232e2e2e" : "white"}
-        size="26"
+        size={26}
         moreClasses="ml-3"
       />
     </label>
@@ -111,6 +120,15 @@
         bind:value={text}
         class="bg-tertiary-500 w-full border-0 placeholder:text-sm placeholder:text-gray-400 focus:border-gray-500 focus:ring-0"
         placeholder={$t("conversations.message_placeholder")}
+        on:keydown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (text.trim() || images.length > 0) {
+              const submitEvent = new SubmitEvent("submit");
+              e.currentTarget.form?.dispatchEvent(submitEvent);
+            }
+          }
+        }}
         on:keydown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();

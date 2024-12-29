@@ -162,7 +162,7 @@
             <span
               class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
             >
-              <SvgIcon icon="group" size="20" color="#ccc" />
+              <SvgIcon icon="group" size={20} color="#ccc" />
             </span>
           {:else if allMembers.length == 1}
             <Avatar
@@ -213,7 +213,7 @@
         <span
           class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
         >
-          <SvgIcon icon="group" size="20" color="#ccc" />
+          <SvgIcon icon="group" size={20} color="#ccc" />
         </span>
       {/if}
       <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden" class:unread>
@@ -238,14 +238,14 @@
         </span>
       </div>
       <span class="text-secondary-300 relative flex flex-row items-center text-xs">
-        <SvgIcon icon="person" size="8" color={$modeCurrent ? "#aaa" : "#ccc"} />
+        <SvgIcon icon="person" size={8} color={$modeCurrent ? "#aaa" : "#ccc"} />
         <span class="ml-1">{Object.values(conversation.agentProfiles).length}</span>
       </span>
       {#if !isMobile() && isHovering && x === 0}
         <button class="z-10" on:click|preventDefault|stopPropagation={toggleMenu}>
           <SvgIcon
             icon="caretDown"
-            size="24"
+            size={24}
             color={$modeCurrent ? "#aaa" : "#ccc"}
             moreClasses="border-2 rounded-md ml-2 shadow-md"
           />
@@ -264,7 +264,7 @@
           class="text-surface-100 dark:text-tertiary-100 mr-2 flex flex-col items-center justify-center font-bold"
           on:click={startArchive}
         >
-          <SvgIcon icon="archive" size="20" color="white" moreClasses="" />
+          <SvgIcon icon="archive" size={20} color="white" moreClasses="" />
           <span class="text-xs"
             >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
           >
@@ -285,7 +285,7 @@
       <button class="flex flex-row items-center justify-start" on:click={startArchive}>
         <SvgIcon
           icon="archive"
-          size="20"
+          size={20}
           color={$modeCurrent ? "#aaa" : "#ccc"}
           moreClasses="mr-2"
         />

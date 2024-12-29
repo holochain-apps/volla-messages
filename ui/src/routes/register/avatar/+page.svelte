@@ -66,9 +66,8 @@
   </label>
 </div>
 
-<div class="items-right flex w-full justify-end pr-4">
-  <Button on:click={createAccount}>
-    <SvgIcon icon="hand" size="20" color={$modeCurrent ? "white" : "%23FD3524"} />
-    <strong class="ml-2">{$t("common.jump_in")}</strong>
+<div class="items-right my-8 flex w-full justify-end pr-4">
+  <Button on:click={createAccount} icon="hand">
+    {$t("common.jump_in")}
   </Button>
 </div>
