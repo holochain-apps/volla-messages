@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Message, Image } from "$lib/types";
+  import { type Message, type Image, FileStatus } from "$lib/types";
   import Button from "$lib/Button.svelte";
   import { t } from "$translations";
   import { convertDataURIToUint8Array, copyToClipboard } from "$lib/utils";
@@ -11,10 +11,12 @@
   export let message: Message;
 
   $: hasText = !!message?.content && message.content.trim() !== "";
-  $: hasImages = message?.images ? message.images.some((img) => img.status === "loaded") : false;
+  $: hasImages = message?.images
+    ? message.images.some((img) => img.status === FileStatus.Loaded)
+    : false;
 
   const downloadImage = async (image: Image) => {
-    if (!image || image.status !== "loaded" || !image.dataURL) {
+    if (!image || image.status !== FileStatus.Loaded || !image.dataURL) {
       console.error("Invalid image for download", image);
       return;
     }
@@ -54,7 +56,7 @@
   const download = async () => {
     if (message?.images) {
       for (const image of message.images) {
-        if (image.status === "loaded") {
+        if (image.status === FileStatus.Loaded) {
           //Downloads only the loaded images sequentially
           await downloadImage(image);
         }

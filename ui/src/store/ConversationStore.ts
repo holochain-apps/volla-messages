@@ -24,6 +24,7 @@ import { RelayStore } from "$store/RelayStore";
 import {
   type Config,
   type Conversation,
+  FileStatus,
   type Image,
   type Invitation,
   type LocalConversationData,
@@ -335,7 +336,7 @@ export function createConversationStore(
                 name: i.name,
                 size: i.size,
                 storageEntryHash: i.storage_entry_hash,
-                status: "loading",
+                status: FileStatus.Loading,
               }));
               message.status = "confirmed";
 
@@ -415,7 +416,7 @@ export function createConversationStore(
       ...oldMessage,
       hash: encodeHashToBase64(newMessageEntry.actionHash),
       status: "confirmed",
-      images: images.map((i) => ({ ...i, status: "loaded" })),
+      images: images.map((i) => ({ ...i, status: FileStatus.Loaded })),
     };
     _updateMessage(oldMessage, newMessage);
   }
@@ -460,7 +461,7 @@ export function createConversationStore(
 
   async function _loadImage(image: Image): Promise<Image> {
     try {
-      if (image.status === "loaded") return image;
+      if (image.status === FileStatus.Loaded) return image;
       if (image.storageEntryHash === undefined) return image;
 
       // Download image file, retrying up to 10 times if download fails
@@ -482,10 +483,10 @@ export function createConversationStore(
       // Convert image blob to data url
       const dataURL = await fileToDataUrl(file);
 
-      return { ...image, status: "loaded", dataURL } as Image;
+      return { ...image, status: FileStatus.Loaded, dataURL } as Image;
     } catch (e) {
       console.error("Error loading image after 10 retries:", e);
-      return { ...image, status: "error", dataURL: "" } as Image;
+      return { ...image, status: FileStatus.Error, dataURL: "" } as Image;
     }
   }
 

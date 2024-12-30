@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alignment, type Image } from "$lib/types";
+  import { Alignment, FileStatus, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import prettyBytes from "pretty-bytes";
@@ -14,7 +14,7 @@
   export let file: Image;
   export let showCancel: boolean = false;
   export let align: Alignment = Alignment.Left;
-  export let isMessage: boolean = false;
+  export let isMessage: boolean = true;
   export let maxFilenameLength: number = 10;
 
   function formatFileName(file: Image, maxLength: number = maxFilenameLength): string {
@@ -27,11 +27,11 @@
 </script>
 
 {#if isMessage}
-  {#if file.status === "loading" || file.status === "pending"}
+  {#if file.status === FileStatus.Loading || file.status === FileStatus.Pending}
     <div class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg">
       <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
     </div>
-  {:else if file.status === "loaded"}
+  {:else if file.status === FileStatus.Loaded || file.status === FileStatus.Preview}
     {#if file.fileType.startsWith("image/")}
       <div class="w-full">
         <LightboxImage

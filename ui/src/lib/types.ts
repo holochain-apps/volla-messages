@@ -135,6 +135,14 @@ export interface ImageStruct {
   file_type: string;
 }
 
+export enum FileStatus {
+  Preview, // Stored locally, ready for display in input field.
+  Pending, // Sent to holochain, but not published yet
+  Loading, // Fetched from holochain
+  Loaded, // Fetched from holochain and loaded into base64 data url
+  Error,
+}
+
 export interface Image {
   id: string;
   dataURL?: string;
@@ -144,7 +152,7 @@ export interface Image {
   lastModified: number;
   size: number;
   storageEntryHash?: EntryHash;
-  status?: "loading" | "loaded" | "pending" | "error"; // Pending = not yet sent to holochain, loading = loading from holochain, loaded = loaded from holochain, error = failed to load
+  status: FileStatus;
 }
 
 export interface Message {

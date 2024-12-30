@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Image } from "$lib/types";
+  import { Alignment, FileStatus, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { t } from "$translations";
@@ -44,7 +44,7 @@
                 file,
                 name: file.name,
                 size: file.size,
-                status: "pending",
+                status: FileStatus.Preview,
               });
             }
           };
@@ -58,7 +58,7 @@
               file,
               name: file.name,
               size: file.size,
-              status: "error",
+              status: FileStatus.Error,
             });
           };
         });
@@ -119,7 +119,13 @@
       />
       <div class="flex flex-row flex-wrap px-4">
         {#each images as file (file.id)}
-          <FilePreview {file} showCancel on:cancel={(e) => cancelUpload(e.detail)} />
+          <FilePreview
+            {file}
+            align={Alignment.Right}
+            showCancel
+            isMessage={false}
+            on:cancel={(e) => cancelUpload(e.detail)}
+          />
         {/each}
       </div>
     </div>
