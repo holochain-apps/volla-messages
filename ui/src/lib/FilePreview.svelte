@@ -7,13 +7,15 @@
   import FileIcon from "$lib/FileIcon.svelte";
   import { isMobile } from "$lib/utils";
   import LightboxImage from "$lib/LightboxImage.svelte";
+  import { createEventDispatcher } from "svelte";
+
+  const dispatch = createEventDispatcher<{ cancel: string }>();
 
   export let file: Image;
   export let showCancel: boolean = false;
   export let fromMe: boolean = false;
   export let isMessage: boolean = false;
   export let maxFilenameLength: number = 10;
-  export let onCancel: ((id: string) => void) | undefined = undefined;
 
   function formatFileName(file: Image, maxLength: number = maxFilenameLength): string {
     const fileName = file.name.trim();
@@ -104,7 +106,7 @@
       {#if showCancel}
         <button
           class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-          on:click={() => onCancel && onCancel(file.id)}
+          on:click={() => dispatch("cancel", file.id)}
           aria-label="Cancel Upload"
         >
           <SvgIcon icon="x" size={8} />
@@ -118,7 +120,7 @@
       {#if showCancel}
         <button
           class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-          on:click={() => onCancel && onCancel(file.id)}
+          on:click={() => dispatch("cancel", file.id)}
           aria-label="Cancel Upload"
         >
           <SvgIcon icon="x" size={8} />
@@ -143,7 +145,7 @@
       {#if showCancel}
         <button
           class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-white"
-          on:click={() => onCancel && onCancel(file.id)}
+          on:click={() => dispatch("cancel", file.id)}
           aria-label="Cancel Upload"
         >
           <SvgIcon icon="x" size={8} />

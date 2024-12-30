@@ -119,7 +119,7 @@
       />
       <div class="flex flex-row flex-wrap px-4">
         {#each images as file (file.id)}
-          <FilePreview {file} showCancel={true} onCancel={cancelUpload} />
+          <FilePreview {file} showCancel={true} on:cancel={(e) => cancelUpload(e.detail)} />
         {/each}
       </div>
     </div>
