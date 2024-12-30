@@ -161,7 +161,7 @@ export class RelayClient {
       const config: Config = { title, image };
 
       if (!networkSeed) {
-        await this.setConfig(config, cell.cell_id);
+        await this.setConfig(cell.cell_id, config);
       }
 
       await this._setMyProfileForConversation(cell.cell_id);
@@ -174,25 +174,13 @@ export class RelayClient {
     }
   }
 
-  public async getAllMessages(
-    dnaHashB64: DnaHashB64,
-    buckets: Array<number>,
-  ): Promise<Array<MessageRecord>> {
-    return this.client.callZome({
-      cell_id: this.conversations[dnaHashB64].cell.cell_id,
-      zome_name: this.zomeName,
-      fn_name: "get_messages_for_buckets",
-      payload: buckets,
-    });
-  }
-
   public async getMessageHashes(
-    dnaHashB64: DnaHashB64,
+    cell_id: CellId,
     bucket: number,
     count: number,
   ): Promise<Array<ActionHash>> {
     return this.client.callZome({
-      cell_id: this.conversations[dnaHashB64].cell.cell_id,
+      cell_id,
       zome_name: this.zomeName,
       fn_name: "get_message_hashes",
       payload: { bucket, count },
@@ -200,23 +188,23 @@ export class RelayClient {
   }
 
   public async getMessageEntries(
-    dnaHashB64: DnaHashB64,
+    cell_id: CellId,
     hashes: Array<ActionHash>,
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
-      cell_id: this.conversations[dnaHashB64].cell.cell_id,
+      cell_id,
       zome_name: this.zomeName,
       fn_name: "get_message_entries",
       payload: hashes,
     });
   }
 
-  public async getAllAgents(dnaHashB64: DnaHashB64): Promise<{ [key: AgentPubKeyB64]: Profile }> {
-    const cellId = this.conversations[dnaHashB64].cell.cell_id;
-
-    // Fetcha all AgentPubKeys of agents with profiles
+  /**
+   * Fetch all AgentPubKeys of agents with profiles
+   */
+  public async getAllAgents(cell_id: CellId): Promise<{ [key: AgentPubKeyB64]: Profile }> {
     const agentsResponse: AgentPubKey[] = await this.client.callZome({
-      cell_id: cellId,
+      cell_id,
       zome_name: "profiles",
       fn_name: "get_agents_with_profile",
       payload: null,
@@ -228,7 +216,7 @@ export class RelayClient {
       await Promise.allSettled(
         agentsResponse.map(async (agentPubKey) => {
           const record = await this.client.callZome({
-            cell_id: cellId,
+            cell_id,
             zome_name: "profiles",
             fn_name: "get_agent_profile",
             payload: agentPubKey,
@@ -243,20 +231,18 @@ export class RelayClient {
     return Object.fromEntries(profileEntries);
   }
 
-  async setConfig(config: Config, cellId: CellId): Promise<null> {
+  async setConfig(cell_id: CellId, config: Config): Promise<null> {
     return this.client.callZome({
-      cell_id: cellId,
+      cell_id,
       zome_name: this.zomeName,
       fn_name: "set_config",
       payload: config,
     });
   }
 
-  async getConfig(cellId: CellId): Promise<Config | undefined> {
-    console.log("cell id is", cellId);
-
+  async getConfig(cell_id: CellId): Promise<Config | undefined> {
     const config = await this.client.callZome({
-      cell_id: cellId,
+      cell_id,
       zome_name: this.zomeName,
       fn_name: "get_config",
       payload: null,
@@ -265,14 +251,14 @@ export class RelayClient {
   }
 
   public async sendMessage(
-    dnaHashB64: DnaHashB64,
+    cell_id: CellId,
     content: string,
     bucket: number,
     images: ImageStruct[],
     agents: AgentPubKey[],
   ): Promise<EntryRecord<Message>> {
     const record = await this.client.callZome({
-      cell_id: this.conversations[dnaHashB64].cell.cell_id,
+      cell_id,
       zome_name: this.zomeName,
       fn_name: "create_message",
       payload: {
@@ -283,14 +269,14 @@ export class RelayClient {
     return new EntryRecord(record);
   }
 
-  async _setMyProfileForConversation(cellId: CellId): Promise<null> {
+  async _setMyProfileForConversation(cell_id: CellId): Promise<null> {
     const myProfile = get(this.profilesStore.myProfile);
     const myProfileValue =
       myProfile && myProfile.status === "complete" && (myProfile.value as EntryRecord<Profile>);
     const profile = myProfileValue ? myProfileValue.entry : undefined;
 
     return this.client.callZome({
-      cell_id: cellId,
+      cell_id,
       zome_name: "profiles",
       fn_name: "create_profile",
       payload: profile,
@@ -298,18 +284,18 @@ export class RelayClient {
   }
 
   public async inviteAgentToConversation(
-    dnaHashB64: DnaHashB64,
+    cell_id: CellId,
     forAgent: AgentPubKey,
     role: number = 0,
   ): Promise<MembraneProof> {
-    const conversation = this.conversations[dnaHashB64];
+    const conversation = this.conversations[encodeHashToBase64(cell_id[0])];
     const data: MembraneProofData = {
       conversation_id: conversation.cell.dna_modifiers.network_seed,
       for_agent: forAgent,
       as_role: role,
     };
     const r = await this.client.callZome({
-      cell_id: conversation.cell.cell_id,
+      cell_id,
       zome_name: this.zomeName,
       fn_name: "generate_membrane_proof",
       payload: data,

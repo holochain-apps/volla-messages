@@ -153,11 +153,6 @@ export class RelayStore {
     return null;
   }
 
-  async inviteAgentToConversation(dnaHashB64: DnaHashB64, agent: AgentPubKey, role: number = 0) {
-    if (!this.client) return;
-    return await this.client.inviteAgentToConversation(dnaHashB64, agent, role);
-  }
-
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
     return this.conversations.find((c) => get(c).conversation.dnaHashB64 === dnaHashB64);
   }
