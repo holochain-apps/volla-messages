@@ -1,7 +1,7 @@
 <script lang="ts">
   import { isEmpty } from "lodash-es";
   import { modeCurrent } from "@skeletonlabs/skeleton";
-  import { getContext, onMount } from "svelte";
+  import { getContext } from "svelte";
   import { decodeHashFromBase64, type AgentPubKeyB64, type HoloHash } from "@holochain/client";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
@@ -18,6 +18,10 @@
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
+
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   export let agentPubKeyB64: AgentPubKeyB64 | null = null;
   export let creating = false;
@@ -47,7 +51,7 @@
       } else if (!agentPubKeyB64 && contacts.find((c) => get(c).publicKeyB64 === publicKeyB64)) {
         valid = false;
         error = $t("contacts.contact_already_exist");
-      } else if (relayStore.client.myPubKeyB64 === publicKeyB64) {
+      } else if (myPubKeyB64 === publicKeyB64) {
         valid = false;
         error = $t("contacts.cant_add_yourself");
       } else {

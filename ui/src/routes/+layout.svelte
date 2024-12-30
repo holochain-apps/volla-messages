@@ -1,21 +1,21 @@
 <script lang="ts">
-  import { AppWebsocket } from "@holochain/client";
+  import type { AppClient } from "@holochain/client";
+  import { AppWebsocket, encodeHashToBase64 } from "@holochain/client";
   import { ProfilesClient, ProfilesStore } from "@holochain-open-dev/profiles";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { onMount, setContext } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { RelayClient } from "$store/RelayClient";
   import { RelayStore } from "$store/RelayStore";
   import toast, { Toaster } from "svelte-french-toast";
   import { handleLinkClick, initLightDarkModeSwitcher } from "$lib/utils";
   import "../app.postcss";
+  import { RelayClient } from "$store/RelayClient";
 
   const ROLE_NAME = "relay";
   const ZOME_NAME = "relay";
 
-  let client: AppWebsocket;
-  let relayClient: RelayClient;
+  let client: AppClient;
   let relayStore: RelayStore;
   let connected = false;
   let profilesStore: ProfilesStore | null = null;
@@ -55,7 +55,7 @@
       // Setup stores
       let profilesClient = new ProfilesClient(client, ROLE_NAME);
       profilesStore = new ProfilesStore(profilesClient);
-      relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
+      const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
       relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
 
@@ -84,8 +84,9 @@
 
   $: prof = profilesStore ? profilesStore.myProfile : undefined;
 
-  setContext("relayClient", {
-    getClient: () => relayClient,
+  setContext("myPubKey", {
+    getMyPubKey: () => client.myPubKey,
+    getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
   });
 
   setContext("profiles", {

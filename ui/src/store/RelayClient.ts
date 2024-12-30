@@ -33,20 +33,13 @@ import { makeFullName } from "$lib/utils";
 export class RelayClient {
   // conversations is a map of string to ClonedCell
   conversations: { [dnaHashB64: DnaHashB64]: ConversationCellAndConfig } = {};
-  myPubKeyB64: AgentPubKeyB64;
 
   constructor(
     public client: AppClient,
     public profilesStore: ProfilesStore,
     public roleName: string,
     public zomeName: string
-  ) {
-    this.myPubKeyB64 = encodeHashToBase64(this.client.myPubKey);
-  }
-
-  get myPubKey(): AgentPubKey {
-    return this.client.myPubKey;
-  }
+  ) {}
 
   async createProfile(
     firstName: string,
