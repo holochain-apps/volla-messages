@@ -15,8 +15,6 @@ import type {
   DnaHashB64,
 } from "@holochain/client";
 
-import type { Profile } from "@holochain-open-dev/profiles";
-
 export type RelaySignal =
   | {
       type: "Message";
@@ -64,27 +62,6 @@ export interface Properties {
 }
 
 export type EntryTypes = { type: "Message" } & MessageInput;
-
-export interface Contact {
-  currentActionHash?: ActionHash;
-  originalActionHash?: ActionHash;
-  avatar: string;
-  privateConversationDnaHashB64?: DnaHashB64;
-  firstName: string;
-  lastName: string;
-  publicKeyB64: AgentPubKeyB64;
-}
-
-export interface ContactExtended {
-  currentActionHash?: ActionHash;
-  originalActionHash?: ActionHash;
-  avatar: string;
-  privateConversationDnaHashB64?: DnaHashB64;
-  firstName: string;
-  lastName: string;
-  name: string;
-  publicKeyB64: AgentPubKeyB64;
-}
 
 export interface MessageInput {
   content: string;
@@ -181,8 +158,45 @@ export interface ConversationCellAndConfig {
   config: Config;
 }
 
+/**
+ * Contact
+ */
+
+export interface Contact {
+  public_key: AgentPubKey;
+  first_name: string;
+  last_name: string;
+  avatar: string;
+}
+
 export interface ContactRecord {
   original_action: ActionHash;
   signed_action: SignedActionHashed;
   contact?: Contact;
+}
+
+export interface UpdateContactInput {
+  original_contact_hash: ActionHash;
+  previous_contact_hash: ActionHash;
+  updated_contact: Contact;
+}
+
+export interface ContactExtended {
+  contact: Contact;
+  fullName: string; // Full name
+  publicKeyB64: AgentPubKeyB64;
+  originalActionHash: ActionHash;
+  previousActionHash: ActionHash;
+  privateConversationDnaHashB64?: DnaHashB64;
+}
+
+/**
+ * Profiles
+ */
+import type { Profile } from "@holochain-open-dev/profiles";
+export type { Profile } from "@holochain-open-dev/profiles";
+
+export interface ProfileExtended {
+  profile: Profile;
+  publicKeyB64: AgentPubKeyB64;
 }

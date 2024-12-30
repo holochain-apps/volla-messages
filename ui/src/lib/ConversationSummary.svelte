@@ -22,7 +22,7 @@
     : null;
 
   let allMembers = conversationStore.getAllMembers();
-  let joinedMembers = conversationStore.getMemberList();
+  let joinedMembers = conversationStore.getJoinedMembers();
 
   const tAny = t as any;
 

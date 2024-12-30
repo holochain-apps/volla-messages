@@ -9,7 +9,6 @@
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "../../types";
-  import { makeFullName } from "$lib/utils";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { xor } from "lodash-es";
 
@@ -26,7 +25,7 @@
     .map((s) => relayStore.contacts.find((c) => s === get(c).publicKeyB64))
     .filter((c) => c !== undefined);
 
-  $: selectedContactsNames = selectedContactStores.map((c) => get(c).firstName).join(", ");
+  $: selectedContactsNames = selectedContactStores.map((c) => get(c).contact.first_name).join(", ");
 
   $: existingConversationStore =
     selectedContacts.length === 0
@@ -50,11 +49,11 @@
     return $contacts
       .filter(
         (c) =>
-          c.firstName.toLowerCase().includes(test) ||
-          c.lastName.toLowerCase().includes(test) ||
+          c.contact.first_name.toLowerCase().includes(test) ||
+          c.contact.first_name.toLowerCase().includes(test) ||
           (test.length > 2 && c.publicKeyB64.toLowerCase().includes(test)),
       )
-      .sort((a, b) => a.firstName.localeCompare(b.firstName))
+      .sort((a, b) => a.contact.first_name.localeCompare(b.contact.first_name))
       .map((c) => c.publicKeyB64);
   });
 
@@ -77,11 +76,11 @@
     let title = "";
     if (selectedContactStores.length === 1) {
       const c = get(selectedContactStores[0]);
-      title = makeFullName(c.firstName, c.lastName);
+      title = c.fullName;
     } else if (selectedContacts.length === 2) {
-      title = selectedContactStores.map((c) => get(c).firstName).join(" & ");
+      title = selectedContactStores.map((c) => get(c).contact.first_name).join(" & ");
     } else if (selectedContacts.length > 2) {
-      title = selectedContactStores.map((c) => get(c).firstName).join(", ");
+      title = selectedContactStores.map((c) => get(c).contact.first_name).join(", ");
     }
 
     const conversationStore = await relayStore.createConversation(
@@ -177,11 +176,11 @@
         {@const selected = selectedContacts.includes(contact.publicKeyB64)}
         {@const prevContact = i === 0 ? undefined : get(contactsFilteredStores[i - 1])}
 
-        {#if prevContact === undefined || contact.firstName
+        {#if prevContact === undefined || contact.contact.first_name
             .charAt(0)
-            .toUpperCase() !== prevContact?.firstName.charAt(0).toUpperCase()}
+            .toUpperCase() !== prevContact?.contact.first_name.charAt(0).toUpperCase()}
           <p class="text-secondary-300 mb-1 mt-2 pl-0">
-            {contact.firstName[0].toUpperCase()}
+            {contact.contact.first_name[0].toUpperCase()}
           </p>
         {/if}
 
@@ -192,7 +191,7 @@
         >
           <Avatar
             size={38}
-            image={contact.avatar}
+            image={contact.contact.avatar}
             agentPubKey={contact.publicKeyB64}
             moreClasses="mr-3"
           />
@@ -201,7 +200,7 @@
               ? 'text-secondary-400 dark:!text-secondary-300'
               : ''}"
           >
-            {makeFullName(contact.firstName, contact.lastName)}
+            {contact.fullName}
             {#if contactStore.getIsPendingConnection()}<span class="text-secondary-400 ml-1 text-xs"
                 >{$t("create.unconfirmed")}</span
               >{/if}
