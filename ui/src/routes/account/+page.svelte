@@ -7,7 +7,6 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { makeFullName } from "$lib/utils";
-  import { RelayClient } from "$store/RelayClient";
   import { ProfilesStore } from "@holochain-open-dev/profiles";
   import { get } from "svelte/store";
   import toast from "svelte-french-toast";
@@ -16,9 +15,9 @@
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ProfileNameInput from "./ProfileNameInput.svelte";
   import type { AgentPubKey, AgentPubKeyB64 } from "@holochain/client";
+  import type { RelayStore } from "$store/RelayStore";
 
-  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
-  let relayClient = relayClientContext.getClient();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
   let profilesStore = profilesContext.getStore();
@@ -41,7 +40,7 @@
     console.log("save", newFirstName, newLastName);
 
     try {
-      await relayClient.updateProfile(newFirstName, newLastName, avatar);
+      await relayStore.client.updateProfile(newFirstName, newLastName, avatar);
       firstName = newFirstName;
       lastName = newLastName;
     } catch (e) {
@@ -64,7 +63,7 @@
     accept="image/jpeg, image/png, image/gif"
     on:change={(event) => {
       try {
-        relayClient.updateProfile(firstName, lastName, event.detail);
+        relayStore.client.updateProfile(firstName, lastName, event.detail);
       } catch (e) {
         toast.error(`${$t("common.upload_image_error")}: ${e.message}`);
       }

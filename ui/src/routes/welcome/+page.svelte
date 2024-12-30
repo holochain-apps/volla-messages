@@ -6,8 +6,6 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-
-  import { RelayClient } from "$store/RelayClient";
   import { RelayStore } from "$store/RelayStore";
   import type { AgentPubKey } from "@holochain/client";
 
