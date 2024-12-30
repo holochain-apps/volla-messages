@@ -441,7 +441,7 @@ export function createConversationStore(
     if (message.hash.startsWith("uhCkk")) {
       // don't add placeholder to bucket yet.
       history.add(message);
-      if (!get(isOpen) && message.authorKey !== client.myPubKeyB64) {
+      if (!get(isOpen) && message.authorKey !== encodeHashToBase64(client.client.myPubKey)) {
         setUnread(true);
       }
     }
@@ -596,8 +596,9 @@ export function createConversationStore(
     // Filter out progenitor, as they are always in the list,
     // use contact data for each agent if it exists locally, otherwise use their profile
     // sort by first name (for now)
+    const myPubKeyB64 = encodeHashToBase64(client.client.myPubKey);
     return keys
-      .filter((k) => k !== client.myPubKeyB64)
+      .filter((k) => k !== myPubKeyB64)
       .map((agentKey) => {
         const agentProfile = joinedAgents[agentKey];
         const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
