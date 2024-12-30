@@ -13,7 +13,6 @@
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import TitleInput from "./TitleInput.svelte";
-  import { makeFullName } from "$lib/utils";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;

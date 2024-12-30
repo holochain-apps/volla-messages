@@ -36,7 +36,7 @@ import {
 } from "../types";
 import { createMessageHistoryStore } from "./MessageHistoryStore";
 import pRetry from "p-retry";
-import { fileToDataUrl, makeFullName } from "$lib/utils";
+import { fileToDataUrl } from "$lib/utils";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
 import { persisted } from "svelte-persisted-store";
