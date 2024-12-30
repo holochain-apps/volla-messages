@@ -23,6 +23,7 @@ import { v4 as uuidv4 } from "uuid";
 import { RelayStore } from "$store/RelayStore";
 import {
   type Config,
+  type ContactExtended,
   type Conversation,
   type Image,
   type Invitation,
@@ -30,14 +31,15 @@ import {
   type Message,
   type MessageRecord,
   Privacy,
+  type Profile,
+  type ProfileExtended,
 } from "../types";
 import { createMessageHistoryStore } from "./MessageHistoryStore";
 import pRetry from "p-retry";
-import { fileToDataUrl, makeFullName } from "$lib/utils";
+import { fileToDataUrl } from "$lib/utils";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
 import { persisted } from "svelte-persisted-store";
-import type { Profile } from "@holochain-open-dev/profiles";
 
 export interface ConversationStoreData {
   conversation: Conversation;
@@ -74,24 +76,9 @@ export interface ConversationStore {
   toggleArchived: () => void;
   setUnread: (unread: boolean) => void;
   makeInviteCodeForAgent: (publicKeyB64: string) => Promise<string>;
-  getAllMembers: () => {
-    publicKeyB64: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-  }[];
-  getMemberList: (includeInvited?: boolean) => {
-    publicKeyB64: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-  }[];
-  getInvitedUnjoined: () => {
-    publicKeyB64: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-  }[];
+  getAllMembers: () => ProfileExtended[];
+  getJoinedMembers: () => ProfileExtended[];
+  getInvitedUnjoinedContacts: () => ContactExtended[];
   getTitle: () => string;
   subscribe: (
     this: void,
@@ -176,10 +163,10 @@ export function createConversationStore(
       const displayMessage = {
         ...message,
         author: contact
-          ? get(contact).firstName
+          ? get(contact).contact.first_name
           : $conversation.agentProfiles[message.authorKey].fields.firstName,
         avatar: contact
-          ? get(contact).avatar
+          ? get(contact).contact.avatar
           : $conversation.agentProfiles[message.authorKey].fields.avatar,
       };
 
@@ -603,7 +590,7 @@ export function createConversationStore(
     return Base64.fromUint8Array(msgpck);
   }
 
-  function getInvitedUnjoined() {
+  function getInvitedUnjoinedContacts(): ContactExtended[] {
     const joinedAgents = get(conversation).agentProfiles;
     return get(localData)
       .invitedContactKeys.filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
@@ -612,22 +599,21 @@ export function createConversationStore(
           (c) => get(c).publicKeyB64 === contactKey
         );
         if (!contactProfile) return;
-        const c = get(contactProfile);
-        return {
-          publicKeyB64: contactKey,
-          avatar: c.avatar,
-          firstName: c.firstName,
-          lastName: c.lastName,
-        };
+
+        return get(contactProfile);
       })
       .filter((c) => c !== undefined);
   }
 
-  function getAllMembers() {
-    return getMemberList(true);
+  function getAllMembers(): ProfileExtended[] {
+    return _getMembers(true);
   }
 
-  function getMemberList(includeInvited = false) {
+  function getJoinedMembers(): ProfileExtended[] {
+    return _getMembers(false);
+  }
+
+  function _getMembers(includeInvited: boolean): ProfileExtended[] {
     // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
     const joinedAgents = get(conversation).agentProfiles;
 
@@ -650,23 +636,15 @@ export function createConversationStore(
         );
 
         if (contactProfile) {
-          const c = get(contactProfile);
-          return {
-            publicKeyB64: agentKey,
-            avatar: c.avatar,
-            firstName: c.firstName,
-            lastName: c.lastName,
-          };
+          return contactProfile.getAsProfile();
         } else {
           return {
+            profile: agentProfile,
             publicKeyB64: agentKey,
-            avatar: agentProfile?.fields.avatar,
-            firstName: agentProfile?.fields.firstName,
-            lastName: agentProfile?.fields.lastName, // if any contact profile exists use that data
           };
         }
       })
-      .sort((a, b) => a.firstName.localeCompare(b.firstName));
+      .sort((a, b) => a.profile.nickname.localeCompare(b.profile.nickname));
   }
 
   function getTitle() {
@@ -681,13 +659,11 @@ export function createConversationStore(
       return c.config.title;
     } else if (allMembers.length === 1) {
       // Use full name of the one other person in the chat
-      return getAllMembers()[0]
-        ? makeFullName(allMembers[0].firstName, allMembers[0].lastName)
-        : c.config.title;
+      return getAllMembers()[0] ? allMembers[0].profile.nickname : c.config.title;
     } else if (allMembers.length === 2) {
-      return allMembers.map((m) => m?.firstName).join(" & ");
+      return allMembers.map((m) => m?.profile.fields.firstName).join(" & ");
     } else {
-      return allMembers.map((m) => m?.firstName).join(", ");
+      return allMembers.map((m) => m?.profile.fields.firstName).join(", ");
     }
   }
 
@@ -722,8 +698,8 @@ export function createConversationStore(
 
     // get filtered data
     getAllMembers,
-    getMemberList,
-    getInvitedUnjoined,
+    getJoinedMembers,
+    getInvitedUnjoinedContacts,
     getTitle,
 
     subscribe,

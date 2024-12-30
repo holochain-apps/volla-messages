@@ -14,7 +14,7 @@ import {
   type Record,
 } from "@holochain/client";
 import { EntryRecord } from "@holochain-open-dev/utils";
-import type { Profile, ProfilesStore } from "@holochain-open-dev/profiles";
+import type { ProfilesStore } from "@holochain-open-dev/profiles";
 import { get } from "svelte/store";
 import type {
   Config,
@@ -27,6 +27,8 @@ import type {
   Message,
   MessageRecord,
   Privacy,
+  UpdateContactInput,
+  Profile,
 } from "../types";
 import { makeFullName } from "$lib/utils";
 
@@ -350,35 +352,21 @@ export class RelayClient {
     });
   }
 
-  public async createContact(contact: Contact): Promise<Record> {
+  public async createContact(payload: Contact): Promise<Record> {
     return this.client.callZome({
       role_name: this.roleName,
       zome_name: this.zomeName,
       fn_name: "create_contact",
-      payload: {
-        avatar: contact.avatar,
-        first_name: contact.firstName,
-        last_name: contact.lastName,
-        public_key: decodeHashFromBase64(contact.publicKeyB64),
-      },
+      payload,
     });
   }
 
-  public async updateContact(contact: Contact): Promise<Record> {
+  public async updateContact(payload: UpdateContactInput): Promise<Record> {
     return this.client.callZome({
       role_name: this.roleName,
       zome_name: this.zomeName,
       fn_name: "update_contact",
-      payload: {
-        original_contact_hash: contact.originalActionHash,
-        previous_contact_hash: contact.currentActionHash,
-        updated_contact: {
-          avatar: contact.avatar,
-          first_name: contact.firstName,
-          last_name: contact.lastName,
-          public_key: decodeHashFromBase64(contact.publicKeyB64),
-        },
-      },
+      payload,
     });
   }
 }
