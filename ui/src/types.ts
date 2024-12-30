@@ -66,8 +66,8 @@ export interface Properties {
 export type EntryTypes = { type: "Message" } & MessageInput;
 
 export interface ContactExtended {
-  currentActionHash?: ActionHash;
-  originalActionHash?: ActionHash;
+  currentActionHash: ActionHash;
+  originalActionHash: ActionHash;
   avatar: string;
   privateConversationDnaHashB64?: DnaHashB64;
   firstName: string;

@@ -21,6 +21,7 @@ import type {
   Message,
   Properties,
   RelaySignal,
+  UpdateContactInput,
 } from "../types";
 import { Privacy } from "../types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
@@ -214,21 +215,23 @@ export class RelayStore {
     }
   }
 
-  async updateContact(contact: Contact) {
+  async updateContact(input: UpdateContactInput) {
     if (!this.client) return false;
-    const contactResult = await this.client.updateContact(contact);
+    const contactResult = await this.client.updateContact(input);
+    const contactPubKeyB64 = encodeHashToBase64(input.updated_contact.public_key);
+
     if (contactResult) {
       const contactStore = createContactStore(
         this,
-        contact.avatar,
+        input.updated_contact.avatar,
         contactResult.signed_action.hashed.hash,
-        contact.firstName,
-        contact.lastName,
-        contact.originalActionHash,
-        contact.publicKeyB64,
+        input.updated_contact.first_name,
+        input.updated_contact.last_name,
+        input.original_contact_hash,
+        contactPubKeyB64,
       );
       this.contacts = [
-        ...this.contacts.filter((c) => get(c).publicKeyB64 !== contact.publicKeyB64),
+        ...this.contacts.filter((c) => get(c).publicKeyB64 !== contactPubKeyB64),
         contactStore,
       ];
       return contactStore;

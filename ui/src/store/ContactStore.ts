@@ -26,10 +26,10 @@ export interface ContactStore {
 export function createContactStore(
   relayStore: RelayStore,
   avatar: string,
-  currentActionHash: ActionHash | undefined,
+  currentActionHash: ActionHash,
   firstName: string,
   lastName: string,
-  originalActionHash: ActionHash | undefined,
+  originalActionHash: ActionHash,
   publicKeyB64: AgentPubKeyB64,
   dnaHashB64?: DnaHashB64 | undefined,
 ) {

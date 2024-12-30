@@ -70,11 +70,15 @@
       const newContactData = {
         avatar: imageUrl,
         first_name: firstName,
-        last_lame: lastName,
+        last_name: lastName,
         public_key: decodeHashFromBase64(publicKeyB64),
       };
       const newContact = $contact
-        ? await relayStore.updateContact({ ...$contact, ...newContactData })
+        ? await relayStore.updateContact({
+            original_contact_hash: $contact.originalActionHash,
+            previous_contact_hash: $contact.currentActionHash,
+            updated_contact: newContactData,
+          })
         : await relayStore.createContact(newContactData);
       if (newContact) {
         if (!agentPubKeyB64) {
