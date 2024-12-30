@@ -187,3 +187,8 @@ export interface ContactRecord {
   signed_action: SignedActionHashed;
   contact?: Contact;
 }
+
+export enum Alignment {
+  Left,
+  Right,
+}

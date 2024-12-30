@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { RelayStore } from "$store/RelayStore";
   import { getContext } from "svelte";
-  import { type Message as MessageType, type Image } from "$lib/types";
+  import { type Message as MessageType, type Image, Alignment } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
@@ -70,7 +70,7 @@
           <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
             <FilePreview
               {file}
-              {fromMe}
+              align={fromMe ? Alignment.Right : Alignment.Left}
               isMessage={true}
               maxFilenameLength={isMobile() ? 20 : 50}
             />

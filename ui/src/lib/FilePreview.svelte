@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Image } from "$lib/types";
+  import { Alignment, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import prettyBytes from "pretty-bytes";
@@ -13,7 +13,7 @@
 
   export let file: Image;
   export let showCancel: boolean = false;
-  export let fromMe: boolean = false;
+  export let align: Alignment = Alignment.Left;
   export let isMessage: boolean = false;
   export let maxFilenameLength: number = 10;
 
@@ -42,7 +42,7 @@
       </div>
     {:else if file.fileType === "application/pdf"}
       <div class="bg-surface-800/10 flex w-auto flex-row items-start gap-3 rounded-xl p-3">
-        {#if !fromMe}
+        {#if align === Alignment.Left}
           <div class="flex flex-shrink-0 items-center justify-center">
             <PdfThumbnail
               pdfDataUrl={file.dataURL ?? ""}
@@ -60,7 +60,7 @@
             {prettyBytes(file.size)}
           </div>
         </div>
-        {#if fromMe}
+        {#if align === Alignment.Right}
           <div class="flex flex-shrink-0 items-center justify-center">
             <PdfThumbnail
               pdfDataUrl={file.dataURL ?? ""}
@@ -73,11 +73,12 @@
       </div>
     {:else}
       <div class="bg-surface-800/10 flex w-auto flex-row items-start gap-3 rounded-xl p-3">
-        {#if !fromMe}
+        {#if align === Alignment.Left}
           <div class="flex flex-shrink-0 items-center justify-center">
             <FileIcon {file} size={50} />
           </div>
         {/if}
+
         <div class="min-w-0 flex-grow">
           <div class="break-all text-sm sm:text-base">
             {isMobile() ? formatFileName(file, 20) : formatFileName(file, 50)}
@@ -86,7 +87,8 @@
             {prettyBytes(file.size)}
           </div>
         </div>
-        {#if fromMe}
+
+        {#if align === Alignment.Right}
           <div class="flex flex-shrink-0 items-center justify-center">
             <FileIcon {file} size={50} />
           </div>
