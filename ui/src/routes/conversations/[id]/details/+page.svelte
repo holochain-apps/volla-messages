@@ -201,7 +201,7 @@
             <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
           {/if}
         </li>
-        {#each conversationStore.getMemberList() as profile}
+        {#each conversationStore.getJoinedMembers() as profile}
           <li class="mb-4 flex flex-row items-center px-2 text-xl">
             <Avatar
               image={profile.profile.fields.avatar}

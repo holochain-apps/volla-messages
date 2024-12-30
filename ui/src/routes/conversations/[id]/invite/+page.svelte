@@ -113,7 +113,7 @@
           )}
           {@const alreadyInConversation = conversationStore
             ? !!conversationStore
-                .getMemberList()
+                .getJoinedMembers()
                 .find((m) => m?.publicKeyB64 === contact.publicKeyB64)
             : false}
           <button

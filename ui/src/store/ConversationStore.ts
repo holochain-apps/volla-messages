@@ -73,7 +73,7 @@ export interface ConversationStore {
   setUnread: (unread: boolean) => void;
   makeInviteCodeForAgent: (publicKeyB64: string) => Promise<string>;
   getAllMembers: () => ProfileExtended[];
-  getMemberList: (includeInvited?: boolean) => ProfileExtended[];
+  getJoinedMembers: () => ProfileExtended[];
   getInvitedUnjoinedContacts: () => ContactExtended[];
   getTitle: () => string;
   subscribe: (
@@ -564,10 +564,14 @@ export function createConversationStore(
   }
 
   function getAllMembers(): ProfileExtended[] {
-    return getMemberList(true);
+    return _getMembers(true);
   }
 
-  function getMemberList(includeInvited = false): ProfileExtended[] {
+  function getJoinedMembers(): ProfileExtended[] {
+    return _getMembers(false);
+  }
+
+  function _getMembers(includeInvited: boolean): ProfileExtended[] {
     // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
     const joinedAgents = get(conversation).agentProfiles;
 
@@ -648,7 +652,7 @@ export function createConversationStore(
 
     // get filtered data
     getAllMembers,
-    getMemberList,
+    getJoinedMembers,
     getInvitedUnjoinedContacts,
     getTitle,
 
