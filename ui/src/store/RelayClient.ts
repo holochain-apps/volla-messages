@@ -14,7 +14,7 @@ import {
   type Record,
 } from "@holochain/client";
 import { EntryRecord } from "@holochain-open-dev/utils";
-import type { Profile, ProfilesStore } from "@holochain-open-dev/profiles";
+import type { ProfilesStore } from "@holochain-open-dev/profiles";
 import { get } from "svelte/store";
 import type {
   Config,
@@ -28,6 +28,7 @@ import type {
   MessageRecord,
   Privacy,
   UpdateContactInput,
+  Profile,
 } from "../types";
 import { makeFullName } from "$lib/utils";
 

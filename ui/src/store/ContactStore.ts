@@ -14,6 +14,17 @@ import type { Contact, ContactExtended } from "../types";
 export interface ContactStore {
   getPrivateConversation: () => ConversationStore | undefined;
   getIsPendingConnection: () => boolean | undefined;
+  getAsProfile: () => {
+    publicKeyB64: string;
+    profile: {
+      nickname: string;
+      fields: {
+        firstName: string;
+        lastName: string;
+        avatar: string;
+      };
+    };
+  };
   subscribe: (
     this: void,
     run: Subscriber<ContactExtended>,
@@ -33,7 +44,7 @@ export function createContactStore(
     `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
     dnaHashB64,
   );
-  const { subscribe } = writable<ContactExtended>({
+  const data = writable<ContactExtended>({
     contact,
     originalActionHash,
     previousActionHash,
@@ -58,9 +69,26 @@ export function createContactStore(
     return conversationAgents && Object.keys(conversationAgents).length === 1;
   }
 
+  function getAsProfile() {
+    const val = get(data);
+
+    return {
+      publicKeyB64: val.publicKeyB64,
+      profile: {
+        nickname: val.fullName,
+        fields: {
+          firstName: val.contact.first_name,
+          lastName: val.contact.last_name,
+          avatar: val.contact.avatar,
+        },
+      },
+    };
+  }
+
   return {
     getPrivateConversation,
     getIsPendingConnection,
-    subscribe,
+    getAsProfile,
+    subscribe: data.subscribe,
   };
 }

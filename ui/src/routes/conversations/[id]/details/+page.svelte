@@ -73,11 +73,11 @@
   >
     {#if $conversationStore.conversation.privacy === Privacy.Private}
       <div class="flex items-center justify-center gap-4">
-        {#each conversationStore.getAllMembers().slice(0, 2) as contact, i}
-          {#if contact}
+        {#each conversationStore.getAllMembers().slice(0, 2) as profile}
+          {#if profile}
             <Avatar
-              image={contact.avatar}
-              agentPubKey={contact.publicKeyB64}
+              image={profile.profile.fields.avatar}
+              agentPubKey={profile.publicKeyB64}
               size={120}
               moreClasses="mb-5"
             />
@@ -165,22 +165,20 @@
             />
           </li>
         {:else}
-          {#if conversationStore.getInvitedUnjoined().length > 0}
+          {#if conversationStore.getInvitedUnjoinedContacts().length > 0}
             <h3 class="text-md text-secondary-300 mb-2 font-light">
               {$t("conversations.unconfirmed_invitations")}
             </h3>
 
-            {#each conversationStore.getInvitedUnjoined() as contact}
+            {#each conversationStore.getInvitedUnjoinedContacts() as contact}
               <li class="mb-4 flex flex-row items-center px-2 text-xl">
                 <Avatar
-                  image={contact.avatar}
+                  image={contact.contact.avatar}
                   agentPubKey={contact.publicKeyB64}
                   size={38}
                   moreClasses="-ml-30"
                 />
-                <span class="ml-4 flex-1 text-sm"
-                  >{makeFullName(contact.firstName || "", contact.lastName)}</span
-                >
+                <span class="ml-4 flex-1 text-sm">{contact.fullName}</span>
                 {#await conversationStore.makeInviteCodeForAgent(contact.publicKeyB64) then res}
                   <ButtonsCopyShare
                     text={res}
@@ -204,18 +202,16 @@
             <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
           {/if}
         </li>
-        {#each conversationStore.getMemberList() as contact}
+        {#each conversationStore.getMemberList() as profile}
           <li class="mb-4 flex flex-row items-center px-2 text-xl">
             <Avatar
-              image={contact.avatar}
-              agentPubKey={contact.publicKeyB64}
+              image={profile.profile.fields.avatar}
+              agentPubKey={profile.publicKeyB64}
               size={38}
               moreClasses="-ml-30"
             />
-            <span class="ml-4 flex-1 text-sm font-bold"
-              >{makeFullName(contact.firstName, contact.lastName)}</span
-            >
-            {#if contact.publicKeyB64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
+            <span class="ml-4 flex-1 text-sm font-bold">{profile.profile.nickname}</span>
+            {#if profile.publicKeyB64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
               <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
             {/if}
           </li>

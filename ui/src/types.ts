@@ -15,8 +15,6 @@ import type {
   DnaHashB64,
 } from "@holochain/client";
 
-import type { Profile } from "@holochain-open-dev/profiles";
-
 export type RelaySignal =
   | {
       type: "Message";
@@ -190,4 +188,15 @@ export interface ContactExtended {
   originalActionHash: ActionHash;
   previousActionHash: ActionHash;
   privateConversationDnaHashB64?: DnaHashB64;
+}
+
+/**
+ * Profiles
+ */
+import type { Profile } from "@holochain-open-dev/profiles";
+export type { Profile } from "@holochain-open-dev/profiles";
+
+export interface ProfileExtended {
+  profile: Profile;
+  publicKeyB64: AgentPubKeyB64;
 }

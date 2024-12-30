@@ -85,12 +85,12 @@ export class RelayStore {
               message.content.length > 125 ? message.content.slice(0, 50) + "..." : message.content;
             if (isMobile()) {
               enqueueNotification(
-                `${sender ? makeFullName(sender.firstName, sender.lastName) : message.authorKey}: ${msgShort}`,
+                `${sender ? sender.profile.nickname : message.authorKey}: ${msgShort}`,
                 message.content,
               );
             } else {
               enqueueNotification(
-                `Message from ${sender ? makeFullName(sender.firstName, sender.lastName) : message.authorKey}`,
+                `Message from ${sender ? sender.profile.nickname : message.authorKey}`,
                 message.content,
               );
             }
