@@ -181,30 +181,32 @@ export class RelayStore {
   async createContact(contact: Contact) {
     if (!this.client) return false;
     const contactResult = await this.client.createContact(contact);
+    const contactPubKeyB64 = encodeHashToBase64(contact.public_key);
+
     if (contactResult) {
       // Immediately add a conversation with the new contact, unless you already have one with them
       let conversation =
         this.conversations.find(
           (c) =>
             get(c).conversation.privacy === Privacy.Private &&
-            c.getAllMembers().every((m) => m.publicKeyB64 === contact.publicKeyB64),
+            c.getAllMembers().every((m) => m.publicKeyB64 === contactPubKeyB64),
         ) || null;
       if (!conversation) {
         conversation = await this.createConversation(
-          makeFullName(contact.firstName, contact.lastName),
+          makeFullName(contact.first_name, contact.last_name),
           "",
           Privacy.Private,
-          [contact.publicKeyB64],
+          [contactPubKeyB64],
         );
       }
       const contactStore = createContactStore(
         this,
         contact.avatar,
         contactResult.signed_action.hashed.hash,
-        contact.firstName,
-        contact.lastName,
+        contact.first_name,
+        contact.last_name,
         contactResult.signed_action.hashed.hash,
-        contact.publicKeyB64,
+        encodeHashToBase64(contact.public_key),
         conversation ? get(conversation).conversation.dnaHashB64 : undefined,
       );
       this.contacts = [...this.contacts, contactStore];

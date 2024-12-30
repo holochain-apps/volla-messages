@@ -11,7 +11,7 @@ import { RelayStore } from "$store/RelayStore";
 import { makeFullName } from "$lib/utils";
 import { persisted } from "svelte-persisted-store";
 import type { ConversationStore } from "./ConversationStore";
-import type { Contact, ContactExtended } from "../types";
+import type { ContactExtended } from "../types";
 
 export interface ContactStore {
   getPrivateConversation: () => ConversationStore | undefined;
@@ -37,18 +37,18 @@ export function createContactStore(
     `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
     dnaHashB64,
   );
-  const contact = writable<Contact>({
-    avatar,
+  const contact = writable<ContactExtended>({
     currentActionHash,
+    originalActionHash,
     firstName,
     lastName,
-    originalActionHash,
+    name: makeFullName(firstName, lastName),
+    avatar,
     publicKeyB64,
     privateConversationDnaHashB64: get(privateConversationDnaHashB64),
   });
   const { subscribe } = derived<typeof contact, ContactExtended>(contact, ($contact) => ({
     ...$contact,
-    name: makeFullName($contact.firstName, $contact.lastName),
   }));
 
   function getPrivateConversation() {

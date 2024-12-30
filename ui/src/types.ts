@@ -65,16 +65,6 @@ export interface Properties {
 
 export type EntryTypes = { type: "Message" } & MessageInput;
 
-export interface Contact {
-  currentActionHash?: ActionHash;
-  originalActionHash?: ActionHash;
-  avatar: string;
-  privateConversationDnaHashB64?: DnaHashB64;
-  firstName: string;
-  lastName: string;
-  publicKeyB64: AgentPubKeyB64;
-}
-
 export interface ContactExtended {
   currentActionHash?: ActionHash;
   originalActionHash?: ActionHash;
@@ -181,8 +171,21 @@ export interface ConversationCellAndConfig {
   config: Config;
 }
 
+export interface Contact {
+  public_key: AgentPubKey;
+  first_name: string;
+  last_name: string;
+  avatar: string;
+}
+
 export interface ContactRecord {
   original_action: ActionHash;
   signed_action: SignedActionHashed;
   contact?: Contact;
+}
+
+export interface UpdateContactInput {
+  original_contact_hash: ActionHash;
+  previous_contact_hash: ActionHash;
+  updated_contact: Contact;
 }

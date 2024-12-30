@@ -69,9 +69,9 @@
     try {
       const newContactData = {
         avatar: imageUrl,
-        firstName,
-        lastName,
-        publicKeyB64,
+        first_name: firstName,
+        last_lame: lastName,
+        public_key: decodeHashFromBase64(publicKeyB64),
       };
       const newContact = $contact
         ? await relayStore.updateContact({ ...$contact, ...newContactData })
