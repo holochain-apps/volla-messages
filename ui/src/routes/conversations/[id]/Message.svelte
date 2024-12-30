@@ -14,8 +14,6 @@
   import { clickoutside } from "@svelte-put/clickoutside";
   import type { AgentPubKeyB64 } from "@holochain/client";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
