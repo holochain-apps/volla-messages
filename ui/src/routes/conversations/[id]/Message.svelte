@@ -12,10 +12,11 @@
   import DOMPurify from "dompurify";
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
+  import type { AgentPubKeyB64 } from "@holochain/client";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
-  let myPubKeyB64 = relayStore.client.myPubKeyB64;
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   export let message: MessageType;
   export let isSelected: boolean = false;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { svgIcons } from "./svgIcons";
+  import { svgIcons } from "$lib/svgIcons";
 
   export let icon: string;
   export let style: string = "";

@@ -7,7 +7,6 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { makeFullName } from "$lib/utils";
-  import { RelayClient } from "$store/RelayClient";
   import { ProfilesStore } from "@holochain-open-dev/profiles";
   import { get } from "svelte/store";
   import toast from "svelte-french-toast";
@@ -15,14 +14,19 @@
   import { MIN_FIRST_NAME_LENGTH } from "$config";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ProfileNameInput from "./ProfileNameInput.svelte";
+  import type { AgentPubKey, AgentPubKeyB64 } from "@holochain/client";
+  import type { RelayStore } from "$store/RelayStore";
 
-  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
-  let relayClient = relayClientContext.getClient();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
   let profilesStore = profilesContext.getStore();
 
-  const agentPublicKey64 = relayClient.myPubKeyB64;
+  const agentPublicKey64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+
+  const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
 
   let firstName = get(profilesStore.myProfile).value?.entry.fields.firstName || "";
   let lastName = get(profilesStore.myProfile).value?.entry.fields.lastName || "";
@@ -36,7 +40,7 @@
     console.log("save", newFirstName, newLastName);
 
     try {
-      await relayClient.updateProfile(newFirstName, newLastName, avatar);
+      await relayStore.client.updateProfile(newFirstName, newLastName, avatar);
       firstName = newFirstName;
       lastName = newLastName;
     } catch (e) {
@@ -59,7 +63,7 @@
     accept="image/jpeg, image/png, image/gif"
     on:change={(event) => {
       try {
-        relayClient.updateProfile(firstName, lastName, event.detail);
+        relayStore.client.updateProfile(firstName, lastName, event.detail);
       } catch (e) {
         toast.error(`${$t("common.upload_image_error")}: ${e.message}`);
       }
@@ -67,7 +71,7 @@
   />
 
   <div style="position:relative">
-    <Avatar agentPubKey={relayClient.myPubKey} size={128} moreClasses="mb-4" />
+    <Avatar agentPubKey={myPubKey} size={128} moreClasses="mb-4" />
     <label
       for="avatarInput"
       class="bg-tertiary-500 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"

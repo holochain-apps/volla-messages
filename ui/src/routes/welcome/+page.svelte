@@ -6,15 +6,13 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-
-  import { RelayClient } from "$store/RelayClient";
   import { RelayStore } from "$store/RelayStore";
-
-  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
-  let relayClient = relayClientContext.getClient();
+  import type { AgentPubKey } from "@holochain/client";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
+
+  const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
 
   $: if (relayStore.conversations.length > 0) {
     goto("/conversations");
@@ -23,7 +21,7 @@
 
 <Header>
   <button on:click={() => goto("/account")}>
-    <Avatar size={24} agentPubKey={relayClient.myPubKey} />
+    <Avatar size={24} agentPubKey={myPubKey} />
   </button>
 
   <button on:click={() => goto("/create")} class="absolute right-4">
