@@ -27,10 +27,10 @@
   export let creating = false;
 
   let contact = agentPubKeyB64 ? relayStore.getContact(agentPubKeyB64) : undefined;
-  let firstName = $contact?.firstName || "";
-  let lastName = $contact?.lastName || "";
+  let firstName = $contact?.contact.first_name || "";
+  let lastName = $contact?.contact.last_name || "";
   let publicKeyB64 = agentPubKeyB64 || "";
-  let imageUrl = $contact?.avatar || "";
+  let imageUrl = $contact?.contact.avatar || "";
 
   let editing = !agentPubKeyB64 || creating;
   let pendingSave = false;
@@ -69,12 +69,16 @@
     try {
       const newContactData = {
         avatar: imageUrl,
-        firstName,
-        lastName,
-        publicKeyB64,
+        first_name: firstName,
+        last_name: lastName,
+        public_key: decodeHashFromBase64(publicKeyB64),
       };
       const newContact = $contact
-        ? await relayStore.updateContact({ ...$contact, ...newContactData })
+        ? await relayStore.updateContact({
+            original_contact_hash: $contact.originalActionHash,
+            previous_contact_hash: $contact.previousActionHash,
+            updated_contact: newContactData,
+          })
         : await relayStore.createContact(newContactData);
       if (newContact) {
         if (!agentPubKeyB64) {
@@ -99,9 +103,9 @@
   }
 
   function cancel() {
-    imageUrl = $contact?.avatar || "";
-    firstName = $contact?.firstName || "";
-    lastName = $contact?.lastName || "";
+    imageUrl = $contact?.contact.avatar || "";
+    firstName = $contact?.contact.first_name || "";
+    lastName = $contact?.contact.last_name || "";
 
     if (!agentPubKeyB64 || creating) {
       history.back();
@@ -206,7 +210,7 @@
   {:else}
     <div class="flex flex-1 flex-col items-center">
       <div class="flex flex-row justify-center">
-        <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.name}</h1>
+        <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.fullName}</h1>
 
         <button on:click={() => (editing = true)}>
           <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
@@ -234,7 +238,7 @@
         </h1>
         <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
           {$tAny("contacts.pending_connection_description", {
-            name: $contact?.firstName,
+            name: $contact?.contact.first_name,
           })}
         </p>
         {#if $contact}

@@ -23,6 +23,7 @@ import type {
   Message,
   Properties,
   RelaySignal,
+  UpdateContactInput,
 } from "../types";
 import { Privacy } from "../types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
@@ -89,12 +90,12 @@ export class RelayStore {
                 : message.content;
             if (isMobile()) {
               enqueueNotification(
-                `${sender ? makeFullName(sender.firstName, sender.lastName) : message.authorKey}: ${msgShort}`,
+                `${sender ? sender.profile.nickname : message.authorKey}: ${msgShort}`,
                 message.content
               );
             } else {
               enqueueNotification(
-                `Message from ${sender ? makeFullName(sender.firstName, sender.lastName) : message.authorKey}`,
+                `Message from ${sender ? sender.profile.nickname : message.authorKey}`,
                 message.content
               );
             }
@@ -180,15 +181,11 @@ export class RelayStore {
   async fetchAllContacts() {
     const contactRecords = await this.client.getAllContacts();
     this.contacts = contactRecords.map((contactRecord: any) => {
-      const contact = contactRecord.contact;
       return createContactStore(
         this,
-        contact.avatar,
-        contactRecord.signed_action.hashed.hash,
-        contact.first_name,
-        contact.last_name,
+        contactRecord.contact,
         contactRecord.original_action,
-        encodeHashToBase64(contact.public_key)
+        contactRecord.signed_action.hashed.hash
       );
     });
   }
@@ -197,32 +194,29 @@ export class RelayStore {
     if (!this.client) return false;
     // TODO: if adding contact fails we should remove it from the store
     const contactResult = await this.client.createContact(contact);
+    const contactPubKeyB64 = encodeHashToBase64(contact.public_key);
+
     if (contactResult) {
       // Immediately add a conversation with the new contact, unless you already have one with them
       let conversation =
         this.conversations.find(
           (c) =>
             get(c).conversation.privacy === Privacy.Private &&
-            c
-              .getAllMembers()
-              .every((m) => m.publicKeyB64 === contact.publicKeyB64)
+            c.getAllMembers().every((m) => m.publicKeyB64 === contactPubKeyB64)
         ) || null;
       if (!conversation) {
         conversation = await this.createConversation(
-          makeFullName(contact.firstName, contact.lastName),
+          makeFullName(contact.first_name, contact.last_name),
           "",
           Privacy.Private,
-          [contact.publicKeyB64]
+          [contactPubKeyB64]
         );
       }
       const contactStore = createContactStore(
         this,
-        contact.avatar,
+        contact,
         contactResult.signed_action.hashed.hash,
-        contact.firstName,
-        contact.lastName,
         contactResult.signed_action.hashed.hash,
-        contact.publicKeyB64,
         conversation ? get(conversation).conversation.dnaHashB64 : undefined
       );
       this.contacts = [...this.contacts, contactStore];
@@ -230,22 +224,24 @@ export class RelayStore {
     }
   }
 
-  async updateContact(contact: Contact) {
+  async updateContact(input: UpdateContactInput) {
     if (!this.client) return false;
-    const contactResult = await this.client.updateContact(contact);
+    const contactResult = await this.client.updateContact(input);
+    const contactPubKeyB64 = encodeHashToBase64(
+      input.updated_contact.public_key
+    );
+
     if (contactResult) {
       const contactStore = createContactStore(
         this,
-        contact.avatar,
-        contactResult.signed_action.hashed.hash,
-        contact.firstName,
-        contact.lastName,
-        contact.originalActionHash,
-        contact.publicKeyB64
+        input.updated_contact,
+        input.original_contact_hash,
+        input.previous_contact_hash,
+        input.updated_contact.avatar
       );
       this.contacts = [
         ...this.contacts.filter(
-          (c) => get(c).publicKeyB64 !== contact.publicKeyB64
+          (c) => get(c).publicKeyB64 !== contactPubKeyB64
         ),
         contactStore,
       ];

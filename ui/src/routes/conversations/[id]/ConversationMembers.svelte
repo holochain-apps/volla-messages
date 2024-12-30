@@ -5,11 +5,11 @@
   export let conversationStore: ConversationStore;
 </script>
 
-{#each conversationStore.getAllMembers().slice(0, 2) as contact, i}
-  {#if contact}
+{#each conversationStore.getAllMembers().slice(0, 2) as profile, i}
+  {#if profile}
     <Avatar
-      image={contact.avatar}
-      agentPubKey={contact.publicKeyB64}
+      image={profile.profile.fields.avatar}
+      agentPubKey={profile.publicKeyB64}
       size={120}
       moreClasses="mb-5"
     />
