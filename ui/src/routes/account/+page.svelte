@@ -15,6 +15,7 @@
   import { MIN_FIRST_NAME_LENGTH } from "$config";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ProfileNameInput from "./ProfileNameInput.svelte";
+  import type { AgentPubKey, AgentPubKeyB64 } from "@holochain/client";
 
   const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
   let relayClient = relayClientContext.getClient();
@@ -22,7 +23,11 @@
   const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
   let profilesStore = profilesContext.getStore();
 
-  const agentPublicKey64 = relayClient.myPubKeyB64;
+  const agentPublicKey64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+
+  const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
 
   let firstName = get(profilesStore.myProfile).value?.entry.fields.firstName || "";
   let lastName = get(profilesStore.myProfile).value?.entry.fields.lastName || "";
@@ -67,7 +72,7 @@
   />
 
   <div style="position:relative">
-    <Avatar agentPubKey={relayClient.myPubKey} size={128} moreClasses="mb-4" />
+    <Avatar agentPubKey={myPubKey} size={128} moreClasses="mb-4" />
     <label
       for="avatarInput"
       class="bg-tertiary-500 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"

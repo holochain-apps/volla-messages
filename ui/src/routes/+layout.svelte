@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AppClient } from "@holochain/client";
-  import { AppWebsocket } from "@holochain/client";
+  import { AppWebsocket, encodeHashToBase64 } from "@holochain/client";
   import { ProfilesClient, ProfilesStore } from "@holochain-open-dev/profiles";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { onMount, setContext } from "svelte";
@@ -87,6 +87,11 @@
 
   setContext("relayClient", {
     getClient: () => relayClient,
+  });
+
+  setContext("myPubKey", {
+    getMyPubKey: () => client.myPubKey,
+    getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
   });
 
   setContext("profiles", {

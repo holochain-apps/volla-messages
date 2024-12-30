@@ -46,6 +46,8 @@ export class RelayStore {
 
     await this.fetchAllContacts();
 
+    const myPubKeyB64 = encodeHashToBase64(this.client.client.myPubKey);
+
     this.client.client.on("signal", async (signal: Signal) => {
       if (!(SignalType.App in signal)) return;
 
@@ -72,7 +74,7 @@ export class RelayStore {
           timestamp: new Date(payload.action.hashed.content.timestamp / 1000),
         };
 
-        if (conversation && message.authorKey !== this.client.myPubKeyB64) {
+        if (conversation && message.authorKey !== myPubKeyB64) {
           const sender = conversation
             .getAllMembers()
             .find((m) => m.publicKeyB64 == message.authorKey);
