@@ -1,17 +1,15 @@
-import { type ActionHash, type AgentPubKeyB64, type DnaHashB64 } from "@holochain/client";
 import {
-  writable,
-  get,
-  derived,
-  type Invalidator,
-  type Subscriber,
-  type Unsubscriber,
-} from "svelte/store";
+  encodeHashToBase64,
+  type ActionHash,
+  type AgentPubKeyB64,
+  type DnaHashB64,
+} from "@holochain/client";
+import { writable, get, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import { RelayStore } from "$store/RelayStore";
 import { makeFullName } from "$lib/utils";
 import { persisted } from "svelte-persisted-store";
 import type { ConversationStore } from "./ConversationStore";
-import type { ContactExtended } from "../types";
+import type { Contact, ContactExtended } from "../types";
 
 export interface ContactStore {
   getPrivateConversation: () => ConversationStore | undefined;
@@ -25,31 +23,24 @@ export interface ContactStore {
 
 export function createContactStore(
   relayStore: RelayStore,
-  avatar: string,
-  currentActionHash: ActionHash,
-  firstName: string,
-  lastName: string,
+  contact: Contact,
   originalActionHash: ActionHash,
-  publicKeyB64: AgentPubKeyB64,
+  previousActionHash: ActionHash,
   dnaHashB64?: DnaHashB64 | undefined,
 ) {
+  const publicKeyB64 = encodeHashToBase64(contact.public_key);
   const privateConversationDnaHashB64 = persisted(
     `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
     dnaHashB64,
   );
-  const contact = writable<ContactExtended>({
-    currentActionHash,
+  const { subscribe } = writable<ContactExtended>({
+    contact,
     originalActionHash,
-    firstName,
-    lastName,
-    name: makeFullName(firstName, lastName),
-    avatar,
+    previousActionHash,
+    fullName: makeFullName(contact.first_name, contact.last_name),
     publicKeyB64,
     privateConversationDnaHashB64: get(privateConversationDnaHashB64),
   });
-  const { subscribe } = derived<typeof contact, ContactExtended>(contact, ($contact) => ({
-    ...$contact,
-  }));
 
   function getPrivateConversation() {
     const val = get(privateConversationDnaHashB64);

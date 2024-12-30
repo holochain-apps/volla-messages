@@ -9,7 +9,6 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import { makeFullName } from "$lib/utils";
   import { Privacy } from "../../../../types";
   import toast from "svelte-french-toast";
   import type { AgentPubKeyB64 } from "@holochain/client";
@@ -29,11 +28,11 @@
     return $contacts
       .filter(
         (c) =>
-          c.firstName.toLowerCase().includes(test) ||
-          c.lastName.toLowerCase().includes(test) ||
+          c.contact.first_name.toLowerCase().includes(test) ||
+          c.contact.first_name.toLowerCase().includes(test) ||
           (test.length > 2 && c.publicKeyB64.toLowerCase().includes(test)),
       )
-      .sort((a, b) => a.firstName.localeCompare(b.firstName));
+      .sort((a, b) => a.contact.first_name.localeCompare(b.contact.first_name));
   });
 
   function selectContact(publicKeyB64: string) {
@@ -101,11 +100,11 @@
     {:else}
       <div class="w-full font-light">
         {#each $contacts as contact, i}
-          {#if i === 0 || contact.firstName.charAt(0).toUpperCase() !== $contacts[i - 1].firstName
-                .charAt(0)
-                .toUpperCase()}
+          {#if i === 0 || contact.contact.first_name
+              .charAt(0)
+              .toUpperCase() !== $contacts[i - 1].contact.first_name.charAt(0).toUpperCase()}
             <p class="text-secondary-300 mb-1 mt-2 pl-0">
-              {contact.firstName[0].toUpperCase()}
+              {contact.contact.first_name[0].toUpperCase()}
             </p>
           {/if}
           {@const selected = selectedContacts.find((c) => c === contact.publicKeyB64)}
@@ -125,12 +124,12 @@
           >
             <Avatar
               size={38}
-              image={contact.avatar}
+              image={contact.contact.avatar}
               agentPubKey={contact.publicKeyB64}
               moreClasses="mr-3"
             />
             <p class="text-secondary-500 dark:text-tertiary-100 flex-1 text-start">
-              {makeFullName(contact.firstName, contact.lastName)}
+              {contact.fullName}
             </p>
             {#if alreadyInConversation}
               <span class="text-xs font-extralight">{$t("conversations.already_member")}</span>
@@ -160,7 +159,10 @@
             </div>
             <div class="pb-1 text-start text-xs font-light">
               with {selectedContacts
-                .map((c) => $contacts.find((contact) => c === contact.publicKeyB64)?.firstName)
+                .map(
+                  (c) =>
+                    $contacts.find((contact) => c === contact.publicKeyB64)?.contact.first_name,
+                )
                 .join(", ")}
             </div>
           </div>

@@ -166,15 +166,11 @@ export class RelayStore {
   async fetchAllContacts() {
     const contactRecords = await this.client.getAllContacts();
     this.contacts = contactRecords.map((contactRecord: any) => {
-      const contact = contactRecord.contact;
       return createContactStore(
         this,
-        contact.avatar,
-        contactRecord.signed_action.hashed.hash,
-        contact.first_name,
-        contact.last_name,
+        contactRecord.contact,
         contactRecord.original_action,
-        encodeHashToBase64(contact.public_key),
+        contactRecord.signed_action.hashed.hash,
       );
     });
   }
@@ -202,12 +198,9 @@ export class RelayStore {
       }
       const contactStore = createContactStore(
         this,
-        contact.avatar,
+        contact,
         contactResult.signed_action.hashed.hash,
-        contact.first_name,
-        contact.last_name,
         contactResult.signed_action.hashed.hash,
-        encodeHashToBase64(contact.public_key),
         conversation ? get(conversation).conversation.dnaHashB64 : undefined,
       );
       this.contacts = [...this.contacts, contactStore];
@@ -223,12 +216,10 @@ export class RelayStore {
     if (contactResult) {
       const contactStore = createContactStore(
         this,
-        input.updated_contact.avatar,
-        contactResult.signed_action.hashed.hash,
-        input.updated_contact.first_name,
-        input.updated_contact.last_name,
+        input.updated_contact,
         input.original_contact_hash,
-        contactPubKeyB64,
+        input.previous_contact_hash,
+        input.updated_contact.avatar,
       );
       this.contacts = [
         ...this.contacts.filter((c) => get(c).publicKeyB64 !== contactPubKeyB64),
