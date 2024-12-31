@@ -13,7 +13,7 @@
   export let file: Image;
   export let align: Alignment = Alignment.Left;
   export let size: Size = Size.Large;
-  export let imageLightbox: boolean = true;
+  export let imageLightbox: boolean = false;
   export let showCancel = false;
   export let className = "";
   export let maxFilenameLength = 20;
