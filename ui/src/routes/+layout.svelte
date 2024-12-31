@@ -32,7 +32,7 @@
       console.log("__HC_LAUNCHER_ENV__ is", window.__HC_LAUNCHER_ENV__);
 
       // Connect to holochain
-      client = await AppWebsocket.connect({ defaultTimeout: 15000 });
+      client = await AppWebsocket.connect({ defaultTimeout: 30000 });
 
       // Call 'ping' with very long timeout
       // This should be the first zome call after the client connects,

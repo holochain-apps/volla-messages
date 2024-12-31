@@ -188,7 +188,7 @@
 
           <ConversationMembers {conversationStore} />
         </div>
-      {:else if $conversationStore.conversation.config.image}
+      {:else if $conversationStore.conversation.config?.image}
         <img
           src={$conversationStore.conversation.config.image}
           alt="Conversation"
