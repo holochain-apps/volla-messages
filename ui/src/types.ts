@@ -153,11 +153,6 @@ export interface Config {
   image: string;
 }
 
-export interface ConversationCellAndConfig {
-  cell: ClonedCell;
-  config: Config;
-}
-
 /**
  * Contact
  */

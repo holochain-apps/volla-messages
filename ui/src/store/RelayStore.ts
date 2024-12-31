@@ -17,7 +17,6 @@ import { RelayClient } from "$store/RelayClient";
 import type {
   Contact,
   Image,
-  ConversationCellAndConfig,
   Invitation,
   Message,
   Properties,

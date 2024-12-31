@@ -18,7 +18,6 @@ import type {
   Config,
   Contact,
   ContactRecord,
-  ConversationCellAndConfig,
   ImageStruct,
   Invitation,
   MembraneProofData,
