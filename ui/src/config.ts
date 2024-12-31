@@ -10,3 +10,7 @@ export const TARGET_MESSAGES_COUNT = 20;
 // Minimum length of profile first name
 // This is not enforced by DNA validation, so is only softly required in the frontend.
 export const MIN_FIRST_NAME_LENGTH = 3;
+
+// Maximum size of a file that can be uploaded
+// Currently set to 15MB
+export const MAX_FILE_SIZE = 15 * 1024 * 1024;

@@ -1,5 +1,5 @@
 import { type DnaHashB64 } from "@holochain/client";
-import type { Message } from "../types";
+import type { Message } from "$lib/types";
 import { createBucketStore, type BucketStore } from "./BucketStore";
 import {
   derived,

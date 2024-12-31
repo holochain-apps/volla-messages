@@ -15,7 +15,7 @@ import { RelayStore } from "$store/RelayStore";
 import { makeFullName } from "$lib/utils";
 import { persisted } from "svelte-persisted-store";
 import type { ConversationStore } from "./ConversationStore";
-import type { Contact, ContactExtended } from "../types";
+import type { Contact, ContactExtended } from "$lib/types";
 
 export interface ContactStore {
   getPrivateConversation: () => ConversationStore | undefined;

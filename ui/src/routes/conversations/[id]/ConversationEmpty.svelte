@@ -3,7 +3,7 @@
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import SvgIcon from "../../../lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { Privacy } from "../../../types";
+  import { Privacy } from "$lib/types";
   import { goto } from "$app/navigation";
   import type { ConversationStore } from "$store/ConversationStore";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";

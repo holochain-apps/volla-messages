@@ -8,7 +8,7 @@
   import { t } from "$translations";
   import { MIN_TITLE_LENGTH } from "$config";
   import { RelayStore } from "$store/RelayStore";
-  import { Privacy } from "../../../types";
+  import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import { get } from "svelte/store";
