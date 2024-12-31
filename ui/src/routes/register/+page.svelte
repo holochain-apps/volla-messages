@@ -5,7 +5,7 @@
   import { t } from "$translations";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { MIN_FIRST_NAME_LENGTH } from "$config";
-  import { Alignment } from "../../types";
+  import { Alignment } from "$lib/types";
 
   let firstName = "";
   let lastName = "";

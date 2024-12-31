@@ -21,9 +21,10 @@ import type {
   Message,
   DnaProperties,
   RelaySignal,
+  FileStatus,
+  Privacy,
   UpdateContactInput,
-} from "../types";
-import { Privacy } from "../types";
+} from "$lib/types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
 
 export class RelayStore {
@@ -64,7 +65,10 @@ export class RelayStore {
           bucket: payload.message.bucket,
           images: payload.message.images.map(
             (i: any) =>
-              ({ ...(mapKeys(i, (v, k) => camelCase(k)) as Image), status: "loading" }) as Image,
+              ({
+                ...(mapKeys(i, (v, k) => camelCase(k)) as Image),
+                status: FileStatus.Loading,
+              }) as Image,
           ), // convert snake_case to camelCase
           status: "confirmed",
           timestamp: new Date(payload.action.hashed.content.timestamp / 1000),

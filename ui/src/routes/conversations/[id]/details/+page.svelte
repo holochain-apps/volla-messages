@@ -8,7 +8,7 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import type { RelayStore } from "$store/RelayStore";
-  import { Privacy } from "../../../../types";
+  import { Privacy } from "$lib/types";
   import { goto } from "$app/navigation";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import ButtonsCopyShareInline from "$lib/ButtonsCopyShareInline.svelte";

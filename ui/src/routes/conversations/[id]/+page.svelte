@@ -9,7 +9,7 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import { Privacy, type Image } from "../../../types";
+  import { Privacy, type Image } from "$lib/types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
   import ConversationMembers from "./ConversationMembers.svelte";
@@ -144,6 +144,14 @@
       conversationMessageInputRef.focus();
     }
   }
+
+  function formatFileName(file: Image, maxLength: number = 10): string {
+    const fileName = file.name.trim();
+    if (fileName.length <= maxLength) {
+      return fileName;
+    }
+    return fileName.slice(0, maxLength) + "...";
+  }
 </script>
 
 <Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
@@ -216,7 +224,7 @@
         <ConversationEmpty {conversationStore} />
       {:else}
         <!-- Display conversation messages -->
-        <ConversationMessages messages={$conversationStore.processedMessages} />
+        <ConversationMessages messages={$conversationStore.processedMessages} {formatFileName} />
       {/if}
     </div>
   </div>
@@ -224,5 +232,6 @@
   <ConversationMessageInput
     bind:ref={conversationMessageInputRef}
     on:send={(e) => sendMessage(e.detail.text, e.detail.images)}
+    {formatFileName}
   />
 {/if}

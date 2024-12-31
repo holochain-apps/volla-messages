@@ -7,7 +7,7 @@
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import type { Invitation } from "../../../types";
+  import type { Invitation } from "$lib/types";
   import { get } from "svelte/store";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");

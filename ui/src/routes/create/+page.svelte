@@ -8,7 +8,7 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import { Privacy } from "../../types";
+  import { Privacy } from "$lib/types";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { xor } from "lodash-es";
   import toast from "svelte-french-toast";
