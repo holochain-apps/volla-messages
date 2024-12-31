@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileStatus, type Image } from "$lib/types";
+  import { Alignment, FileStatus, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import prettyBytes from "pretty-bytes";
@@ -11,7 +11,7 @@
   const dispatch = createEventDispatcher<{ cancel: string }>();
 
   export let file: Image;
-  export let align: "left" | "right" = "left";
+  export let align: Alignment = Alignment.Left;
   export let size: "sm" | "lg" = "lg";
   export let showCancel = false;
   export let className = "";
@@ -81,7 +81,7 @@
     </div>
   {:else}
     <div class="bg-surface-800/10 flex flex-row items-start rounded-xl {config.spacing}">
-      {#if align === "left"}
+      {#if align === Alignment.Left}
         <div class="flex-shrink-0">
           {#if isPdf}
             <PdfThumbnail
@@ -105,7 +105,7 @@
         </div>
       </div>
 
-      {#if align === "right"}
+      {#if align === Alignment.Right}
         <div class="flex-shrink-0">
           {#if isPdf}
             <PdfThumbnail

@@ -1,12 +1,13 @@
 <script lang="ts">
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import { Alignment } from "./types";
 
   export let moreClasses = "";
   export let loading = false;
   export let icon: string | undefined = undefined;
   export let big: boolean = true;
   export let iconSize: number = big ? 22 : 18;
-  export let iconAlign: "right" | "left" = "left";
+  export let iconAlign: Alignment = Alignment.Left;
 </script>
 
 <button
@@ -16,7 +17,7 @@
   on:click
   {...$$restProps}
 >
-  {#if iconAlign === "left"}
+  {#if iconAlign === Alignment.Left}
     {#if loading}
       <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
     {:else if icon !== undefined}
@@ -28,7 +29,7 @@
     <slot></slot>
   </div>
 
-  {#if iconAlign === "right"}
+  {#if iconAlign === Alignment.Right}
     {#if loading}
       <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
     {:else if icon !== undefined}

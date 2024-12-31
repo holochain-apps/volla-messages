@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import { type Message as MessageType } from "$lib/types";
+  import { Alignment, type Message as MessageType } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
@@ -67,7 +67,12 @@
       {#if message.images && message.images.length > 0}
         {#each message.images as file}
           <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-            <FilePreview {file} size="lg" align={fromMe ? "right" : "left"} className="mb-2" />
+            <FilePreview
+              {file}
+              size="lg"
+              align={fromMe ? Alignment.Right : Alignment.Left}
+              className="mb-2"
+            />
           </div>
         {/each}
       {/if}
