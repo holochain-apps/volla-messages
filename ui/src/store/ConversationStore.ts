@@ -509,10 +509,11 @@ export function createConversationStore(
 
   async function fetchAgents() {
     const agentProfiles = await client.getAllAgents(cellId);
-    conversation.update((c) => {
-      c.agentProfiles = agentProfiles;
-      return c;
-    });
+    console.log("fetchAgents", agentProfiles);
+    conversation.update((c) => ({
+      ...c,
+      agentProfiles,
+    }));
     return agentProfiles;
   }
 
@@ -585,18 +586,20 @@ export function createConversationStore(
     return keys
       .filter((k) => k !== myPubKeyB64)
       .map((agentKey) => {
-        const agentProfile = joinedAgents[agentKey];
         const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
 
         if (contactProfile) {
           return contactProfile.getAsProfile();
-        } else {
+        } else if (joinedAgents[agentKey]) {
           return {
-            profile: agentProfile,
+            profile: joinedAgents[agentKey],
             publicKeyB64: agentKey,
           };
+        } else {
+          return undefined;
         }
       })
+      .filter((u) => u !== undefined)
       .sort((a, b) => a.profile.nickname.localeCompare(b.profile.nickname));
   }
 
@@ -612,7 +615,7 @@ export function createConversationStore(
       return c.config.title;
     } else if (allMembers.length === 1) {
       // Use full name of the one other person in the chat
-      return getAllMembers()[0] ? allMembers[0].profile.nickname : c.config.title;
+      return allMembers[0].profile.nickname;
     } else if (allMembers.length === 2) {
       return allMembers.map((m) => m?.profile.fields.firstName).join(" & ");
     } else {
