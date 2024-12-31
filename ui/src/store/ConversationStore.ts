@@ -87,10 +87,10 @@ export function createConversationStore(
   relayStore: RelayStore,
   networkSeed: string,
   cellId: CellId,
-  config: Config | undefined,
   created: number,
   privacy: Privacy,
   progenitor: AgentPubKey,
+  invitationTitle: string | undefined = undefined,
 ): ConversationStore {
   const client = relayStore.client;
   const fileStorageClient = new FileStorageClient(
@@ -105,7 +105,7 @@ export function createConversationStore(
     networkSeed,
     dnaHashB64,
     cellId,
-    config,
+    config: undefined,
     privacy,
     progenitor,
     agentProfiles: {},
@@ -117,6 +117,7 @@ export function createConversationStore(
     archived: false,
     invitedContactKeys: [],
     unread: false,
+    invitationTitle,
   });
   const lastMessage = writable<Message | null>(null);
   const publicInviteCode = derived(conversation, ($conversation) => {
@@ -236,6 +237,7 @@ export function createConversationStore(
   }
 
   async function initialize() {
+    await fetchConfig();
     await fetchAgents();
     await loadMessagesSet();
   }
@@ -498,8 +500,6 @@ export function createConversationStore(
 
   async function fetchConfig() {
     const config = await client.getConfig(cellId);
-    if (!config) return;
-
     conversation.update((c) => ({
       ...c,
       config,
@@ -509,7 +509,6 @@ export function createConversationStore(
 
   async function fetchAgents() {
     const agentProfiles = await client.getAllAgents(cellId);
-    console.log("fetchAgents", agentProfiles);
     conversation.update((c) => ({
       ...c,
       agentProfiles,
@@ -606,22 +605,31 @@ export function createConversationStore(
   function getTitle() {
     const allMembers = getAllMembers();
     const c = get(conversation);
-    const configTitle = c.config ? c.config.title : "...";
+    const { invitationTitle } = get(localData);
+
+    let title;
+    if (c.config) {
+      title = c.config.title;
+    } else if (invitationTitle) {
+      title = invitationTitle;
+    } else {
+      title = "...";
+    }
 
     if (c.privacy === Privacy.Public) {
-      return configTitle;
+      return title;
     }
 
     if (allMembers.length === 0) {
       // When joining a private converstion that has not synced yet
-      return configTitle;
+      return title;
     } else if (allMembers.length === 1) {
       // Use full name of the one other person in the chat
       return allMembers[0].profile.nickname;
     } else if (allMembers.length === 2) {
-      return allMembers.map((m) => m?.profile.fields.firstName).join(" & ");
+      return allMembers.map((m) => m.profile.fields.firstName).join(" & ");
     } else {
-      return allMembers.map((m) => m?.profile.fields.firstName).join(", ");
+      return allMembers.map((m) => m.profile.fields.firstName).join(", ");
     }
   }
 

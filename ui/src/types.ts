@@ -85,6 +85,7 @@ export interface LocalConversationData {
   archived: boolean;
   invitedContactKeys: string[];
   unread: boolean;
+  invitationTitle?: string;
 }
 
 export interface MembraneProofData {
