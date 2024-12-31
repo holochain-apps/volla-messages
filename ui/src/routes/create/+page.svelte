@@ -11,6 +11,7 @@
   import { Privacy } from "../../types";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { xor } from "lodash-es";
+  import toast from "svelte-french-toast";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
@@ -72,25 +73,25 @@
     }
 
     pendingCreate = true;
-
-    let title = "";
-    if (selectedContactStores.length === 1) {
-      const c = get(selectedContactStores[0]);
-      title = c.fullName;
-    } else if (selectedContacts.length === 2) {
-      title = selectedContactStores.map((c) => get(c).contact.first_name).join(" & ");
-    } else if (selectedContacts.length > 2) {
-      title = selectedContactStores.map((c) => get(c).contact.first_name).join(", ");
-    }
-
-    const conversationStore = await relayStore.createConversation(
-      title,
-      "",
-      Privacy.Private,
-      selectedContacts,
-    );
-    if (conversationStore) {
-      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}/details`);
+    try {
+      let title = "";
+      if (selectedContactStores.length === 1) {
+        const c = get(selectedContactStores[0]);
+        title = c.fullName;
+      } else if (selectedContacts.length === 2) {
+        title = selectedContactStores.map((c) => get(c).contact.first_name).join(" & ");
+      } else if (selectedContacts.length > 2) {
+        title = selectedContactStores.map((c) => get(c).contact.first_name).join(", ");
+      }
+      const conversationStore = await relayStore.createConversation(
+        title,
+        "",
+        Privacy.Private,
+        selectedContacts,
+      );
+      await goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}/details`);
+    } catch (e) {
+      toast.error(`${$t("common.create_conversation_error")}: ${e.message}`);
     }
     pendingCreate = false;
   }

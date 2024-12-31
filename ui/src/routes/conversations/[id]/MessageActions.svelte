@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Message, Image } from "../../../types";
   import Button from "$lib/Button.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { convertDataURIToUint8Array, copyToClipboard } from "$lib/utils";
   import { save } from "@tauri-apps/plugin-dialog";

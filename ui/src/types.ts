@@ -55,9 +55,16 @@ export enum Privacy {
 }
 
 // DNA modifier properties for a conversation
-export interface Properties {
+export interface DnaProperties {
   created: number;
   privacy: Privacy;
+
+  // This is *NOT* the type specified in the DNA struct Properties (there it is an AgentPubKey)
+  //
+  // But because we have already been cloning cells rom the UI, using an AgentPubKeyB64 as progenitor,
+  // we must keep it consistent to avoid an DNA-integrity breaking change.
+  //
+  // See https://github.com/holochain-apps/volla-messages/issues/392
   progenitor: AgentPubKeyB64;
 }
 
@@ -74,8 +81,7 @@ export interface Conversation {
   networkSeed: string;
   dnaHashB64: DnaHashB64;
   cellId: CellId;
-  config: Config;
-  description?: string;
+  config?: Config;
   privacy: Privacy;
   progenitor: AgentPubKey;
   messages: Messages;
@@ -86,6 +92,7 @@ export interface LocalConversationData {
   archived: boolean;
   invitedContactKeys: string[];
   unread: boolean;
+  invitationTitle?: string;
 }
 
 export interface MembraneProofData {
@@ -99,8 +106,8 @@ export interface Invitation {
   networkSeed: string;
   privacy: Privacy;
   progenitor: AgentPubKey;
-  proof?: MembraneProof;
   title: string;
+  proof?: MembraneProof;
 }
 
 // Holochain Type
@@ -151,11 +158,6 @@ export interface MessageRecord {
 export interface Config {
   title: string;
   image: string;
-}
-
-export interface ConversationCellAndConfig {
-  cell: ClonedCell;
-  config: Config;
 }
 
 /**
