@@ -276,7 +276,7 @@ export function createConversationStore(
     try {
       const newMessages: { [key: string]: Message } = get(conversation).messages;
       let bucket = history.getBucket(b);
-      const messageHashes = await client.getMessageHashes(dnaHashB64, b, get(bucket).count);
+      const messageHashes = await client.getMessageHashes(cellId, b, get(bucket).count);
 
       const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
       const missingHashes = bucket.missingHashes(messageHashesB64);
@@ -294,7 +294,7 @@ export function createConversationStore(
 
       if (hashesToLoad.length > 0) {
         const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
-          dnaHashB64,
+          cellId,
           hashesToLoad,
         );
         if (hashesToLoad.length != messageRecords.length) {
@@ -391,7 +391,7 @@ export function createConversationStore(
         }),
     );
     const newMessageEntry = await client.sendMessage(
-      dnaHashB64,
+      cellId,
       content,
       bucket,
       imageStructs,
@@ -477,8 +477,7 @@ export function createConversationStore(
 
   async function updateConfig(config: Partial<Config>) {
     const newConfig = { ...get(conversation).config, ...config };
-    const cellAndConfig = client.conversations[dnaHashB64];
-    await relayStore.client.setConfig(newConfig, cellAndConfig.cell.cell_id);
+    await relayStore.client.setConfig(cellId, newConfig);
     conversation.update((c) => ({ ...c, config: newConfig }));
   }
 
@@ -498,7 +497,7 @@ export function createConversationStore(
   }
 
   async function fetchConfig() {
-    const config = await client.getConfig(get(conversation).cellId);
+    const config = await client.getConfig(cellId);
     if (!config) return;
 
     conversation.update((c) => {
@@ -509,7 +508,7 @@ export function createConversationStore(
   }
 
   async function fetchAgents() {
-    const agentProfiles = await client.getAllAgents(dnaHashB64);
+    const agentProfiles = await client.getAllAgents(cellId);
     conversation.update((c) => {
       c.agentProfiles = agentProfiles;
       return c;
@@ -525,8 +524,8 @@ export function createConversationStore(
       return publicCode;
     }
 
-    const proof = await relayStore.inviteAgentToConversation(
-      dnaHashB64,
+    const proof = await client.inviteAgentToConversation(
+      cellId,
       decodeHashFromBase64(publicKeyB64),
     );
 
