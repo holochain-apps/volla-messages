@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { RelayStore } from "$store/RelayStore";
   import { getContext } from "svelte";
   import { type Message as MessageType } from "../../../types";
   import Time from "svelte-time";
