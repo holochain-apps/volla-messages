@@ -182,7 +182,6 @@ export class RelayStore {
   }
 
   async updateContact(input: UpdateContactInput) {
-    if (!this.client) return false;
     const contactResult = await this.client.updateContact(input);
     const contactPubKeyB64 = encodeHashToBase64(input.updated_contact.public_key);
 
