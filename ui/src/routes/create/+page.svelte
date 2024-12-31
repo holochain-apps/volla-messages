@@ -89,7 +89,7 @@
         Privacy.Private,
         selectedContacts,
       );
-      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}/details`);
+      await goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}/details`);
     } catch (e) {
       toast.error(`${$t("common.create_conversation_error")}: ${e.message}`);
     }

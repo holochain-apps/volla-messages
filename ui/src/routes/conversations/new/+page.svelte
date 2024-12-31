@@ -24,7 +24,7 @@
     pendingCreate = true;
     try {
       const conversationStore = await relayStore.createConversation(title, imageUrl, privacy);
-      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
+      await goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
     } catch (e) {
       toast.error(`${$t("common.create_conversation_error")}: ${e.message}`);
     }
