@@ -8,7 +8,7 @@
   import { t } from "$translations";
   import { isMobile } from "$lib/utils";
   import type { ConversationStore } from "$store/ConversationStore";
-  import { Privacy } from "../types";
+  import { Privacy } from "$lib/types";
   import { goto } from "$app/navigation";
   import DOMPurify from "dompurify";
 

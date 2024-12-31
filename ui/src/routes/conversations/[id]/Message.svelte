@@ -1,16 +1,14 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import { type Message as MessageType } from "../../../types";
+  import { Alignment, Size, type Message as MessageType } from "$lib/types";
   import Time from "svelte-time";
-  import LightboxImage from "$lib/LightboxImage.svelte";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
   import { press } from "svelte-gestures";
-  import SvgIcon from "../../../lib/SvgIcon.svelte";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import DOMPurify from "dompurify";
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
+  import FilePreview from "$lib/FilePreview.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -32,7 +30,9 @@
 {/if}
 <button
   class="message-content mt-3 block w-full border-0 text-left
-    {isSelected ? 'bg-secondary-500 rounded-xl px-2.5 py-1.5' : 'bg-transparent'}"
+    {isSelected
+    ? 'bg-tertiary-500 dark:bg-secondary-500 rounded-xl px-2.5 py-1.5'
+    : 'bg-transparent'}"
   on:click
   use:press={{ timeframe: 300, triggerBeforeFinished: true }}
   on:press
@@ -55,7 +55,7 @@
       {/if}
     {/if}
 
-    <div class="ml-3 {fromMe && 'items-end text-end'}">
+    <div class="max-w-3/4 ml-3 w-auto {fromMe && 'items-end text-end'}">
       {#if !message.hideDetails}
         <span class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}">
           <span class="font-bold">{fromMe ? "You" : message.author}</span>
@@ -63,26 +63,20 @@
         </span>
       {/if}
 
+      <!-- if message contains files -->
       {#if message.images && message.images.length > 0}
-        {#each message.images as image}
-          <div class="flex {fromMe ? 'justify-end' : 'justify-start'}">
-            {#if image.status === "loaded"}
-              <div class="mb-2 flex items-start justify-between">
-                <LightboxImage btnClass="inline max-w-2/3" src={image.dataURL} alt={image.name} />
-              </div>
-            {:else if image.status === "loading" || image.status === "pending"}
-              <div class="bg-surface-800 mb-2 flex h-20 w-20 items-center justify-center">
-                <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
-              </div>
-            {:else}
-              <div class="bg-surface-800 mb-2 flex h-20 w-20 items-center justify-center">
-                <SvgIcon icon="x" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
-              </div>
-            {/if}
+        {#each message.images as file}
+          <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
+            <FilePreview
+              {file}
+              size={Size.Large}
+              imageLightbox
+              align={fromMe ? Alignment.Right : Alignment.Left}
+              className="mb-2"
+            />
           </div>
         {/each}
       {/if}
-
       <div class="message w-full break-words font-light {fromMe && 'text-end'}">
         {@html DOMPurify.sanitize(
           linkifyStr(message.content, {
