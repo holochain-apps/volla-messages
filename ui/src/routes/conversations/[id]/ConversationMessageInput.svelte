@@ -121,9 +121,10 @@
         {#each images as file (file.id)}
           <FilePreview
             {file}
-            align={Alignment.Right}
+            size="sm"
             showCancel
-            isMessage={false}
+            maxFilenameLength={10}
+            className="mr-2"
             on:cancel={(e) => cancelUpload(e.detail)}
           />
         {/each}

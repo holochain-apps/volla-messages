@@ -68,12 +68,7 @@
       {#if message.images && message.images.length > 0}
         {#each message.images as file}
           <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-            <FilePreview
-              {file}
-              align={fromMe ? Alignment.Right : Alignment.Left}
-              isMessage={true}
-              maxFilenameLength={isMobile() ? 20 : 50}
-            />
+            <FilePreview {file} size="lg" align={fromMe ? "right" : "left"} className="mb-2" />
           </div>
         {/each}
       {/if}
