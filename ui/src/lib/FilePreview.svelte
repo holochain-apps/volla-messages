@@ -81,21 +81,23 @@
       {/if}
     </div>
   {:else}
-    <div class="bg-surface-800/10 flex flex-row items-start rounded-xl {config.spacing}">
-      {#if align === Alignment.Left}
-        <div class="flex-shrink-0">
-          {#if isPdf}
-            <PdfThumbnail
-              pdfDataUrl={file.dataURL ?? ""}
-              width={config.thumbnailSize.width}
-              height={config.thumbnailSize.height}
-              fallbackIcon="pdf"
-            />
-          {:else}
-            <FileIcon {file} size={config.iconSize} />
-          {/if}
-        </div>
-      {/if}
+    <div
+      class="bg-surface-800/10 flex items-start rounded-xl
+      {config.spacing} 
+      {align === Alignment.Left ? 'flex-row' : 'flex-row-reverse'}"
+    >
+      <div class="flex-shrink-0">
+        {#if isPdf}
+          <PdfThumbnail
+            pdfDataUrl={file.dataURL ?? ""}
+            width={config.thumbnailSize.width}
+            height={config.thumbnailSize.height}
+            fallbackIcon="pdf"
+          />
+        {:else}
+          <FileIcon {file} size={config.iconSize} />
+        {/if}
+      </div>
 
       <div class="min-w-0 flex-grow">
         <div class="break-all {config.textClass}">
@@ -105,21 +107,6 @@
           {prettyBytes(file.size)}
         </div>
       </div>
-
-      {#if align === Alignment.Right}
-        <div class="flex-shrink-0">
-          {#if isPdf}
-            <PdfThumbnail
-              pdfDataUrl={file.dataURL ?? ""}
-              width={config.thumbnailSize.width}
-              height={config.thumbnailSize.height}
-              fallbackIcon="pdf"
-            />
-          {:else}
-            <FileIcon {file} size={config.iconSize} />
-          {/if}
-        </div>
-      {/if}
     </div>
   {/if}
 </div>
