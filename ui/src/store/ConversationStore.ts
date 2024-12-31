@@ -482,8 +482,6 @@ export function createConversationStore(
   }
 
   function addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
-    if (agentPubKeyB64s.length === 0) return;
-
     localData.update((d) => ({
       ...d,
       invitedContactKeys: [...d.invitedContactKeys, ...agentPubKeyB64s],

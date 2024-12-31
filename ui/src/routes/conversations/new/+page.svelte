@@ -24,13 +24,11 @@
     pendingCreate = true;
     try {
       const conversationStore = await relayStore.createConversation(title, imageUrl, privacy);
-      if (conversationStore) {
-        goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
-        pendingCreate = false;
-      }
+      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
     } catch (e) {
       toast.error(`${$t("common.create_conversation_error")}: ${e.message}`);
     }
+    pendingCreate = false;
   }
 
   $: valid = title.trim().length >= MIN_TITLE_LENGTH;
