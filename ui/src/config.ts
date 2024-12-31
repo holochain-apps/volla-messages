@@ -10,3 +10,5 @@ export const TARGET_MESSAGES_COUNT = 20;
 // Minimum length of profile first name
 // This is not enforced by DNA validation, so is only softly required in the frontend.
 export const MIN_FIRST_NAME_LENGTH = 3;
+
+export const DEFAULT_CONVERSATION_CONFIG = { title: "", image: "" };
