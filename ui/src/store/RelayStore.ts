@@ -100,7 +100,7 @@ export class RelayStore {
     cellInfo: ClonedCell,
     invitationTitle: string | undefined = undefined,
   ): Promise<ConversationStore> {
-    const properties: DnaProperties = decode(cellInfo.dna_modifiers.properties) as Properties;
+    const properties: DnaProperties = decode(cellInfo.dna_modifiers.properties) as DnaProperties;
     const newConversation = createConversationStore(
       this,
       cellInfo.dna_modifiers.network_seed,
