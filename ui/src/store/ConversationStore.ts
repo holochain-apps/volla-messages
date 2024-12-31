@@ -294,7 +294,7 @@ export function createConversationStore(
         get(conversation).messages;
       let bucket = history.getBucket(b);
       const messageHashes = await client.getMessageHashes(
-        dnaHashB64,
+        cellId,
         b,
         get(bucket).count
       );
@@ -315,7 +315,7 @@ export function createConversationStore(
 
       if (hashesToLoad.length > 0) {
         const messageRecords: Array<MessageRecord> =
-          await client.getMessageEntries(dnaHashB64, hashesToLoad);
+          await client.getMessageEntries(cellId, hashesToLoad);
         if (hashesToLoad.length != messageRecords.length) {
           console.log("Warning: not all requested hashes were loaded");
         }
@@ -422,7 +422,7 @@ export function createConversationStore(
         })
     );
     const newMessageEntry = await client.sendMessage(
-      dnaHashB64,
+      cellId,
       content,
       bucket,
       imageStructs,
@@ -461,7 +461,10 @@ export function createConversationStore(
     if (message.hash.startsWith("uhCkk")) {
       // don't add placeholder to bucket yet.
       history.add(message);
-      if (!get(isOpen) && message.authorKey !== encodeHashToBase64(client.client.myPubKey)) {
+      if (
+        !get(isOpen) &&
+        message.authorKey !== encodeHashToBase64(client.client.myPubKey)
+      ) {
         setUnread(true);
       }
     }
@@ -513,8 +516,7 @@ export function createConversationStore(
 
   async function updateConfig(config: Partial<Config>) {
     const newConfig = { ...get(conversation).config, ...config };
-    const cellAndConfig = client.conversations[dnaHashB64];
-    await relayStore.client.setConfig(newConfig, cellAndConfig.cell.cell_id);
+    await relayStore.client.setConfig(cellId, newConfig);
     conversation.update((c) => ({ ...c, config: newConfig }));
   }
 
@@ -534,7 +536,7 @@ export function createConversationStore(
   }
 
   async function fetchConfig() {
-    const config = await client.getConfig(get(conversation).cellId);
+    const config = await client.getConfig(cellId);
     if (!config) return;
 
     conversation.update((c) => {
@@ -545,7 +547,7 @@ export function createConversationStore(
   }
 
   async function fetchAgents() {
-    const agentProfiles = await client.getAllAgents(dnaHashB64);
+    const agentProfiles = await client.getAllAgents(cellId);
     conversation.update((c) => {
       c.agentProfiles = agentProfiles;
       return c;
@@ -561,8 +563,8 @@ export function createConversationStore(
       return publicCode;
     }
 
-    const proof = await relayStore.inviteAgentToConversation(
-      dnaHashB64,
+    const proof = await client.inviteAgentToConversation(
+      cellId,
       decodeHashFromBase64(publicKeyB64)
     );
 
@@ -659,7 +661,9 @@ export function createConversationStore(
       return c.config.title;
     } else if (allMembers.length === 1) {
       // Use full name of the one other person in the chat
-      return getAllMembers()[0] ? allMembers[0].profile.nickname : c.config.title;
+      return getAllMembers()[0]
+        ? allMembers[0].profile.nickname
+        : c.config.title;
     } else if (allMembers.length === 2) {
       return allMembers.map((m) => m?.profile.fields.firstName).join(" & ");
     } else {

@@ -8,6 +8,7 @@ import {
   encodeHashToBase64,
   type AppSignal,
   type DnaHashB64,
+  type ClonedCell,
 } from "@holochain/client";
 import { type ContactStore, createContactStore } from "./ContactStore";
 import {
@@ -41,11 +42,21 @@ export class RelayStore {
   constructor(public client: RelayClient) {}
 
   async initialize() {
-    await this.client.initConversations();
+    const relayClonedCellInfos = await this.client.getRelayClonedCellInfos();
+    const cellInfoConfigs = (
+      await Promise.allSettled(
+        relayClonedCellInfos.map(async (clonedCellInfo: ClonedCell) => ({
+          cell: clonedCellInfo,
+          config: await this.client.getConfig(clonedCellInfo.cell_id),
+        }))
+      )
+    )
+      .filter((v) => v.status === "fulfilled")
+      .map((v) => v.value);
 
-    for (const conversation of Object.values(this.client.conversations)) {
-      await this._addConversation(conversation);
-    }
+    await Promise.allSettled(
+      cellInfoConfigs.map(async (c) => this._addConversation(c))
+    );
 
     await this.fetchAllContacts();
 
@@ -160,15 +171,6 @@ export class RelayStore {
       return await this._addConversation(convoCellAndConfig);
     }
     return null;
-  }
-
-  async inviteAgentToConversation(
-    dnaHashB64: DnaHashB64,
-    agent: AgentPubKey,
-    role: number = 0
-  ) {
-    if (!this.client) return;
-    return await this.client.inviteAgentToConversation(dnaHashB64, agent, role);
   }
 
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
