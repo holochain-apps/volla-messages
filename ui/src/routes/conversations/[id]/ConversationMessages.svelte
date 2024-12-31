@@ -1,7 +1,7 @@
 <script lang="ts">
   import { isMobile } from "$lib/utils";
   import type { ActionHashB64 } from "@holochain/client";
-  import type { Message } from "../../../types";
+  import type { Message, Image } from "$lib/types";
   import BaseMessage from "./Message.svelte";
 
   export let messages: Message[];

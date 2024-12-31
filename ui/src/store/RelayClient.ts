@@ -26,7 +26,7 @@ import type {
   Privacy,
   UpdateContactInput,
   Profile,
-} from "../types";
+} from "$lib/types";
 import { makeFullName } from "$lib/utils";
 
 export class RelayClient {

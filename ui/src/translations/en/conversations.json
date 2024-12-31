@@ -34,5 +34,6 @@
   "unconfirmed": "Not confirmed",
   "you": "You",
   "download": "Download",
-  "add_contact_to_conversation": "Add contact to conversation"
+  "add_contact_to_conversation": "Add contact to conversation",
+  "large_file_error": "Attached files are limited to {{maxSize}}"
 }
