@@ -107,7 +107,7 @@ export class RelayStore {
       cellInfo.cell_id,
       properties.created,
       properties.privacy,
-      properties.progenitor,
+      decodeHashFromBase64(properties.progenitor),
       invitationTitle,
     );
     await newConversation.initialize();
@@ -135,6 +135,7 @@ export class RelayStore {
   }
 
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
+    console.log("conversations", this.conversations);
     return this.conversations.find((c) => get(c).conversation.dnaHashB64 === dnaHashB64);
   }
 

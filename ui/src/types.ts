@@ -58,7 +58,14 @@ export enum Privacy {
 export interface DnaProperties {
   created: number;
   privacy: Privacy;
-  progenitor: AgentPubKey;
+
+  // This is *NOT* the type specified in the DNA struct Properties (there it is an AgentPubKey)
+  //
+  // But because we have already been cloning cells rom the UI, using an AgentPubKeyB64 as progenitor,
+  // we must keep it consistent to avoid an DNA-integrity breaking change.
+  //
+  // See https://github.com/holochain-apps/volla-messages/issues/392
+  progenitor: AgentPubKeyB64;
 }
 
 export type EntryTypes = { type: "Message" } & MessageInput;
@@ -99,8 +106,8 @@ export interface Invitation {
   networkSeed: string;
   privacy: Privacy;
   progenitor: AgentPubKey;
-  proof?: MembraneProof;
   title: string;
+  proof?: MembraneProof;
 }
 
 // Holochain Type

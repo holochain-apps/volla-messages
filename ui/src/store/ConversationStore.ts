@@ -121,15 +121,14 @@ export function createConversationStore(
   });
   const lastMessage = writable<Message | null>(null);
   const publicInviteCode = derived(conversation, ($conversation) => {
-    return Base64.fromUint8Array(
-      encode({
-        created: created,
-        networkSeed: $conversation.networkSeed,
-        privacy: $conversation.privacy,
-        progenitor: $conversation.progenitor,
-        title: getTitle(),
-      }),
-    );
+    const invitation: Invitation = {
+      created: created,
+      networkSeed: $conversation.networkSeed,
+      privacy: $conversation.privacy,
+      progenitor: $conversation.progenitor,
+      title: getTitle(),
+    };
+    return Base64.fromUint8Array(encode(invitation));
   });
   const isOpen = derived(
     page,
