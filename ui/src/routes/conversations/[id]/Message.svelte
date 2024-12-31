@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import { Alignment, type Message as MessageType } from "$lib/types";
+  import { Alignment, Size, type Message as MessageType } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
@@ -69,7 +69,8 @@
           <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
             <FilePreview
               {file}
-              size="lg"
+              size={Size.Large}
+              imageLightbox
               align={fromMe ? Alignment.Right : Alignment.Left}
               className="mb-2"
             />

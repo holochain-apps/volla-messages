@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileStatus, type Image } from "$lib/types";
+  import { FileStatus, Size, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { t } from "$translations";
@@ -121,7 +121,7 @@
         {#each images as file (file.id)}
           <FilePreview
             {file}
-            size="sm"
+            size={Size.Small}
             showCancel
             maxFilenameLength={10}
             className="mr-2"

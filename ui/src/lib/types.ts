@@ -219,3 +219,8 @@ export enum Alignment {
   Left,
   Right,
 }
+
+export enum Size {
+  Small,
+  Large,
+}

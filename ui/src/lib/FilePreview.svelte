@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alignment, FileStatus, type Image } from "$lib/types";
+  import { Alignment, FileStatus, Size, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import prettyBytes from "pretty-bytes";
@@ -12,20 +12,21 @@
 
   export let file: Image;
   export let align: Alignment = Alignment.Left;
-  export let size: "sm" | "lg" = "lg";
+  export let size: Size = Size.Large;
+  export let imageLightbox: boolean = true;
   export let showCancel = false;
   export let className = "";
   export let maxFilenameLength = 20;
 
   const sizeConfig = {
-    sm: {
+    [Size.Small]: {
       imageClass: "h-16 w-16",
       spacing: "p-2 gap-2",
       thumbnailSize: { width: 30, height: 43 },
       iconSize: 43,
       textClass: "text-sm",
     },
-    lg: {
+    [Size.Large]: {
       imageClass: "w-full sm:max-w-md lg:max-w-lg",
       spacing: "p-3 gap-3",
       thumbnailSize: { width: 50, height: 70 },
@@ -69,7 +70,7 @@
     </div>
   {:else if isImage}
     <div class={config.imageClass}>
-      {#if size === "lg"}
+      {#if imageLightbox}
         <LightboxImage
           btnClass="inline w-full transition-all duration-200"
           src={file.dataURL}
