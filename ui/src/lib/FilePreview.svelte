@@ -60,13 +60,13 @@
     </button>
   {/if}
 
-  {#if isLoading || hasError}
+  {#if hasError}
     <div class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg">
-      <SvgIcon
-        icon={isLoading ? "spinner" : "x"}
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-        size={30}
-      />
+      <SvgIcon icon="x" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
+    </div>
+  {:else if isLoading}
+    <div class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg">
+      <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
     </div>
   {:else if isImage}
     <div class={config.imageClass}>
