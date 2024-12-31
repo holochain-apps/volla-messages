@@ -55,10 +55,10 @@ export enum Privacy {
 }
 
 // DNA modifier properties for a conversation
-export interface Properties {
+export interface DnaProperties {
   created: number;
   privacy: Privacy;
-  progenitor: AgentPubKeyB64;
+  progenitor: AgentPubKey;
 }
 
 export type EntryTypes = { type: "Message" } & MessageInput;

@@ -19,7 +19,7 @@ import type {
   Image,
   Invitation,
   Message,
-  Properties,
+  DnaProperties,
   RelaySignal,
   UpdateContactInput,
 } from "../types";
@@ -96,21 +96,22 @@ export class RelayStore {
     });
   }
 
-  async _addConversation(cellInfo: ClonedCell): Promise<ConversationStore> {
-    const config = await this.client.getConfig(cellInfo.cell_id);
-
-    const properties: Properties = decode(cellInfo.dna_modifiers.properties) as Properties;
+  async _addConversation(
+    cellInfo: ClonedCell,
+    invitationTitle: string | undefined = undefined,
+  ): Promise<ConversationStore> {
+    const properties: DnaProperties = decode(cellInfo.dna_modifiers.properties) as Properties;
     const newConversation = createConversationStore(
       this,
       cellInfo.dna_modifiers.network_seed,
       cellInfo.cell_id,
-      config,
       properties.created,
       properties.privacy,
-      decodeHashFromBase64(properties.progenitor),
+      properties.progenitor,
+      invitationTitle,
     );
-    this.conversations = [...this.conversations, newConversation];
     await newConversation.initialize();
+    this.conversations = [...this.conversations, newConversation];
 
     return newConversation;
   }
@@ -130,7 +131,7 @@ export class RelayStore {
 
   async joinConversation(invitation: Invitation): Promise<ConversationStore> {
     const cellInfo = await this.client.joinConversation(invitation);
-    return this._addConversation(cellInfo);
+    return this._addConversation(cellInfo, invitation.title);
   }
 
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
