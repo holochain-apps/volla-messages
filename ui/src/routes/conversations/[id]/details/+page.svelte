@@ -11,7 +11,7 @@
   import { Privacy } from "../../../../types";
   import { goto } from "$app/navigation";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
-  import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
+  import ButtonsCopyShareInline from "$lib/ButtonsCopyShareInline.svelte";
   import TitleInput from "./TitleInput.svelte";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
@@ -159,11 +159,10 @@
             </span>
             <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.add_members")}</span>
 
-            <ButtonsCopyShare
+            <ButtonsCopyShareInline
               text={$conversationStore.publicInviteCode}
               copyLabel={$t("conversations.copy_invite")}
               shareLabel={$t("conversations.share_invite_code")}
-              big={false}
             />
           </li>
         {:else}
@@ -182,11 +181,10 @@
                 />
                 <span class="ml-4 flex-1 text-sm">{contact.fullName}</span>
                 {#await conversationStore.makeInviteCodeForAgent(contact.publicKeyB64) then res}
-                  <ButtonsCopyShare
+                  <ButtonsCopyShareInline
                     text={res}
                     copyLabel={$t("conversations.copy_invite")}
                     shareLabel={$t("conversations.share_invite_code")}
-                    big={false}
                   />
                 {/await}
               </li>

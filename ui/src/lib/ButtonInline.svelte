@@ -5,12 +5,12 @@
   export let moreClasses = "";
   export let loading = false;
   export let icon: string | undefined = undefined;
-  export let iconSize: number = 22;
+  export let iconSize: number = 18;
   export let iconAlign: Alignment = Alignment.Left;
 </script>
 
 <button
-  class="variant-filled-primary dark:variant-filled-tertiary flex h-12 w-72 items-center rounded-full px-5 py-2 disabled:opacity-50
+  class="variant-filled-primary dark:variant-filled-tertiary flex items-center space-x-2 rounded-full px-2 px-5 py-2 disabled:opacity-50
   {moreClasses}"
   on:click
   {...$$restProps}
@@ -23,7 +23,7 @@
     {/if}
   {/if}
 
-  <div class="flex w-full justify-center font-bold">
+  <div class="flex w-full justify-center">
     <slot></slot>
   </div>
 

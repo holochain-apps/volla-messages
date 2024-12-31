@@ -5,6 +5,7 @@
   import { t } from "$translations";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { MIN_FIRST_NAME_LENGTH } from "$config";
+  import { Alignment } from "../../types";
 
   let firstName = "";
   let lastName = "";
@@ -62,7 +63,7 @@
       disabled={!isFirstNameValid}
       icon="arrowRight"
       iconSize={42}
-      iconAlign="right"
+      iconAlign={Alignment.Right}
     >
       {@html $t("common.next_avatar")}
     </Button>

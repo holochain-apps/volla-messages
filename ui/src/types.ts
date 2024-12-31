@@ -202,3 +202,12 @@ export interface ProfileExtended {
   profile: Profile;
   publicKeyB64: AgentPubKeyB64;
 }
+
+/**
+ * UI types
+ */
+
+export enum Alignment {
+  Left,
+  Right,
+}

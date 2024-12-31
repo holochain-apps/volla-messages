@@ -1,6 +1,6 @@
 <script lang="ts">
   import toast from "svelte-french-toast";
-  import Button from "./Button.svelte";
+  import ButtonInline from "./ButtonInline.svelte";
   import { copyToClipboard, isMobile, shareText } from "./utils";
   import { t } from "$translations";
 
@@ -19,36 +19,36 @@
   }
 
   async function share() {
-    try {
-      await shareText(text);
-    } catch (e) {
-      toast.error(`${$t("common.share_code_error")}: ${e.message}`);
-    }
+    async () => {
+      try {
+        await shareText(text);
+      } catch (e) {
+        toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+      }
+    };
   }
 </script>
 
-<div class="flex flex-col items-center justify-center space-y-4">
-  <Button
+<div class="flex items-center justify-center space-x-4">
+  <ButtonInline
     on:click={copy}
     icon="copy"
     {big}
-    moreClasses="{big ? 'px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
-    text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+    moreClasses="px-1.5 h-8 text-xs space-x-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
   >
     {copyLabel}
-  </Button>
+  </ButtonInline>
 
   {#if isMobile()}
-    <Button
+    <ButtonInline
       on:click={share}
       icon="share"
       {big}
-      moreClasses="{big ? 'px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
-      text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+      moreClasses="px-1.5 h-8 text-xs space-x-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
     >
-      <div class="flex w-full justify-center {big ? 'font-bold' : ''}">
+      <div class="flex w-full justify-center">
         {shareLabel}
       </div>
-    </Button>
+    </ButtonInline>
   {/if}
 </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Message, Image } from "../../../types";
-  import Button from "$lib/Button.svelte";
+  import ButtonInline from "$lib/ButtonInline.svelte";
   import { t } from "$translations";
   import { convertDataURIToUint8Array, copyToClipboard } from "$lib/utils";
   import { save } from "@tauri-apps/plugin-dialog";
@@ -71,20 +71,14 @@
 
 <div class="my-1 flex w-full items-center justify-center space-x-2">
   {#if hasText}
-    <Button on:click={copy} icon="copy" big={false} moreClasses="px-2 md:px-2">
+    <ButtonInline on:click={copy} icon="copy" big={false}>
       <span class="text-xs md:text-sm">{$t("conversations.copy_text")}</span>
-    </Button>
+    </ButtonInline>
   {/if}
 
   {#if hasImages}
-    <Button
-      on:click={download}
-      icon="download"
-      iconSize={25}
-      big={false}
-      moreClasses="px-2 md:px-2"
-    >
+    <ButtonInline on:click={download} icon="download" iconSize={25} big={false}>
       <span class="text-xs md:text-sm">{$t("conversations.download")}</span>
-    </Button>
+    </ButtonInline>
   {/if}
 </div>

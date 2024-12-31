@@ -65,6 +65,7 @@ export async function enqueueNotification(title: string, body: string) {
  * @returns
  */
 export function isMobile(): boolean {
+  return true;
   const val = platform();
   return val === "android" || val === "ios";
 }

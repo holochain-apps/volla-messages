@@ -3,6 +3,7 @@
   import { copyToClipboard, isMobile, shareText } from "./utils";
   import SvgIcon from "./SvgIcon.svelte";
   import { t } from "$translations";
+  import { modeCurrent } from "@skeletonlabs/skeleton";
 
   export let text: string;
 
@@ -27,11 +28,11 @@
 </script>
 
 <button on:click={copy}>
-  <SvgIcon icon="copy" size={22} color="%23999" />
+  <SvgIcon icon="copy" size={22} color={$modeCurrent ? "#aaa" : "#ccc"} />
 </button>
 
 {#if isMobile()}
   <button on:click={share}>
-    <SvgIcon icon="share" size={22} color="%23999" moreClasses="ml-3" />
+    <SvgIcon icon="share" size={22} color={$modeCurrent ? "#aaa" : "#ccc"} moreClasses="ml-3" />
   </button>
 {/if}
