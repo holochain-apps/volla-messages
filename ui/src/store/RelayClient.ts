@@ -88,71 +88,44 @@ export class RelayClient {
       .map((c) => c[CellType.Cloned]);
   }
 
-  async createConversation(
-    title: string,
-    image: string,
-    privacy: Privacy,
-  ): Promise<ConversationCellAndConfig | null> {
-    return this._cloneConversation(
-      new Date().getTime(),
-      title,
-      image,
-      privacy,
-      this.client.myPubKey,
-    );
+  async createConversation(title: string, image: string, privacy: Privacy): Promise<ClonedCell> {
+    const modifiers = {
+      network_seed: uuidv4(),
+      properties: {
+        created: new Date().getTime(),
+        privacy,
+        progenitor: encodeHashToBase64(this.client.myPubKey),
+      },
+    };
+    const cellInfo = await this.client.createCloneCell({
+      role_name: this.roleName,
+      name: title,
+      modifiers,
+    });
+    await this.setConfig(cellInfo.cell_id, { title, image });
+    await this._setMyProfileForConversation(cellInfo.cell_id);
+
+    return cellInfo;
   }
 
-  async joinConversation(invitation: Invitation): Promise<ConversationCellAndConfig | null> {
-    // we don't have the image at join time, it get's loaded later
-    return this._cloneConversation(
-      invitation.created,
-      invitation.title,
-      "",
-      invitation.privacy,
-      invitation.progenitor,
-      invitation.proof,
-      invitation.networkSeed,
-    );
-  }
+  async joinConversation(invitation: Invitation): Promise<ClonedCell> {
+    const modifiers = {
+      network_seed: invitation.networkSeed,
+      properties: {
+        created: invitation.created,
+        privacy: invitation.privacy,
+        progenitor: encodeHashToBase64(invitation.progenitor),
+      },
+    };
+    const cellInfo = await this.client.createCloneCell({
+      role_name: this.roleName,
+      name: invitation.title,
+      membrane_proof: invitation.proof,
+      modifiers,
+    });
+    await this._setMyProfileForConversation(cellInfo.cell_id);
 
-  async _cloneConversation(
-    created: number,
-    title: string,
-    image: string,
-    privacy: Privacy,
-    progenitor: AgentPubKey,
-    membrane_proof?: MembraneProof,
-    networkSeed?: string,
-  ): Promise<ConversationCellAndConfig | null> {
-    const newNetworkSeed = networkSeed || uuidv4();
-
-    try {
-      const cell = await this.client.createCloneCell({
-        role_name: this.roleName,
-        name: title,
-        membrane_proof,
-        modifiers: {
-          network_seed: newNetworkSeed,
-          properties: {
-            created,
-            privacy,
-            progenitor: encodeHashToBase64(progenitor),
-          },
-        },
-      });
-      const config: Config = { title, image };
-
-      if (!networkSeed) {
-        await this.setConfig(cell.cell_id, config);
-      }
-
-      await this._setMyProfileForConversation(cell.cell_id);
-      const convoCellAndConfig: ConversationCellAndConfig = { cell, config };
-      return convoCellAndConfig;
-    } catch (e) {
-      console.error("Error creating conversation", e);
-      return null;
-    }
+    return cellInfo;
   }
 
   public async getMessageHashes(
