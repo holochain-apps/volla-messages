@@ -1,6 +1,6 @@
 import { decode } from "@msgpack/msgpack";
 import { camelCase, mapKeys } from "lodash-es";
-import { derived, get, type Readable } from "svelte/store";
+import { derived, get } from "svelte/store";
 import {
   type AgentPubKey,
   type AgentPubKeyB64,
@@ -19,10 +19,9 @@ import { RelayClient } from "$store/RelayClient";
 import type {
   Contact,
   Image,
-  ConversationCellAndConfig,
   Invitation,
   Message,
-  Properties,
+  DnaProperties,
   RelaySignal,
   UpdateContactInput,
 } from "../types";
@@ -42,26 +41,13 @@ export class RelayStore {
   constructor(public client: RelayClient) {}
 
   async initialize() {
-    const relayClonedCellInfos = await this.client.getRelayClonedCellInfos();
-    const cellInfoConfigs = (
-      await Promise.allSettled(
-        relayClonedCellInfos.map(async (clonedCellInfo: ClonedCell) => ({
-          cell: clonedCellInfo,
-          config: await this.client.getConfig(clonedCellInfo.cell_id),
-        }))
-      )
-    )
-      .filter((v) => v.status === "fulfilled")
-      .map((v) => v.value);
-
+    const clonedCellInfos = await this.client.getRelayClonedCellInfos();
     await Promise.allSettled(
-      cellInfoConfigs.map(async (c) => this._addConversation(c))
+      clonedCellInfos.map(async (c) => this._addConversation(c))
     );
-
     await this.fetchAllContacts();
 
     const myPubKeyB64 = encodeHashToBase64(this.client.client.myPubKey);
-
     this.client.client.on("signal", async (signal: Signal) => {
       if (!(SignalType.App in signal)) return;
 
@@ -117,26 +103,25 @@ export class RelayStore {
     });
   }
 
-  async _addConversation(convoCellAndConfig: ConversationCellAndConfig) {
-    if (!this.client) return;
-    const properties: Properties = decode(
-      convoCellAndConfig.cell.dna_modifiers.properties
-    ) as Properties;
-    const progenitor = decodeHashFromBase64(properties.progenitor);
-    const privacy = properties.privacy;
+  async _addConversation(
+    cellInfo: ClonedCell,
+    invitationTitle: string | undefined = undefined
+  ): Promise<ConversationStore> {
+    const properties: DnaProperties = decode(
+      cellInfo.dna_modifiers.properties
+    ) as DnaProperties;
     const newConversation = createConversationStore(
       this,
-      convoCellAndConfig.cell.dna_modifiers.network_seed,
-      convoCellAndConfig.cell.cell_id,
-      convoCellAndConfig.config,
+      cellInfo.dna_modifiers.network_seed,
+      cellInfo.cell_id,
       properties.created,
-      privacy,
-      progenitor
+      properties.privacy,
+      decodeHashFromBase64(properties.progenitor),
+      invitationTitle
     );
-
+    await newConversation.initialize();
     this.conversations = [...this.conversations, newConversation];
 
-    await newConversation.initialize();
     return newConversation;
   }
 
@@ -145,35 +130,25 @@ export class RelayStore {
     image: string,
     privacy: Privacy,
     initialContacts: AgentPubKeyB64[] = []
-  ) {
-    if (!this.client) return null;
-    const convoCellAndConfig = await this.client.createConversation(
+  ): Promise<ConversationStore> {
+    const cellInfo = await this.client.createConversation(
       title,
       image,
       privacy
     );
-    if (convoCellAndConfig) {
-      const conversationStore = await this._addConversation(convoCellAndConfig);
-      if (conversationStore) {
-        if (initialContacts.length > 0) {
-          conversationStore.addContacts(initialContacts);
-        }
-        return conversationStore;
-      }
-    }
-    return null;
+    const conversationStore = await this._addConversation(cellInfo);
+    conversationStore.addContacts(initialContacts);
+
+    return conversationStore;
   }
 
-  async joinConversation(invitation: Invitation) {
-    if (!this.client) return null;
-    const convoCellAndConfig = await this.client.joinConversation(invitation);
-    if (convoCellAndConfig) {
-      return await this._addConversation(convoCellAndConfig);
-    }
-    return null;
+  async joinConversation(invitation: Invitation): Promise<ConversationStore> {
+    const cellInfo = await this.client.joinConversation(invitation);
+    return this._addConversation(cellInfo, invitation.title);
   }
 
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
+    console.log("conversations", this.conversations);
     return this.conversations.find(
       (c) => get(c).conversation.dnaHashB64 === dnaHashB64
     );
@@ -193,19 +168,16 @@ export class RelayStore {
   }
 
   async createContact(contact: Contact) {
-    if (!this.client) return false;
-    // TODO: if adding contact fails we should remove it from the store
     const contactResult = await this.client.createContact(contact);
     const contactPubKeyB64 = encodeHashToBase64(contact.public_key);
 
     if (contactResult) {
       // Immediately add a conversation with the new contact, unless you already have one with them
-      let conversation =
-        this.conversations.find(
-          (c) =>
-            get(c).conversation.privacy === Privacy.Private &&
-            c.getAllMembers().every((m) => m.publicKeyB64 === contactPubKeyB64)
-        ) || null;
+      let conversation = this.conversations.find(
+        (c) =>
+          get(c).conversation.privacy === Privacy.Private &&
+          c.getAllMembers().every((m) => m.publicKeyB64 === contactPubKeyB64)
+      );
       if (!conversation) {
         conversation = await this.createConversation(
           makeFullName(contact.first_name, contact.last_name),
@@ -227,7 +199,6 @@ export class RelayStore {
   }
 
   async updateContact(input: UpdateContactInput) {
-    if (!this.client) return false;
     const contactResult = await this.client.updateContact(input);
     const contactPubKeyB64 = encodeHashToBase64(
       input.updated_contact.public_key

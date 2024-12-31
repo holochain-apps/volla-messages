@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { MIN_FIRST_NAME_LENGTH } from "$config";

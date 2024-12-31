@@ -37,8 +37,6 @@
   async function saveName(newFirstName: string, newLastName: string) {
     if (newFirstName.length < MIN_FIRST_NAME_LENGTH) return;
 
-    console.log("save", newFirstName, newLastName);
-
     try {
       await relayStore.client.updateProfile(newFirstName, newLastName, avatar);
       firstName = newFirstName;

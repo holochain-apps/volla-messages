@@ -26,14 +26,14 @@
   let conversationStore = relayStore.getConversation($page.params.id);
 
   // used for editing Group conversation details
-  let image = $conversationStore?.conversation.config.image;
+  let image = $conversationStore?.conversation.config?.image || "";
   let title = conversationStore?.getTitle() || "";
   let editingTitle = false;
 
   const saveTitle = async (newTitle: string) => {
     if (!conversationStore) return;
 
-    conversationStore.updateConfig({ title: newTitle.trim() });
+    conversationStore.setConfig({ title: newTitle.trim(), image });
     title = newTitle.trim();
     editingTitle = false;
   };
@@ -41,7 +41,10 @@
   const saveImage = async (newImage: string) => {
     if (!conversationStore) return;
 
-    conversationStore.updateConfig({ image: newImage });
+    conversationStore.setConfig({
+      title: $conversationStore?.conversation.config?.title || "",
+      image: newImage,
+    });
     image = newImage;
   };
 </script>
