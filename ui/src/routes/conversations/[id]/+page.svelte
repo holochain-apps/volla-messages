@@ -1,6 +1,6 @@
 <script lang="ts">
   import { debounce } from "lodash-es";
-  import { encodeHashToBase64 } from "@holochain/client";
+  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
@@ -20,7 +20,10 @@
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
-  let myPubKeyB64 = relayStore.client.myPubKeyB64;
+
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   let conversationStore = relayStore.getConversation($page.params.id);
 
@@ -199,7 +202,7 @@
 
           <ConversationMembers {conversationStore} />
         </div>
-      {:else if $conversationStore.conversation.config.image}
+      {:else if $conversationStore.conversation.config?.image}
         <img
           src={$conversationStore.conversation.config.image}
           alt="Conversation"

@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { RelayStore } from "$store/RelayStore";
   import { getContext } from "svelte";
-  import { type Message as MessageType, type Image, Alignment } from "$lib/types";
+  import { type Message as MessageType } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
@@ -9,12 +8,12 @@
   import DOMPurify from "dompurify";
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
-  import { isMobile } from "$lib/utils";
   import FilePreview from "$lib/FilePreview.svelte";
+  import type { AgentPubKeyB64 } from "@holochain/client";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
-  let myPubKeyB64 = relayStore.client.myPubKeyB64;
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   export let message: MessageType;
   export let isSelected: boolean = false;

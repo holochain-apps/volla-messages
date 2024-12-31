@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alignment, FileStatus, type Image } from "$lib/types";
+  import { FileStatus, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { t } from "$translations";

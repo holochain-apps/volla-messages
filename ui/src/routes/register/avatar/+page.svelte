@@ -1,18 +1,15 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { RelayClient } from "$store/RelayClient";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
+  import type { RelayStore } from "$store/RelayStore";
 
-  const relayClientContext: { getClient: () => RelayClient } = getContext("relayClient");
-  let relayClient = relayClientContext.getClient();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   let firstName = "";
   let lastName = "";
@@ -29,7 +26,7 @@
 
   async function createAccount() {
     try {
-      await relayClient.createProfile(firstName, lastName, avatarDataUrl);
+      await relayStore.client.createProfile(firstName, lastName, avatarDataUrl);
       goto("/welcome");
     } catch (e) {
       toast.error(`${$t("common.create_account_error")}: ${e.message}`);

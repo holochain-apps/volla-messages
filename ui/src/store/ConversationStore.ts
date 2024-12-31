@@ -23,6 +23,7 @@ import { v4 as uuidv4 } from "uuid";
 import { RelayStore } from "$store/RelayStore";
 import {
   type Config,
+  type ContactExtended,
   type Conversation,
   FileStatus,
   type Image,
@@ -31,14 +32,15 @@ import {
   type Message,
   type MessageRecord,
   Privacy,
+  type Profile,
+  type ProfileExtended,
 } from "$lib/types";
 import { createMessageHistoryStore } from "./MessageHistoryStore";
 import pRetry from "p-retry";
-import { fileToDataUrl, makeFullName } from "$lib/utils";
+import { fileToDataUrl } from "$lib/utils";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
 import { persisted } from "svelte-persisted-store";
-import type { Profile } from "@holochain-open-dev/profiles";
 
 export interface ConversationStoreData {
   conversation: Conversation;
@@ -66,29 +68,14 @@ export interface ConversationStore {
   fetchConfig: () => Promise<Config | undefined>;
   sendMessage: (authorKey: string, content: string, images: Image[]) => Promise<void>;
   addMessage: (message: Message) => void;
-  updateConfig: (config: Partial<Config>) => Promise<void>;
+  setConfig: (config: Config) => Promise<void>;
   addContacts: (agentPubKeyB64s: AgentPubKeyB64[]) => void;
   toggleArchived: () => void;
   setUnread: (unread: boolean) => void;
   makeInviteCodeForAgent: (publicKeyB64: string) => Promise<string>;
-  getAllMembers: () => {
-    publicKeyB64: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-  }[];
-  getMemberList: (includeInvited?: boolean) => {
-    publicKeyB64: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-  }[];
-  getInvitedUnjoined: () => {
-    publicKeyB64: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-  }[];
+  getAllMembers: () => ProfileExtended[];
+  getJoinedMembers: () => ProfileExtended[];
+  getInvitedUnjoinedContacts: () => ContactExtended[];
   getTitle: () => string;
   subscribe: (
     this: void,
@@ -101,10 +88,10 @@ export function createConversationStore(
   relayStore: RelayStore,
   networkSeed: string,
   cellId: CellId,
-  config: Config,
   created: number,
   privacy: Privacy,
   progenitor: AgentPubKey,
+  invitationTitle: string | undefined = undefined,
 ): ConversationStore {
   const client = relayStore.client;
   const fileStorageClient = new FileStorageClient(
@@ -119,7 +106,7 @@ export function createConversationStore(
     networkSeed,
     dnaHashB64,
     cellId,
-    config,
+    config: undefined,
     privacy,
     progenitor,
     agentProfiles: {},
@@ -131,18 +118,18 @@ export function createConversationStore(
     archived: false,
     invitedContactKeys: [],
     unread: false,
+    invitationTitle,
   });
   const lastMessage = writable<Message | null>(null);
   const publicInviteCode = derived(conversation, ($conversation) => {
-    return Base64.fromUint8Array(
-      encode({
-        created: created,
-        networkSeed: $conversation.networkSeed,
-        privacy: $conversation.privacy,
-        progenitor: $conversation.progenitor,
-        title: getTitle(),
-      }),
-    );
+    const invitation: Invitation = {
+      created: created,
+      networkSeed: $conversation.networkSeed,
+      privacy: $conversation.privacy,
+      progenitor: $conversation.progenitor,
+      title: getTitle(),
+    };
+    return Base64.fromUint8Array(encode(invitation));
   });
   const isOpen = derived(
     page,
@@ -167,10 +154,10 @@ export function createConversationStore(
       const displayMessage = {
         ...message,
         author: contact
-          ? get(contact).firstName
+          ? get(contact).contact.first_name
           : $conversation.agentProfiles[message.authorKey].fields.firstName,
         avatar: contact
-          ? get(contact).avatar
+          ? get(contact).contact.avatar
           : $conversation.agentProfiles[message.authorKey].fields.avatar,
       };
 
@@ -250,6 +237,7 @@ export function createConversationStore(
   }
 
   async function initialize() {
+    await fetchConfig();
     await fetchAgents();
     await loadMessagesSet();
   }
@@ -290,7 +278,7 @@ export function createConversationStore(
     try {
       const newMessages: { [key: string]: Message } = get(conversation).messages;
       let bucket = history.getBucket(b);
-      const messageHashes = await client.getMessageHashes(dnaHashB64, b, get(bucket).count);
+      const messageHashes = await client.getMessageHashes(cellId, b, get(bucket).count);
 
       const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
       const missingHashes = bucket.missingHashes(messageHashesB64);
@@ -308,7 +296,7 @@ export function createConversationStore(
 
       if (hashesToLoad.length > 0) {
         const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
-          dnaHashB64,
+          cellId,
           hashesToLoad,
         );
         if (hashesToLoad.length != messageRecords.length) {
@@ -406,7 +394,7 @@ export function createConversationStore(
         }),
     );
     const newMessageEntry = await client.sendMessage(
-      dnaHashB64,
+      cellId,
       content,
       bucket,
       imageStructs,
@@ -443,7 +431,7 @@ export function createConversationStore(
     if (message.hash.startsWith("uhCkk")) {
       // don't add placeholder to bucket yet.
       history.add(message);
-      if (!get(isOpen) && message.authorKey !== client.myPubKeyB64) {
+      if (!get(isOpen) && message.authorKey !== encodeHashToBase64(client.client.myPubKey)) {
         setUnread(true);
       }
     }
@@ -490,11 +478,10 @@ export function createConversationStore(
     }
   }
 
-  async function updateConfig(config: Partial<Config>) {
-    const newConfig = { ...get(conversation).config, ...config };
-    const cellAndConfig = client.conversations[dnaHashB64];
-    await relayStore.client.setConfig(newConfig, cellAndConfig.cell.cell_id);
-    conversation.update((c) => ({ ...c, config: newConfig }));
+  async function setConfig(config: Config) {
+    const c = get(conversation);
+    await relayStore.client.setConfig(cellId, config);
+    conversation.update((c) => ({ ...c, config }));
   }
 
   function addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
@@ -513,22 +500,20 @@ export function createConversationStore(
   }
 
   async function fetchConfig() {
-    const config = await client.getConfig(get(conversation).cellId);
-    if (!config) return;
-
-    conversation.update((c) => {
-      c.config = config;
-      return c;
-    });
+    const config = await client.getConfig(cellId);
+    conversation.update((c) => ({
+      ...c,
+      config,
+    }));
     return config;
   }
 
   async function fetchAgents() {
-    const agentProfiles = await client.getAllAgents(dnaHashB64);
-    conversation.update((c) => {
-      c.agentProfiles = agentProfiles;
-      return c;
-    });
+    const agentProfiles = await client.getAllAgents(cellId);
+    conversation.update((c) => ({
+      ...c,
+      agentProfiles,
+    }));
     return agentProfiles;
   }
 
@@ -540,8 +525,8 @@ export function createConversationStore(
       return publicCode;
     }
 
-    const proof = await relayStore.inviteAgentToConversation(
-      dnaHashB64,
+    const proof = await client.inviteAgentToConversation(
+      cellId,
       decodeHashFromBase64(publicKeyB64),
     );
 
@@ -565,29 +550,28 @@ export function createConversationStore(
     return Base64.fromUint8Array(msgpck);
   }
 
-  function getInvitedUnjoined() {
+  function getInvitedUnjoinedContacts(): ContactExtended[] {
     const joinedAgents = get(conversation).agentProfiles;
     return get(localData)
       .invitedContactKeys.filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
       .map((contactKey) => {
         const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey);
         if (!contactProfile) return;
-        const c = get(contactProfile);
-        return {
-          publicKeyB64: contactKey,
-          avatar: c.avatar,
-          firstName: c.firstName,
-          lastName: c.lastName,
-        };
+
+        return get(contactProfile);
       })
       .filter((c) => c !== undefined);
   }
 
-  function getAllMembers() {
-    return getMemberList(true);
+  function getAllMembers(): ProfileExtended[] {
+    return _getMembers(true);
   }
 
-  function getMemberList(includeInvited = false) {
+  function getJoinedMembers(): ProfileExtended[] {
+    return _getMembers(false);
+  }
+
+  function _getMembers(includeInvited: boolean): ProfileExtended[] {
     // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
     const joinedAgents = get(conversation).agentProfiles;
 
@@ -598,51 +582,55 @@ export function createConversationStore(
     // Filter out progenitor, as they are always in the list,
     // use contact data for each agent if it exists locally, otherwise use their profile
     // sort by first name (for now)
+    const myPubKeyB64 = encodeHashToBase64(client.client.myPubKey);
     return keys
-      .filter((k) => k !== client.myPubKeyB64)
+      .filter((k) => k !== myPubKeyB64)
       .map((agentKey) => {
-        const agentProfile = joinedAgents[agentKey];
         const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
 
         if (contactProfile) {
-          const c = get(contactProfile);
+          return contactProfile.getAsProfile();
+        } else if (joinedAgents[agentKey]) {
           return {
+            profile: joinedAgents[agentKey],
             publicKeyB64: agentKey,
-            avatar: c.avatar,
-            firstName: c.firstName,
-            lastName: c.lastName,
           };
         } else {
-          return {
-            publicKeyB64: agentKey,
-            avatar: agentProfile?.fields.avatar,
-            firstName: agentProfile?.fields.firstName,
-            lastName: agentProfile?.fields.lastName, // if any contact profile exists use that data
-          };
+          return undefined;
         }
       })
-      .sort((a, b) => a.firstName.localeCompare(b.firstName));
+      .filter((u) => u !== undefined)
+      .sort((a, b) => a.profile.nickname.localeCompare(b.profile.nickname));
   }
 
   function getTitle() {
     const allMembers = getAllMembers();
     const c = get(conversation);
+    const { invitationTitle } = get(localData);
+
+    let title;
+    if (c.config) {
+      title = c.config.title;
+    } else if (invitationTitle) {
+      title = invitationTitle;
+    } else {
+      title = "...";
+    }
+
     if (c.privacy === Privacy.Public) {
-      return c.config.title;
+      return title;
     }
 
     if (allMembers.length === 0) {
       // When joining a private converstion that has not synced yet
-      return c.config.title;
+      return title;
     } else if (allMembers.length === 1) {
       // Use full name of the one other person in the chat
-      return getAllMembers()[0]
-        ? makeFullName(allMembers[0].firstName, allMembers[0].lastName)
-        : c.config.title;
+      return allMembers[0].profile.nickname;
     } else if (allMembers.length === 2) {
-      return allMembers.map((m) => m?.firstName).join(" & ");
+      return allMembers.map((m) => m.profile.fields.firstName).join(" & ");
     } else {
-      return allMembers.map((m) => m?.firstName).join(", ");
+      return allMembers.map((m) => m.profile.fields.firstName).join(", ");
     }
   }
 
@@ -665,7 +653,7 @@ export function createConversationStore(
     addMessage,
 
     // update config
-    updateConfig,
+    setConfig,
 
     // update local data
     addContacts,
@@ -677,8 +665,8 @@ export function createConversationStore(
 
     // get filtered data
     getAllMembers,
-    getMemberList,
-    getInvitedUnjoined,
+    getJoinedMembers,
+    getInvitedUnjoinedContacts,
     getTitle,
 
     subscribe,

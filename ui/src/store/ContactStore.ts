@@ -1,12 +1,10 @@
-import { type ActionHash, type AgentPubKeyB64, type DnaHashB64 } from "@holochain/client";
 import {
-  writable,
-  get,
-  derived,
-  type Invalidator,
-  type Subscriber,
-  type Unsubscriber,
-} from "svelte/store";
+  encodeHashToBase64,
+  type ActionHash,
+  type AgentPubKeyB64,
+  type DnaHashB64,
+} from "@holochain/client";
+import { writable, get, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import { RelayStore } from "$store/RelayStore";
 import { makeFullName } from "$lib/utils";
 import { persisted } from "svelte-persisted-store";
@@ -16,6 +14,17 @@ import type { Contact, ContactExtended } from "$lib/types";
 export interface ContactStore {
   getPrivateConversation: () => ConversationStore | undefined;
   getIsPendingConnection: () => boolean | undefined;
+  getAsProfile: () => {
+    publicKeyB64: string;
+    profile: {
+      nickname: string;
+      fields: {
+        firstName: string;
+        lastName: string;
+        avatar: string;
+      };
+    };
+  };
   subscribe: (
     this: void,
     run: Subscriber<ContactExtended>,
@@ -25,31 +34,24 @@ export interface ContactStore {
 
 export function createContactStore(
   relayStore: RelayStore,
-  avatar: string,
-  currentActionHash: ActionHash | undefined,
-  firstName: string,
-  lastName: string,
-  originalActionHash: ActionHash | undefined,
-  publicKeyB64: AgentPubKeyB64,
+  contact: Contact,
+  originalActionHash: ActionHash,
+  previousActionHash: ActionHash,
   dnaHashB64?: DnaHashB64 | undefined,
 ) {
+  const publicKeyB64 = encodeHashToBase64(contact.public_key);
   const privateConversationDnaHashB64 = persisted(
     `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
     dnaHashB64,
   );
-  const contact = writable<Contact>({
-    avatar,
-    currentActionHash,
-    firstName,
-    lastName,
+  const data = writable<ContactExtended>({
+    contact,
     originalActionHash,
+    previousActionHash,
+    fullName: makeFullName(contact.first_name, contact.last_name),
     publicKeyB64,
     privateConversationDnaHashB64: get(privateConversationDnaHashB64),
   });
-  const { subscribe } = derived<typeof contact, ContactExtended>(contact, ($contact) => ({
-    ...$contact,
-    name: makeFullName($contact.firstName, $contact.lastName),
-  }));
 
   function getPrivateConversation() {
     const val = get(privateConversationDnaHashB64);
@@ -67,9 +69,26 @@ export function createContactStore(
     return conversationAgents && Object.keys(conversationAgents).length === 1;
   }
 
+  function getAsProfile() {
+    const val = get(data);
+
+    return {
+      publicKeyB64: val.publicKeyB64,
+      profile: {
+        nickname: val.fullName,
+        fields: {
+          firstName: val.contact.first_name,
+          lastName: val.contact.last_name,
+          avatar: val.contact.avatar,
+        },
+      },
+    };
+  }
+
   return {
     getPrivateConversation,
     getIsPendingConnection,
-    subscribe,
+    getAsProfile,
+    subscribe: data.subscribe,
   };
 }

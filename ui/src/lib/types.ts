@@ -15,8 +15,6 @@ import type {
   DnaHashB64,
 } from "@holochain/client";
 
-import type { Profile } from "@holochain-open-dev/profiles";
-
 export type RelaySignal =
   | {
       type: "Message";
@@ -57,34 +55,20 @@ export enum Privacy {
 }
 
 // DNA modifier properties for a conversation
-export interface Properties {
+export interface DnaProperties {
   created: number;
   privacy: Privacy;
+
+  // This is *NOT* the type specified in the DNA struct Properties (there it is an AgentPubKey)
+  //
+  // But because we have already been cloning cells rom the UI, using an AgentPubKeyB64 as progenitor,
+  // we must keep it consistent to avoid an DNA-integrity breaking change.
+  //
+  // See https://github.com/holochain-apps/volla-messages/issues/392
   progenitor: AgentPubKeyB64;
 }
 
 export type EntryTypes = { type: "Message" } & MessageInput;
-
-export interface Contact {
-  currentActionHash?: ActionHash;
-  originalActionHash?: ActionHash;
-  avatar: string;
-  privateConversationDnaHashB64?: DnaHashB64;
-  firstName: string;
-  lastName: string;
-  publicKeyB64: AgentPubKeyB64;
-}
-
-export interface ContactExtended {
-  currentActionHash?: ActionHash;
-  originalActionHash?: ActionHash;
-  avatar: string;
-  privateConversationDnaHashB64?: DnaHashB64;
-  firstName: string;
-  lastName: string;
-  name: string;
-  publicKeyB64: AgentPubKeyB64;
-}
 
 export interface MessageInput {
   content: string;
@@ -97,8 +81,7 @@ export interface Conversation {
   networkSeed: string;
   dnaHashB64: DnaHashB64;
   cellId: CellId;
-  config: Config;
-  description?: string;
+  config?: Config;
   privacy: Privacy;
   progenitor: AgentPubKey;
   messages: Messages;
@@ -109,6 +92,7 @@ export interface LocalConversationData {
   archived: boolean;
   invitedContactKeys: string[];
   unread: boolean;
+  invitationTitle?: string;
 }
 
 export interface MembraneProofData {
@@ -122,8 +106,8 @@ export interface Invitation {
   networkSeed: string;
   privacy: Privacy;
   progenitor: AgentPubKey;
-  proof?: MembraneProof;
   title: string;
+  proof?: MembraneProof;
 }
 
 // Holochain Type
@@ -185,9 +169,15 @@ export interface Config {
   image: string;
 }
 
-export interface ConversationCellAndConfig {
-  cell: ClonedCell;
-  config: Config;
+/**
+ * Contact
+ */
+
+export interface Contact {
+  public_key: AgentPubKey;
+  first_name: string;
+  last_name: string;
+  avatar: string;
 }
 
 export interface ContactRecord {
@@ -196,6 +186,35 @@ export interface ContactRecord {
   contact?: Contact;
 }
 
+export interface UpdateContactInput {
+  original_contact_hash: ActionHash;
+  previous_contact_hash: ActionHash;
+  updated_contact: Contact;
+}
+
+export interface ContactExtended {
+  contact: Contact;
+  fullName: string; // Full name
+  publicKeyB64: AgentPubKeyB64;
+  originalActionHash: ActionHash;
+  previousActionHash: ActionHash;
+  privateConversationDnaHashB64?: DnaHashB64;
+}
+
+/**
+ * Profiles
+ */
+import type { Profile } from "@holochain-open-dev/profiles";
+export type { Profile } from "@holochain-open-dev/profiles";
+
+export interface ProfileExtended {
+  profile: Profile;
+  publicKeyB64: AgentPubKeyB64;
+}
+
+/**
+ * UI
+ */
 export enum Alignment {
   Left,
   Right,

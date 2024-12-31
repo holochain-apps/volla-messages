@@ -1,7 +1,7 @@
 <script lang="ts">
   import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
-  import { encodeHashToBase64 } from "@holochain/client";
+  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import { page } from "$app/stores";
   import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
@@ -13,25 +13,27 @@
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import TitleInput from "./TitleInput.svelte";
-  import { makeFullName } from "$lib/utils";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
-  const myPublicKey64 = relayStore.client.myPubKeyB64;
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+
   let conversationStore = relayStore.getConversation($page.params.id);
 
   // used for editing Group conversation details
-  let image = $conversationStore?.conversation.config.image;
+  let image = $conversationStore?.conversation.config?.image || "";
   let title = conversationStore?.getTitle() || "";
   let editingTitle = false;
 
   const saveTitle = async (newTitle: string) => {
     if (!conversationStore) return;
 
-    conversationStore.updateConfig({ title: newTitle.trim() });
+    conversationStore.setConfig({ title: newTitle.trim(), image });
     title = newTitle.trim();
     editingTitle = false;
   };
@@ -39,7 +41,10 @@
   const saveImage = async (newImage: string) => {
     if (!conversationStore) return;
 
-    conversationStore.updateConfig({ image: newImage });
+    conversationStore.setConfig({
+      title: $conversationStore?.conversation.config?.title || "",
+      image: newImage,
+    });
     image = newImage;
   };
 </script>
@@ -51,7 +56,7 @@
           "conversations.group_details",
         )}{:else}{conversationStore.getTitle()}{/if}
     </h1>
-    {#if $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === relayStore.client.myPubKeyB64}
+    {#if $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <button
         class="absolute right-5"
         on:click={() => goto(`/conversations/${$conversationStore.conversation.dnaHashB64}/invite`)}
@@ -70,11 +75,11 @@
   >
     {#if $conversationStore.conversation.privacy === Privacy.Private}
       <div class="flex items-center justify-center gap-4">
-        {#each conversationStore.getAllMembers().slice(0, 2) as contact, i}
-          {#if contact}
+        {#each conversationStore.getAllMembers().slice(0, 2) as profile}
+          {#if profile}
             <Avatar
-              image={contact.avatar}
-              agentPubKey={contact.publicKeyB64}
+              image={profile.profile.fields.avatar}
+              agentPubKey={profile.publicKeyB64}
               size={120}
               moreClasses="mb-5"
             />
@@ -162,22 +167,20 @@
             />
           </li>
         {:else}
-          {#if conversationStore.getInvitedUnjoined().length > 0}
+          {#if conversationStore.getInvitedUnjoinedContacts().length > 0}
             <h3 class="text-md text-secondary-300 mb-2 font-light">
               {$t("conversations.unconfirmed_invitations")}
             </h3>
 
-            {#each conversationStore.getInvitedUnjoined() as contact}
+            {#each conversationStore.getInvitedUnjoinedContacts() as contact}
               <li class="mb-4 flex flex-row items-center px-2 text-xl">
                 <Avatar
-                  image={contact.avatar}
+                  image={contact.contact.avatar}
                   agentPubKey={contact.publicKeyB64}
                   size={38}
                   moreClasses="-ml-30"
                 />
-                <span class="ml-4 flex-1 text-sm"
-                  >{makeFullName(contact.firstName || "", contact.lastName)}</span
-                >
+                <span class="ml-4 flex-1 text-sm">{contact.fullName}</span>
                 {#await conversationStore.makeInviteCodeForAgent(contact.publicKeyB64) then res}
                   <ButtonsCopyShare
                     text={res}
@@ -195,24 +198,22 @@
           </h3>
         {/if}
         <li class="mb-4 flex flex-row items-center px-2 text-xl">
-          <Avatar agentPubKey={myPublicKey64} size={38} moreClasses="-ml-30" />
+          <Avatar agentPubKey={myPubKeyB64} size={38} moreClasses="-ml-30" />
           <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.you")}</span>
-          {#if myPublicKey64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
+          {#if myPubKeyB64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
             <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
           {/if}
         </li>
-        {#each conversationStore.getMemberList() as contact}
+        {#each conversationStore.getJoinedMembers() as profile}
           <li class="mb-4 flex flex-row items-center px-2 text-xl">
             <Avatar
-              image={contact.avatar}
-              agentPubKey={contact.publicKeyB64}
+              image={profile.profile.fields.avatar}
+              agentPubKey={profile.publicKeyB64}
               size={38}
               moreClasses="-ml-30"
             />
-            <span class="ml-4 flex-1 text-sm font-bold"
-              >{makeFullName(contact.firstName, contact.lastName)}</span
-            >
-            {#if contact.publicKeyB64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
+            <span class="ml-4 flex-1 text-sm font-bold">{profile.profile.nickname}</span>
+            {#if profile.publicKeyB64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
               <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
             {/if}
           </li>

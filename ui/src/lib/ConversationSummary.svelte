@@ -22,7 +22,7 @@
     : null;
 
   let allMembers = conversationStore.getAllMembers();
-  let joinedMembers = conversationStore.getMemberList();
+  let joinedMembers = conversationStore.getJoinedMembers();
 
   const tAny = t as any;
 
@@ -166,32 +166,32 @@
             </span>
           {:else if allMembers.length == 1}
             <Avatar
-              image={allMembers[0]?.avatar}
+              image={allMembers[0].profile.fields.avatar}
               agentPubKey={allMembers[0]?.publicKeyB64}
               size={40}
             />
           {:else if allMembers.length == 2}
             <Avatar
-              image={allMembers[0]?.avatar}
+              image={allMembers[0].profile.fields.avatar}
               agentPubKey={allMembers[0]?.publicKeyB64}
               size={22}
               moreClasses=""
             />
             <Avatar
-              image={allMembers[1]?.avatar}
+              image={allMembers[1].profile.fields.avatar}
               agentPubKey={allMembers[1]?.publicKeyB64}
               size={22}
               moreClasses="relative -ml-1"
             />
           {:else}
             <Avatar
-              image={allMembers[0]?.avatar}
+              image={allMembers[0].profile.fields.avatar}
               agentPubKey={allMembers[0]?.publicKeyB64}
               size={22}
               moreClasses="relative -mb-2"
             />
             <Avatar
-              image={allMembers[1]?.avatar}
+              image={allMembers[1].profile.fields.avatar}
               agentPubKey={allMembers[1]?.publicKeyB64}
               size={22}
               moreClasses="relative -ml-3 -mt-3"
@@ -203,7 +203,7 @@
             </div>
           {/if}
         </div>
-      {:else if conversation.config.image}
+      {:else if conversation.config?.image}
         <img
           src={conversation.config.image}
           alt="Conversation"

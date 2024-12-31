@@ -23,19 +23,14 @@
       const msgpack = Base64.toUint8Array(inviteCode);
       const invitation: Invitation = decode(msgpack) as Invitation;
       const conversationStore = await relayStore.joinConversation(invitation);
-      if (conversationStore) {
-        goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
-        joining = false;
-      } else {
-        console.error("Error joining conversation, couldn't create the conversation");
-        error = true;
-        joining = false;
-      }
+
+      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
     } catch (e) {
       error = true;
-      joining = false;
       console.error("Error joining conversation", e);
     }
+
+    joining = false;
   }
 </script>
 
