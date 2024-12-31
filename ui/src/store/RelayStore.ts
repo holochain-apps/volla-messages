@@ -1,6 +1,6 @@
 import { decode } from "@msgpack/msgpack";
 import { camelCase, mapKeys } from "lodash-es";
-import { derived, get, type Readable } from "svelte/store";
+import { derived, get } from "svelte/store";
 import {
   type AgentPubKey,
   type AgentPubKeyB64,
