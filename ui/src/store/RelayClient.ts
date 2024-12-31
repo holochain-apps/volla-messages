@@ -214,10 +214,10 @@ export class RelayClient {
             fn_name: "get_agent_profile",
             payload: agentPubKey,
           });
-          return [
-            encodeHashToBase64(agentPubKey),
-            new EntryRecord<Profile>(record).entry,
-          ];
+          const profile = new EntryRecord<Profile>(record).entry;
+          if (!profile) throw new Error("Failed to get profile");
+
+          return [encodeHashToBase64(agentPubKey), profile];
         })
       )
     )
