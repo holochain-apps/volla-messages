@@ -28,7 +28,6 @@ import type {
   Profile,
 } from "../types";
 import { makeFullName } from "$lib/utils";
-import { DEFAULT_CONVERSATION_CONFIG } from "$config";
 
 export class RelayClient {
   constructor(
@@ -193,14 +192,14 @@ export class RelayClient {
     });
   }
 
-  async getConfig(cell_id: CellId): Promise<Config> {
+  async getConfig(cell_id: CellId): Promise<Config | undefined> {
     const config = await this.client.callZome({
       cell_id,
       zome_name: this.zomeName,
       fn_name: "get_config",
       payload: null,
     });
-    return config ? new EntryRecord<Config>(config).entry : DEFAULT_CONVERSATION_CONFIG;
+    return config ? new EntryRecord<Config>(config).entry : undefined;
   }
 
   public async sendMessage(

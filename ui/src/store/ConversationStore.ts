@@ -67,7 +67,7 @@ export interface ConversationStore {
   fetchConfig: () => Promise<Config | undefined>;
   sendMessage: (authorKey: string, content: string, images: Image[]) => Promise<void>;
   addMessage: (message: Message) => void;
-  updateConfig: (config: Partial<Config>) => Promise<void>;
+  setConfig: (config: Config) => Promise<void>;
   addContacts: (agentPubKeyB64s: AgentPubKeyB64[]) => void;
   toggleArchived: () => void;
   setUnread: (unread: boolean) => void;
@@ -87,7 +87,7 @@ export function createConversationStore(
   relayStore: RelayStore,
   networkSeed: string,
   cellId: CellId,
-  config: Config,
+  config: Config | undefined,
   created: number,
   privacy: Privacy,
   progenitor: AgentPubKey,
@@ -475,10 +475,10 @@ export function createConversationStore(
     }
   }
 
-  async function updateConfig(config: Partial<Config>) {
-    const newConfig = { ...get(conversation).config, ...config };
-    await relayStore.client.setConfig(cellId, newConfig);
-    conversation.update((c) => ({ ...c, config: newConfig }));
+  async function setConfig(config: Config) {
+    const c = get(conversation);
+    await relayStore.client.setConfig(cellId, config);
+    conversation.update((c) => ({ ...c, config }));
   }
 
   function addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
@@ -500,10 +500,10 @@ export function createConversationStore(
     const config = await client.getConfig(cellId);
     if (!config) return;
 
-    conversation.update((c) => {
-      c.config = config;
-      return c;
-    });
+    conversation.update((c) => ({
+      ...c,
+      config,
+    }));
     return config;
   }
 
@@ -603,16 +603,18 @@ export function createConversationStore(
   function getTitle() {
     const allMembers = getAllMembers();
     const c = get(conversation);
+    const configTitle = c.config ? c.config.title : "...";
+
     if (c.privacy === Privacy.Public) {
-      return c.config.title;
+      return configTitle;
     }
 
     if (allMembers.length === 0) {
       // When joining a private converstion that has not synced yet
-      return c.config.title;
+      return configTitle;
     } else if (allMembers.length === 1) {
       // Use full name of the one other person in the chat
-      return getAllMembers()[0] ? allMembers[0].profile.nickname : c.config.title;
+      return allMembers[0].profile.nickname;
     } else if (allMembers.length === 2) {
       return allMembers.map((m) => m?.profile.fields.firstName).join(" & ");
     } else {
@@ -639,7 +641,7 @@ export function createConversationStore(
     addMessage,
 
     // update config
-    updateConfig,
+    setConfig,
 
     // update local data
     addContacts,

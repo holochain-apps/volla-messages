@@ -90,7 +90,7 @@
       {#if needsPermission}
         <div class="mt-4">
           <p class="text-error-500 mt-2 text-sm">
-            {$t("common.need_camera_permissions")}
+            {$t("common.need_camera_permission")}
           </p>
         </div>
       {/if}

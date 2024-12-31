@@ -74,8 +74,7 @@ export interface Conversation {
   networkSeed: string;
   dnaHashB64: DnaHashB64;
   cellId: CellId;
-  config: Config;
-  description?: string;
+  config?: Config;
   privacy: Privacy;
   progenitor: AgentPubKey;
   messages: Messages;
