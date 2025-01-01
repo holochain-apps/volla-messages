@@ -10,28 +10,19 @@
 </script>
 
 <button
-  class="variant-filled-primary dark:variant-filled-tertiary flex items-center space-x-2 rounded-full px-2 px-5 py-2 disabled:opacity-50
+  class="variant-filled-primary dark:variant-filled-tertiary flex items-center space-x-1 rounded-full px-2 px-5 py-2 disabled:opacity-50 sm:space-x-2
+  {iconAlign === Alignment.Left ? 'flex-row' : 'flex-row-reverse'}
   {moreClasses}"
   on:click
   {...$$restProps}
 >
-  {#if iconAlign === Alignment.Left}
-    {#if loading}
-      <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
-    {:else if icon !== undefined}
-      <SvgIcon {icon} size={iconSize} color="%23FD3524" />
-    {/if}
+  {#if loading}
+    <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
+  {:else if icon !== undefined}
+    <SvgIcon {icon} size={iconSize} color="%23FD3524" />
   {/if}
 
   <div class="flex w-full justify-center">
     <slot></slot>
   </div>
-
-  {#if iconAlign === Alignment.Right}
-    {#if loading}
-      <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
-    {:else if icon !== undefined}
-      <SvgIcon {icon} size={iconSize} color="%23FD3524" />
-    {/if}
-  {/if}
 </button>
