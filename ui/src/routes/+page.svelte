@@ -10,13 +10,11 @@
   import { RelayStore } from "$store/RelayStore";
   import Button from "$lib/Button.svelte";
 
-  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
-  let profilesStore = profilesContext.getStore();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const profilesStore = getContext<{ getStore: () => ProfilesStore }>("profiles").getStore();
+
   $: prof = profilesStore ? profilesStore.myProfile : undefined;
   $: loggedIn = $prof && $prof.status == "complete" && $prof.value !== undefined;
-
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
 
   $: if (loggedIn) {
     if (relayStore.conversations.length > 0) {

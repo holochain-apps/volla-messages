@@ -19,14 +19,10 @@
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
-
-  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
-  let profilesStore = profilesContext.getStore();
-
+  const profilesStore = getContext<{ getStore: () => ProfilesStore }>("profiles").getStore();
   const agentPublicKey64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-
   const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
 
   let firstName = get(profilesStore.myProfile).value?.entry.fields.firstName || "";
