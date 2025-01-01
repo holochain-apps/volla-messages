@@ -7,6 +7,7 @@
   export let text: string;
   export let copyLabel: string;
   export let shareLabel: string;
+  export let moreClasses: string = "";
 
   async function copy() {
     try {
@@ -27,23 +28,13 @@
 </script>
 
 <div class="flex flex-col items-center justify-center space-y-4">
-  <Button
-    on:click={copy}
-    icon="copy"
-    moreClasses="px-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
-  >
+  <Button on:click={copy} icon="copy" moreClasses="px-2 text-sm {moreClasses}">
     {copyLabel}
   </Button>
 
   {#if isMobile()}
-    <Button
-      on:click={share}
-      icon="share"
-      moreClasses="px-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
-    >
-      <div class="flex w-full justify-center font-bold">
-        {shareLabel}
-      </div>
+    <Button on:click={share} icon="share" moreClasses="px-2 text-sm {moreClasses}">
+      {shareLabel}
     </Button>
   {/if}
 </div>

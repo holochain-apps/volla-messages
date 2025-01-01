@@ -10,7 +10,7 @@
 </script>
 
 <button
-  class="variant-filled-primary dark:variant-filled-tertiary flex h-12 min-w-32 cursor-pointer items-center space-x-4 rounded-full px-5 py-2 font-bold disabled:opacity-50 sm:min-w-48
+  class="bg-tertiary-500 dark:bg-secondary-500 dark:text-tertiary-400 flex h-12 min-w-32 cursor-pointer items-center space-x-4 rounded-full px-5 py-2 font-bold disabled:opacity-50 sm:min-w-48
   {iconAlign === Alignment.Left ? 'flex-row' : 'flex-row-reverse'}
   {moreClasses}"
   on:click

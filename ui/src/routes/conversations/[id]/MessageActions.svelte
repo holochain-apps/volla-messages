@@ -67,13 +67,22 @@
 
 <div class="my-1 flex w-full items-center justify-center space-x-2">
   {#if hasText}
-    <ButtonInline on:click={copy} icon="copy" big={false}>
+    <ButtonInline
+      on:click={copy}
+      icon="copy"
+      moreClasses="bg-tertiary-400 dark:bg-secondary-700 dark:text-tertiary-400"
+    >
       <span class="text-xs md:text-sm">{$t("conversations.copy_text")}</span>
     </ButtonInline>
   {/if}
 
   {#if hasImages}
-    <ButtonInline on:click={download} icon="download" iconSize={25} big={false}>
+    <ButtonInline
+      on:click={download}
+      icon="download"
+      iconSize={25}
+      moreClasses="bg-tertiary-400 dark:bg-secondary-700 dark:text-tertiary-400"
+    >
       <span class="text-xs md:text-sm">{$t("conversations.download")}</span>
     </ButtonInline>
   {/if}

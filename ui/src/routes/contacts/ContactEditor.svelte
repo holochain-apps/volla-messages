@@ -256,7 +256,6 @@
     {:else}
       <div class="my-4">
         <Button
-          moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
           icon="speechBubble"
           on:click={() => {
             const conversationStore = contact?.getPrivateConversation();

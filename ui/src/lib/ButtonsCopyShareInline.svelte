@@ -28,22 +28,12 @@
 </script>
 
 <div class="flex items-center justify-center space-x-2">
-  <ButtonInline
-    on:click={copy}
-    icon="copy"
-    {big}
-    moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs variant-filled-tertiary dark:!bg-tertiary-200"
-  >
+  <ButtonInline on:click={copy} icon="copy" {big} moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs">
     {copyLabel}
   </ButtonInline>
 
   {#if isMobile()}
-    <ButtonInline
-      on:click={share}
-      icon="share"
-      {big}
-      moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs variant-filled-tertiary dark:!bg-tertiary-200"
-    >
+    <ButtonInline on:click={share} icon="share" {big} moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs">
       {shareLabel}
     </ButtonInline>
   {/if}

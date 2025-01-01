@@ -187,7 +187,10 @@
               >{/if}
           </p>
           {#if selected}
-            <ButtonInline on:click={() => goto("/contacts/" + contact.publicKeyB64)}>
+            <ButtonInline
+              on:click={() => goto("/contacts/" + contact.publicKeyB64)}
+              moreClasses="dark:bg-secondary-700 "
+            >
               {$t("create.view")}
             </ButtonInline>
           {:else}

@@ -54,12 +54,7 @@
   </div>
 
   <div class="my-8">
-    <Button
-      disabled={!inviteCode || joining}
-      loading={joining}
-      icon="newConversation"
-      moreClasses="variant-filled-tertiary"
-    >
+    <Button disabled={!inviteCode || joining} loading={joining} icon="newConversation">
       {$t("conversations.join_conversation")}
     </Button>
   </div>
