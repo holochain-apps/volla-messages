@@ -1,11 +1,11 @@
 <script lang="ts">
   import toast from "svelte-french-toast";
   import { copyToClipboard, isMobile, shareText } from "./utils";
-  import SvgIcon from "./SvgIcon.svelte";
   import { t } from "$translations";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
+  import ButtonIconBare from "./ButtonIconBare.svelte";
 
   export let text: string;
+  export let iconColor: string = "gray";
 
   async function copy() {
     try {
@@ -25,12 +25,8 @@
   }
 </script>
 
-<button on:click={copy}>
-  <SvgIcon icon="copy" size={22} color={$modeCurrent ? "#aaa" : "#ccc"} />
-</button>
+<ButtonIconBare on:click={copy} icon="copy" {iconColor} />
 
 {#if isMobile()}
-  <button on:click={share}>
-    <SvgIcon icon="share" size={22} color={$modeCurrent ? "#aaa" : "#ccc"} moreClasses="ml-3" />
-  </button>
+  <ButtonIconBare on:click={share} icon="share" moreClasses="ml-3" {iconColor} />
 {/if}
