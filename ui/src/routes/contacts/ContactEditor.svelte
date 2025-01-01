@@ -188,23 +188,20 @@
       {/if}
     </div>
 
-    <div class="my-4 flex justify-center">
+    <div class="my-4 flex flex-wrap justify-center">
       <Button
-        moreClasses="w-36 justify-center !variant-filled-tertiary dark:!variant-filled-secondary"
-        on:click={() => {
-          cancel();
-        }}
+        on:click={cancel}
+        moreClasses=" !variant-filled-tertiary dark:!variant-filled-secondary m-2"
       >
         {$t("common.cancel")}
       </Button>
       <Button
-        moreClasses="w-48 ml-4 justify-center !variant-filled-secondary dark:!variant-filled-tertiary disabled:border disabled:!border-tertiary-700 disabled:!bg-surface-500 disabled:!text-tertiary-700 disabled:!opacity-100 dark:disabled:!bg-secondary-900 dark:disabled:!text-tertiary-700"
-        on:click={() => {
-          saveContact();
-        }}
+        on:click={saveContact}
         disabled={!valid || pendingSave}
+        loading={pendingSave}
+        moreClasses="m-2"
       >
-        {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
+        {$t("common.save")}
       </Button>
     </div>
   {:else}
