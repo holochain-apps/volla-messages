@@ -138,14 +138,6 @@
       conversationMessageInputRef.focus();
     }
   }
-
-  function formatFileName(file: Image, maxLength: number = 10): string {
-    const fileName = file.name.trim();
-    if (fileName.length <= maxLength) {
-      return fileName;
-    }
-    return fileName.slice(0, maxLength) + "...";
-  }
 </script>
 
 <Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
@@ -218,7 +210,7 @@
         <ConversationEmpty {conversationStore} />
       {:else}
         <!-- Display conversation messages -->
-        <ConversationMessages messages={$conversationStore.processedMessages} {formatFileName} />
+        <ConversationMessages messages={$conversationStore.processedMessages} />
       {/if}
     </div>
   </div>
@@ -226,6 +218,5 @@
   <ConversationMessageInput
     bind:ref={conversationMessageInputRef}
     on:send={(e) => sendMessage(e.detail.text, e.detail.images)}
-    {formatFileName}
   />
 {/if}
