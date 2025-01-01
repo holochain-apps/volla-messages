@@ -1,6 +1,6 @@
 <script lang="ts">
   import toast from "svelte-french-toast";
-  import ButtonInline from "./ButtonInline.svelte";
+  import ButtonInline from "$lib/ButtonInline.svelte";
   import { copyToClipboard, isMobile, shareText } from "./utils";
   import { t } from "$translations";
 
@@ -27,12 +27,12 @@
   }
 </script>
 
-<div class="flex items-center justify-center space-x-4">
+<div class="flex items-center justify-center space-x-2">
   <ButtonInline
     on:click={copy}
     icon="copy"
     {big}
-    moreClasses="px-1.5 h-8 text-xs space-x-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+    moreClasses="h-8 px-[0.3rem] text-xs variant-filled-tertiary dark:!bg-tertiary-200"
   >
     {copyLabel}
   </ButtonInline>
@@ -42,11 +42,9 @@
       on:click={share}
       icon="share"
       {big}
-      moreClasses="px-1.5 h-8 text-xs space-x-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+      moreClasses="h-8 px-[0.3rem] text-xs variant-filled-tertiary dark:!bg-tertiary-200"
     >
-      <div class="flex w-full justify-center">
-        {shareLabel}
-      </div>
+      {shareLabel}
     </ButtonInline>
   {/if}
 </div>
