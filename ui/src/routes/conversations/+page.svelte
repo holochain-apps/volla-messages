@@ -10,12 +10,9 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
   import type { AgentPubKey } from "@holochain/client";
-  import ButtonIcon from "$lib/ButtonIcon.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
-
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
   const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
 
   let search = "";

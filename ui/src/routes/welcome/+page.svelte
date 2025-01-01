@@ -10,9 +10,7 @@
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import ButtonSquare from "$lib/ButtonSquare.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
-
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
   const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
 
   $: if (relayStore.conversations.length > 0) {
