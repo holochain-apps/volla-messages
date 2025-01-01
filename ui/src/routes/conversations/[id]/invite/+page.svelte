@@ -16,8 +16,7 @@
 
   const tAny = t as any;
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   let conversationStore = relayStore.getConversation($page.params.id);
 

@@ -16,8 +16,7 @@
   import ButtonInline from "$lib/ButtonInline.svelte";
   import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   let selectedContacts: AgentPubKeyB64[] = [];
   let search = "";
