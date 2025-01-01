@@ -4,6 +4,6 @@
   import ContactEditor from "../ContactEditor.svelte";
 </script>
 
-<Header backUrl="/create" />
+<Header back />
 
 <ContactEditor agentPubKeyB64={$page.params.id} />
