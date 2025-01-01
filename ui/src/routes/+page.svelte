@@ -49,7 +49,12 @@
     {:else if $prof && $prof.status === "error"}
       <p class="text-2xl">{$t("common.profile_error")}: {$prof.error}</p>
     {:else}
-      <Button icon="lock" on:click={() => goto("/register")}>
+      <Button
+        icon="lock"
+        iconSize={30}
+        on:click={() => goto("/register")}
+        moreClasses="!font-normal"
+      >
         {$t("common.create_an_account")}
       </Button>
     {/if}

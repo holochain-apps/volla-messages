@@ -11,7 +11,7 @@
 </script>
 
 <button
-  class="max-w-2/3 bg-primary-500 flex items-center justify-center space-x-2 rounded-full border-0 py-1 pl-2 pr-4 text-white
+  class="bg-primary-500 flex items-center justify-center space-x-2 rounded-full border-0 py-1 pl-2 pr-4 text-white
   {moreClasses}"
   {disabled}
   on:click

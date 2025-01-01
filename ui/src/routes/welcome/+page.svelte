@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { goto } from "$app/navigation";
   import Avatar from "$lib/Avatar.svelte";
@@ -28,6 +27,7 @@
 
   <ButtonIconBare
     icon="plusCircle"
+    iconSize={24}
     on:click={() => goto("/create")}
     moreClasses="absolute right-4"
   />
@@ -40,7 +40,7 @@
   <p>{$t("common.welcome_text_2")}</p>
 </div>
 
-<div class="mb-8 flex w-full justify-between gap-4 px-12">
+<div class="mb-8 flex w-full justify-between gap-4 px-4 sm:px-12">
   <ButtonSquare
     on:click={() => goto("/conversations/join")}
     icon="ticket"

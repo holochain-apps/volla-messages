@@ -32,7 +32,7 @@
     on:click={copy}
     icon="copy"
     {big}
-    moreClasses="h-8 px-[0.3rem] sm:px-1 text-xs variant-filled-tertiary dark:!bg-tertiary-200"
+    moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs variant-filled-tertiary dark:!bg-tertiary-200"
   >
     {copyLabel}
   </ButtonInline>
@@ -42,7 +42,7 @@
       on:click={share}
       icon="share"
       {big}
-      moreClasses="h-8 px-[0.3rem] sm:px-1 text-xs variant-filled-tertiary dark:!bg-tertiary-200"
+      moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs variant-filled-tertiary dark:!bg-tertiary-200"
     >
       {shareLabel}
     </ButtonInline>
