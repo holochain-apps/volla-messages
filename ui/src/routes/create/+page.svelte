@@ -12,6 +12,9 @@
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { xor } from "lodash-es";
   import toast from "svelte-french-toast";
+  import ButtonSquare from "$lib/ButtonSquare.svelte";
+  import ButtonInline from "$lib/ButtonInline.svelte";
+  import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
@@ -99,9 +102,7 @@
 
 <Header backUrl="/welcome" title={$t("create.page_title")} />
 
-<div
-  class="text-secondary-500 container relative mx-auto flex w-full flex-1 flex-col items-center p-5"
->
+<div class="text-secondary-500 relative mx-auto flex w-full flex-1 flex-col items-center p-5">
   <div class="relative my-5 w-full">
     <input
       type="text"
@@ -118,44 +119,23 @@
   </div>
 
   <div class="mb-5 flex w-full justify-between gap-4">
-    <button
-      class="bg-tertiary-500 dark:bg-secondary-500 dark:text-tertiary-400 flex h-24 w-28 flex-col items-center rounded-2xl py-2 text-xs disabled:opacity-50"
+    <ButtonSquare
       on:click={() => goto("/conversations/join")}
-    >
-      <SvgIcon
-        icon="ticket"
-        size={32}
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-        moreClasses="flex-grow"
-      />
-      <p class="">{$t("common.use_invite_code")}</p>
-    </button>
+      icon="ticket"
+      label={$t("common.use_invite_code")}
+    />
 
-    <button
-      class="bg-tertiary-500 dark:bg-secondary-500 dark:text-tertiary-400 flex h-24 w-28 flex-col items-center rounded-2xl py-2 text-xs disabled:opacity-50"
+    <ButtonSquare
       on:click={() => goto("/contacts/new")}
-    >
-      <SvgIcon
-        icon="newPerson"
-        size={32}
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-        moreClasses="flex-grow"
-      />
-      <p>{$t("common.new_contact")}</p>
-    </button>
+      icon="newPerson"
+      label={$t("common.new_contact")}
+    />
 
-    <button
-      class="bg-tertiary-500 dark:bg-secondary-500 dark:text-tertiary-400 flex h-24 w-28 flex-col items-center rounded-2xl py-2 text-xs disabled:opacity-50"
+    <ButtonSquare
       on:click={() => goto("/conversations/new")}
-    >
-      <SvgIcon
-        icon="people"
-        size={32}
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-        moreClasses="flex-grow"
-      />
-      <p>{$t("common.new_group")}</p>
-    </button>
+      icon="people"
+      label={$t("common.new_group")}
+    />
   </div>
 
   {#if contactsFilteredStores.length === 0}
@@ -207,12 +187,9 @@
               >{/if}
           </p>
           {#if selected}
-            <button
-              class="text-secondary-700 flex h-8 items-center justify-center rounded-full bg-white px-2 font-bold"
-              on:click={() => goto("/contacts/" + contact.publicKeyB64)}
-            >
-              <span class="mx-2 text-xs">{$t("create.view")}</span>
-            </button>
+            <ButtonInline on:click={() => goto("/contacts/" + contact.publicKeyB64)}>
+              {$t("create.view")}
+            </ButtonInline>
           {:else}
             <span class="text-primary-500 text-lg font-extrabold">+</span>
           {/if}
@@ -221,22 +198,14 @@
     </div>
 
     {#if selectedContacts.length > 0}
-      <button
-        class="max-w-2/3 bg-primary-500 fixed bottom-5 right-5 flex items-center justify-center rounded-full border-0 py-1 pl-2 pr-4 text-white"
+      <ButtonFilledNumbered
+        icon="person"
+        number={selectedContacts.length}
+        moreClasses="fixed bottom-5 right-5"
         disabled={pendingCreate}
-        on:click={() => createConversation()}
+        on:click={createConversation}
+        loading={pendingCreate}
       >
-        <span
-          class="bg-surface-500 text-primary-500 mr-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-extrabold"
-        >
-          <SvgIcon
-            icon={pendingCreate ? "spinner" : "person"}
-            size={12}
-            color="%23FD3524"
-            moreClasses="mr-1"
-          />
-          {selectedContacts.length}
-        </span>
         <div class="nowrap overflow-hidden text-ellipsis">
           <div class="text-md text-start">
             {$tAny("create.open_conversation", {
@@ -247,7 +216,7 @@
             with {selectedContactsNames}
           </div>
         </div>
-      </button>
+      </ButtonFilledNumbered>
     {/if}
   {/if}
 </div>

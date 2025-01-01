@@ -7,7 +7,6 @@
   export let text: string;
   export let copyLabel: string;
   export let shareLabel: string;
-  export let big: boolean = true;
 
   async function copy() {
     try {
@@ -31,9 +30,7 @@
   <Button
     on:click={copy}
     icon="copy"
-    {big}
-    moreClasses="{big ? 'px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
-    text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+    moreClasses="px-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
   >
     {copyLabel}
   </Button>
@@ -42,11 +39,9 @@
     <Button
       on:click={share}
       icon="share"
-      {big}
-      moreClasses="{big ? 'px-2' : 'px-1.5 h-8 text-xs space-x-2'} 
-      text-sm variant-filled-tertiary dark:!bg-tertiary-200"
+      moreClasses="px-2 text-sm variant-filled-tertiary dark:!bg-tertiary-200"
     >
-      <div class="flex w-full justify-center {big ? 'font-bold' : ''}">
+      <div class="flex w-full justify-center font-bold">
         {shareLabel}
       </div>
     </Button>

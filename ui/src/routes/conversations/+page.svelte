@@ -10,6 +10,8 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
   import type { AgentPubKey } from "@holochain/client";
+  import ButtonIcon from "$lib/ButtonIcon.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
   let relayStore = relayStoreContext.getStore();
@@ -48,12 +50,10 @@
     <Avatar size={24} agentPubKey={myPubKey} />
   </button>
 
-  <button on:click={() => goto("/create")} class="">
-    <SvgIcon icon="plusCircle" size={24} />
-  </button>
+  <ButtonIconBare on:click={() => goto("/create")} icon="plusCircle" />
 </Header>
 
-<div class="container mx-auto flex h-full flex-col px-2">
+<div class="mx-auto flex h-full w-full flex-col px-2">
   <div class="relative mb-3 mt-5 flex w-full">
     <input
       type="text"

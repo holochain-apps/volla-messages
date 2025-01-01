@@ -12,6 +12,7 @@
   import { get } from "svelte/store";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ButtonsCopyShareIcon from "$lib/ButtonsCopyShareIcon.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -209,9 +210,7 @@
       <div class="flex flex-row justify-center">
         <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.fullName}</h1>
 
-        <button on:click={() => (editing = true)}>
-          <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
-        </button>
+        <ButtonIconBare on:click={() => (editing = true)} icon="write" iconColor="gray" />
       </div>
       <div class="mt-2 flex items-center justify-center">
         <span

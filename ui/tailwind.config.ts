@@ -12,6 +12,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        xs: "400px",
+      },
       fontSize: {
         xxs: "0.6rem",
       },
