@@ -38,6 +38,7 @@
         {#await conversationStore.makeInviteCodeForAgent(conversationStore.getAllMembers()[0].publicKeyB64) then res}
           <div class="flex justify-center">
             <ButtonsCopyShare
+              moreClasses="bg-tertiary-600 dark:bg-secondary-700"
               text={res}
               copyLabel={$t("contacts.copy_invite_code")}
               shareLabel={$t("contacts.share_invite_code")}

@@ -14,6 +14,7 @@
   import ConversationEmpty from "./ConversationEmpty.svelte";
   import ConversationMembers from "./ConversationMembers.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -149,36 +150,33 @@
 <Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
   {#if conversationStore}
     <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
-      <button on:click={() => goto(`/conversations/${$page.params.id}/details`)} class="w-full">
-        {conversationStore.getTitle()}
-      </button>
+      {conversationStore.getTitle()}
     </h1>
-    <button
+    <ButtonIconBare
       class="self-center pl-2"
+      icon="gear"
+      iconColor={$modeCurrent ? "%232e2e2e" : "white"}
+      iconSize={18}
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
-    >
-      <SvgIcon icon="gear" size={18} color={$modeCurrent ? "%232e2e2e" : "white"} />
-    </button>
+    />
     {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
-      <button
+      <ButtonIconBare
         class="flex-none pl-5"
+        iconSize={24}
         on:click={() =>
           goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
-      >
-        <SvgIcon icon="addPerson" size={24} color={$modeCurrent ? "%232e2e2e" : "white"} />
-      </button>
+        icon="addPerson"
+        iconColor={$modeCurrent ? "%232e2e2e" : "white"}
+      />
     {/if}
   {/if}
 </Header>
 
 {#if conversationStore && $conversationStore && typeof $conversationStore.processedMessages !== undefined}
-  <div
-    class="container mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden"
-  >
+  <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
     <div
       class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-10"
       bind:this={conversationContainer}
-      id="message-container"
     >
       {#if $conversationStore.conversation.privacy === Privacy.Private}
         <div class="flex items-center justify-center gap-4">
@@ -204,12 +202,9 @@
       <h1 class="b-1 break-all text-3xl">{conversationStore.getTitle()}</h1>
 
       <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
-      <button
-        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
-        class="text-left text-sm"
-      >
+      <div class="text-left text-sm">
         {$tAny("conversations.num_members", { count: numMembers })}
-      </button>
+      </div>
 
       {#if $conversationStore.processedMessages.length === 0 && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64 && numMembers === 1}
         <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->

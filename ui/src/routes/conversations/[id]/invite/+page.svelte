@@ -12,6 +12,7 @@
   import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
   import type { AgentPubKeyB64 } from "@holochain/client";
+  import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
 
   const tAny = t as any;
 
@@ -22,6 +23,7 @@
 
   let selectedContacts: AgentPubKeyB64[] = [];
   let search = "";
+  let addingContacts = false;
 
   $: contacts = derived(relayStore.contacts, ($contacts) => {
     const test = search.trim().toLowerCase();
@@ -34,6 +36,10 @@
       )
       .sort((a, b) => a.contact.first_name.localeCompare(b.contact.first_name));
   });
+
+  $: selectedContactsNames = selectedContacts
+    .map((c) => $contacts.find((contact) => c === contact.publicKeyB64)?.contact.first_name)
+    .join(", ");
 
   function selectContact(publicKeyB64: string) {
     const contact = $contacts.find((c) => c.publicKeyB64 === publicKeyB64);
@@ -50,14 +56,16 @@
 
   async function addContactsToConversation() {
     // TODO: update config.title?
+    addingContacts = true;
     try {
       if (conversationStore) {
         conversationStore.addContacts(selectedContacts);
-        goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/details`);
+        await goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/details`);
       }
     } catch (e) {
       toast.error(`${$t("common.add_contact_to_conversation_error")}: ${e.message}`);
     }
+    addingContacts = false;
   }
 </script>
 
@@ -69,9 +77,7 @@
 />
 
 {#if $conversationStore}
-  <div
-    class="text-secondary-500 container relative mx-auto flex w-full flex-1 flex-col items-center p-5"
-  >
+  <div class="text-secondary-500 relative mx-auto flex w-full flex-1 flex-col items-center p-5">
     <div class="relative my-5 w-full">
       <input
         type="text"
@@ -143,30 +149,21 @@
       </div>
 
       {#if selectedContacts.length > 0}
-        <button
-          class="max-w-2/3 bg-primary-500 fixed bottom-5 right-5 flex items-center justify-center rounded-full border-0 py-1 pl-2 pr-4 text-white"
-          on:click={() => addContactsToConversation()}
+        <ButtonFilledNumbered
+          icon="person"
+          number={selectedContacts.length}
+          moreClasses="fixed bottom-5 right-5"
+          disabled={addingContacts}
+          loading={addingContacts}
+          on:click={addContactsToConversation}
         >
-          <span
-            class="bg-surface-500 text-primary-500 mr-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-extrabold"
-          >
-            <SvgIcon icon="person" size={12} color="%23FD3524" moreClasses="mr-1" />
-            {selectedContacts.length}
-          </span>
           <div class="nowrap overflow-hidden text-ellipsis">
             <div class="text-md text-start">
               {$t("conversations.add_contact_to_conversation")}
             </div>
-            <div class="pb-1 text-start text-xs font-light">
-              with {selectedContacts
-                .map(
-                  (c) =>
-                    $contacts.find((contact) => c === contact.publicKeyB64)?.contact.first_name,
-                )
-                .join(", ")}
-            </div>
+            <div class="pb-1 text-start text-xs font-light">with {selectedContactsNames}</div>
           </div>
-        </button>
+        </ButtonFilledNumbered>
       {/if}
     {/if}
   </div>

@@ -11,8 +11,9 @@
   import { Privacy } from "$lib/types";
   import { goto } from "$app/navigation";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
-  import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
+  import ButtonsCopyShareInline from "$lib/ButtonsCopyShareInline.svelte";
   import TitleInput from "./TitleInput.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -57,12 +58,13 @@
         )}{:else}{conversationStore.getTitle()}{/if}
     </h1>
     {#if $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
-      <button
+      <ButtonIconBare
+        icon="addPerson"
+        iconSize={24}
+        iconColor={$modeCurrent ? "%232e2e2e" : "white"}
         class="absolute right-5"
         on:click={() => goto(`/conversations/${$conversationStore.conversation.dnaHashB64}/invite`)}
-      >
-        <SvgIcon icon="addPerson" color="white" />
-      </button>
+      />
     {/if}
   {/if}
 </Header>
@@ -70,9 +72,7 @@
 {#if conversationStore && $conversationStore}
   {@const numMembers = Object.values($conversationStore.conversation.agentProfiles).length}
 
-  <div
-    class="container relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-10"
-  >
+  <div class="relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-10">
     {#if $conversationStore.conversation.privacy === Privacy.Private}
       <div class="flex items-center justify-center gap-4">
         {#each conversationStore.getAllMembers().slice(0, 2) as profile}
@@ -132,9 +132,7 @@
           {title}
         </h1>
         {#if $conversationStore.conversation.privacy !== Privacy.Private}
-          <button on:click={() => (editingTitle = true)}>
-            <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
-          </button>
+          <ButtonIconBare on:click={() => (editingTitle = true)} icon="write" iconColor="gray" />
         {/if}
       {/if}
     </div>
@@ -146,7 +144,7 @@
       {$tAny("conversations.num_members", { count: numMembers })}
     </p>
 
-    <div class="container mx-auto flex flex-col overflow-y-auto px-4">
+    <div class="mx-auto flex w-full flex-col overflow-y-auto px-4">
       <ul class="mt-10 flex-1">
         {#if $conversationStore.conversation.privacy === Privacy.Public}
           <li
@@ -159,11 +157,10 @@
             </span>
             <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.add_members")}</span>
 
-            <ButtonsCopyShare
+            <ButtonsCopyShareInline
               text={$conversationStore.publicInviteCode}
               copyLabel={$t("conversations.copy_invite")}
               shareLabel={$t("conversations.share_invite_code")}
-              big={false}
             />
           </li>
         {:else}
@@ -182,11 +179,10 @@
                 />
                 <span class="ml-4 flex-1 text-sm">{contact.fullName}</span>
                 {#await conversationStore.makeInviteCodeForAgent(contact.publicKeyB64) then res}
-                  <ButtonsCopyShare
+                  <ButtonsCopyShareInline
                     text={res}
                     copyLabel={$t("conversations.copy_invite")}
                     shareLabel={$t("conversations.share_invite_code")}
-                    big={false}
                   />
                 {/await}
               </li>
