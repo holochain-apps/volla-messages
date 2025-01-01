@@ -18,8 +18,7 @@
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();

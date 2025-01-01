@@ -10,8 +10,7 @@
   import type { Invitation } from "$lib/types";
   import { get } from "svelte/store";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   let inviteCode = "";
   let joining = false;

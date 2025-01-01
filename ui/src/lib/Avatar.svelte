@@ -4,8 +4,7 @@
   import { getContext } from "svelte";
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
 
-  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
-  const store = profilesContext.getStore();
+  const profilesStore = getContext<{ getStore: () => ProfilesStore }>("profiles").getStore();
 
   export let agentPubKey: AgentPubKey | string | null = null;
   export let image: string | undefined = undefined; // If image is passed in this will ignore the agentPubKey
@@ -27,7 +26,7 @@
       : agentPubKeyB64
         ? decodeHashFromBase64(agentPubKeyB64)
         : null;
-  $: profile = agentPubKeyHash && store.profiles.get(agentPubKeyHash); // TODO: how to look in a specific cell
+  $: profile = agentPubKeyHash && profilesStore.profiles.get(agentPubKeyHash); // TODO: how to look in a specific cell
   $: nickname =
     $profile && agentPubKeyB64
       ? $profile.status == "complete" && $profile.value

@@ -8,8 +8,7 @@
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "$lib/ConversationSummary.svelte";
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext("relayStore");
-  let relayStore = relayStoreContext.getStore();
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   let search = "";
 
