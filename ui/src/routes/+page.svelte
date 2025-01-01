@@ -8,6 +8,7 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
+  import Button from "$lib/Button.svelte";
 
   const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
   let profilesStore = profilesContext.getStore();
@@ -41,23 +42,24 @@
     >
     <p class="mt-10">{$t("common.tagline")}</p>
   </div>
-  {#if $prof && $prof.status === "pending"}
-    <div class="flex flex-col items-center justify-center">
-      <p class="mb-8">{$t("connecting_to_holochain")}</p>
-    </div>
-  {:else if $prof && $prof.status === "error"}
-    <div class="flex flex-col items-center justify-center">
+
+  <div class="mb-8 flex flex-col items-center justify-center">
+    {#if $prof && $prof.status === "pending"}
+      {$t("common.connecting_to_holochain")}
+    {:else if $prof && $prof.status === "error"}
       <p class="text-2xl">{$t("common.profile_error")}: {$prof.error}</p>
-    </div>
-  {:else}
-    <button
-      class="variant-filled-tertiary dark:variant-filled-tertiary mb-8 flex items-center rounded-full px-6 py-3 text-left"
-      on:click={() => goto("/register")}
-    >
-      <SvgIcon icon="lock" size={24} color="%23fd3524" />
-      <span class="ml-2">{$t("common.create_an_account")}</span>
-    </button>
-  {/if}
+    {:else}
+      <Button
+        icon="lock"
+        iconSize={30}
+        on:click={() => goto("/register")}
+        moreClasses="!font-normal"
+      >
+        {$t("common.create_an_account")}
+      </Button>
+    {/if}
+  </div>
+
   <div class="flex flex-col items-center justify-center pb-10">
     <p class="mb-2 text-xs">{$t("common.secured_by")}</p>
     <img

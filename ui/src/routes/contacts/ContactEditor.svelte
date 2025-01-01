@@ -12,6 +12,7 @@
   import { get } from "svelte/store";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ButtonsCopyShareIcon from "$lib/ButtonsCopyShareIcon.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -188,23 +189,20 @@
       {/if}
     </div>
 
-    <div class="my-4 flex justify-center">
+    <div class="my-4 flex flex-wrap justify-center">
       <Button
-        moreClasses="w-36 justify-center !variant-filled-tertiary dark:!variant-filled-secondary"
-        on:click={() => {
-          cancel();
-        }}
+        on:click={cancel}
+        moreClasses=" !variant-filled-tertiary dark:!variant-filled-secondary m-2"
       >
         {$t("common.cancel")}
       </Button>
       <Button
-        moreClasses="w-48 ml-4 justify-center !variant-filled-secondary dark:!variant-filled-tertiary disabled:border disabled:!border-tertiary-700 disabled:!bg-surface-500 disabled:!text-tertiary-700 disabled:!opacity-100 dark:disabled:!bg-secondary-900 dark:disabled:!text-tertiary-700"
-        on:click={() => {
-          saveContact();
-        }}
+        on:click={saveContact}
         disabled={!valid || pendingSave}
+        loading={pendingSave}
+        moreClasses="m-2"
       >
-        {agentPubKeyB64 ? $t("common.save") : $t("common.done")}
+        {$t("common.save")}
       </Button>
     </div>
   {:else}
@@ -212,9 +210,7 @@
       <div class="flex flex-row justify-center">
         <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact?.fullName}</h1>
 
-        <button on:click={() => (editing = true)}>
-          <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
-        </button>
+        <ButtonIconBare on:click={() => (editing = true)} icon="write" iconColor="gray" />
       </div>
       <div class="mt-2 flex items-center justify-center">
         <span
@@ -260,7 +256,6 @@
     {:else}
       <div class="my-4">
         <Button
-          moreClasses="variant-filled-tertiary text-sm font-bold w-auto"
           icon="speechBubble"
           on:click={() => {
             const conversationStore = contact?.getPrivateConversation();

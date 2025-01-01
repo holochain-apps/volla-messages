@@ -64,6 +64,7 @@
       icon="arrowRight"
       iconSize={42}
       iconAlign={Alignment.Right}
+      moreClasses="!font-normal"
     >
       {@html $t("common.next_avatar")}
     </Button>
