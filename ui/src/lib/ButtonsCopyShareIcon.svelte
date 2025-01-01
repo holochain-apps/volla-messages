@@ -16,13 +16,11 @@
   }
 
   async function share() {
-    async () => {
-      try {
-        await shareText(text);
-      } catch (e) {
-        toast.error(`${$t("common.share_code_error")}: ${e.message}`);
-      }
-    };
+    try {
+      await shareText(text);
+    } catch (e) {
+      toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+    }
   }
 </script>
 
