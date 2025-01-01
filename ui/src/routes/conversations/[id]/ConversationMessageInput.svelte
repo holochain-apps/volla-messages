@@ -7,6 +7,7 @@
   import toast from "svelte-french-toast";
   import { MAX_FILE_SIZE } from "$config";
   import FilePreview from "$lib/FilePreview.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   const dispatch = createEventDispatcher<{
     send: {
@@ -130,8 +131,12 @@
         {/each}
       </div>
     </div>
-    <button disabled={text.trim() === "" && images.length === 0} class="pr-2 disabled:opacity-50">
-      <SvgIcon icon="caretRight" color={$modeCurrent ? "#2e2e2e" : "white"} size={10} />
-    </button>
+    <ButtonIconBare
+      disabled={text.trim() === "" && images.length === 0}
+      class="pr-2 disabled:opacity-50"
+      icon="caretRight"
+      iconColor={$modeCurrent ? "#2e2e2e" : "white"}
+      iconSize={10}
+    />
   </form>
 </div>

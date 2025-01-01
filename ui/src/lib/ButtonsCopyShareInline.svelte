@@ -1,13 +1,13 @@
 <script lang="ts">
   import toast from "svelte-french-toast";
-  import Button from "./Button.svelte";
+  import ButtonInline from "$lib/ButtonInline.svelte";
   import { copyToClipboard, isMobile, shareText } from "./utils";
   import { t } from "$translations";
 
   export let text: string;
   export let copyLabel: string;
   export let shareLabel: string;
-  export let moreClasses: string = "";
+  export let big: boolean = true;
 
   async function copy() {
     try {
@@ -27,14 +27,14 @@
   }
 </script>
 
-<div class="flex flex-col items-center justify-center space-y-4">
-  <Button on:click={copy} icon="copy" moreClasses="px-2 text-sm {moreClasses}">
+<div class="flex items-center justify-center space-x-2">
+  <ButtonInline on:click={copy} icon="copy" {big} moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs">
     {copyLabel}
-  </Button>
+  </ButtonInline>
 
   {#if isMobile()}
-    <Button on:click={share} icon="share" moreClasses="px-2 text-sm {moreClasses}">
+    <ButtonInline on:click={share} icon="share" {big} moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs">
       {shareLabel}
-    </Button>
+    </ButtonInline>
   {/if}
 </div>

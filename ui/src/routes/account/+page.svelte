@@ -16,6 +16,7 @@
   import ProfileNameInput from "./ProfileNameInput.svelte";
   import type { AgentPubKey, AgentPubKeyB64 } from "@holochain/client";
   import type { RelayStore } from "$store/RelayStore";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
@@ -90,9 +91,7 @@
         {makeFullName(firstName, lastName)}
       </h1>
 
-      <button on:click={() => (editingName = true)}>
-        <SvgIcon icon="write" size={24} color="gray" moreClasses="cursor-pointer" />
-      </button>
+      <ButtonIconBare on:click={() => (editingName = true)} icon="write" iconColor="gray" />
     {/if}
   </div>
 

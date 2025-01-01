@@ -37,7 +37,7 @@
 <Header back title={$t("conversations.join_conversation")} />
 
 <form on:submit|preventDefault={() => joinConversation()} class="contents">
-  <div class="container mx-auto flex grow flex-col items-start justify-center px-10">
+  <div class="mx-auto flex w-full grow flex-col items-start justify-center px-10">
     <h1 class="h1">{$t("conversations.enter_invite_code")}</h1>
     <input
       class="bg-surface-900 mt-2 w-full overflow-hidden text-ellipsis border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
@@ -54,12 +54,7 @@
   </div>
 
   <div class="my-8">
-    <Button
-      disabled={!inviteCode || joining}
-      loading={joining}
-      icon="newConversation"
-      moreClasses="variant-filled-tertiary"
-    >
+    <Button disabled={!inviteCode || joining} loading={joining} icon="newConversation">
       {$t("conversations.join_conversation")}
     </Button>
   </div>

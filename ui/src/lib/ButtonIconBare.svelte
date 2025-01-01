@@ -9,7 +9,7 @@
 </script>
 
 <button
-  class="variant-filled-primary dark:variant-filled-tertiary flex cursor-pointer cursor-pointer items-center rounded-full px-5 py-2 disabled:opacity-50
+  class="flex cursor-pointer cursor-pointer items-center rounded-full
   {moreClasses}"
   {disabled}
   on:click

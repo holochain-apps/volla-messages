@@ -36,7 +36,7 @@
 
 <Header backUrl="/conversations" title={$t("conversations.archive")}></Header>
 
-<div class="container mx-auto flex h-full flex-col px-2">
+<div class="mx-auto flex h-full w-full flex-col px-2">
   <div class="relative my-2 my-5 w-full">
     <input
       type="text"

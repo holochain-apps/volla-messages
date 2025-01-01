@@ -16,16 +16,16 @@ import {
   createConversationStore,
 } from "./ConversationStore";
 import { RelayClient } from "$store/RelayClient";
-import type {
-  Contact,
-  Image,
-  Invitation,
-  Message,
-  DnaProperties,
-  RelaySignal,
-  FileStatus,
+import {
+  type Contact,
+  type Image,
+  type Invitation,
+  type Message,
+  type DnaProperties,
+  type RelaySignal,
+  type FileStatus,
   Privacy,
-  UpdateContactInput,
+  type UpdateContactInput,
 } from "$lib/types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
 
