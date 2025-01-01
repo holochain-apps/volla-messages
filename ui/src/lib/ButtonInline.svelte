@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Alignment } from "../types";
-  import SvgIcon from "./SvgIcon.svelte";
+  import { Alignment } from "$lib/types";
+  import SvgIcon from "$lib/SvgIcon.svelte";
 
   export let moreClasses = "";
   export let loading = false;
