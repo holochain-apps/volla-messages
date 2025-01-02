@@ -19,15 +19,16 @@
 </script>
 
 <Header>
-  <button on:click={() => goto("/account")}>
+  <button slot="left" on:click={() => goto("/account")}>
     <Avatar size={24} agentPubKey={myPubKey} />
   </button>
 
   <ButtonIconBare
+    slot="right"
     icon="plusCircle"
     iconSize={24}
     on:click={() => goto("/create")}
-    moreClasses="absolute right-2 top-3 text-primary-600"
+    moreClasses="text-primary-600"
   />
 </Header>
 

@@ -98,7 +98,7 @@
   });
 </script>
 
-<div class="flex h-screen w-full flex-col items-center">
+<div class="mx-auto flex h-screen w-full max-w-screen-lg flex-col items-center">
   {#if connected && myProfileExists}
     <slot />
   {:else if connected && !myProfileExists && !readyToCreateProfile}

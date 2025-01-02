@@ -15,18 +15,28 @@
   }
 </script>
 
-<div class="relative flex w-full flex-row items-center px-4 pt-4">
-  {#if backUrl !== undefined || back}
-    <ButtonIconBare
-      on:click={gotoBack}
-      icon="caretLeft"
-      moreClasses="!h-[16px] !w-[16px] text-base"
-    />
-  {/if}
+<div class="flex w-full items-center p-4">
+  <div class="flex-none">
+    <slot name="left">
+      {#if backUrl !== undefined || back}
+        <ButtonIconBare
+          on:click={gotoBack}
+          icon="caretLeft"
+          moreClasses="!h-[16px] !w-[16px] text-base"
+        />
+      {/if}
+    </slot>
+  </div>
 
-  {#if title !== undefined}
-    <h1 class="flex-1 text-center">{title}</h1>
-  {/if}
+  <div class="flex grow items-center justify-center">
+    <slot name="center">
+      {#if title !== undefined}
+        <h1>{title}</h1>
+      {/if}
+    </slot>
+  </div>
 
-  <slot></slot>
+  <div class="flex-none">
+    <slot name="right"></slot>
+  </div>
 </div>

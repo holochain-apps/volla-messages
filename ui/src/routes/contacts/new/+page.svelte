@@ -4,7 +4,7 @@
   import ContactEditor from "../ContactEditor.svelte";
   import { scanStore } from "$store/ScanStore";
   import { isMobile } from "$lib/utils";
-  import ButtonIcon from "$lib/ButtonIcon.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   let agentPubKeyB64: string | null = null;
 
@@ -15,11 +15,11 @@
 </script>
 
 <Header back title={$t("contacts.create_new_contact")}>
-  {#if isMobile()}
-    <div class="absolute right-0">
-      <ButtonIcon class="z-10 mr-5" on:click={() => scanStore.scan()} icon="qrCodeScan" />
-    </div>
-  {/if}
+  <div slot="right">
+    {#if isMobile()}
+      <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" />
+    {/if}
+  </div>
 </Header>
 
 <ContactEditor {agentPubKeyB64} creating={true} />

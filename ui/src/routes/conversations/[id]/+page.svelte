@@ -145,11 +145,11 @@
 </script>
 
 <Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
-  {#if conversationStore}
-    <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
-      {conversationStore.getTitle()}
-    </h1>
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+    {conversationStore?.getTitle()}
+  </h1>
 
+  <div class="flex items-center justify-center" slot="right">
     <ButtonIconBare
       moreClasses="ml-2 w-[18px]"
       icon="gear"
@@ -164,7 +164,7 @@
           goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
       />
     {/if}
-  {/if}
+  </div>
 </Header>
 
 {#if conversationStore && $conversationStore && typeof $conversationStore.processedMessages !== undefined}

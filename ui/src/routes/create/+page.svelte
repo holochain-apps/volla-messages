@@ -100,7 +100,7 @@
 
 <Header backUrl="/welcome" title={$t("create.page_title")} />
 
-<div class="relative mx-auto flex w-full flex-1 flex-col items-center p-5">
+<div class="flex w-full flex-col items-center p-5">
   <InputSearch bind:value={search} />
 
   <div class="mb-5 flex w-full justify-between gap-4">

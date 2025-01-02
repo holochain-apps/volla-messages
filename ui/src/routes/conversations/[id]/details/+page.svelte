@@ -49,20 +49,20 @@
 </script>
 
 <Header backUrl={`/conversations/${$page.params.id}`}>
-  {#if conversationStore}
-    <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
-      {conversationStore.getTitle()}
-    </h1>
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+    {conversationStore?.getTitle()}
+  </h1>
 
+  <div slot="right">
     {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <ButtonIconBare
-        moreClasses="ml-5 h-[24px] w-[24px]"
+        moreClasses="h-[24px] w-[24px]"
         icon="addPerson"
         on:click={() =>
           goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
       />
     {/if}
-  {/if}
+  </div>
 </Header>
 
 {#if conversationStore && $conversationStore}

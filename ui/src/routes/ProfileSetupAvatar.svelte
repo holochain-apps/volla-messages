@@ -35,7 +35,7 @@
 </script>
 
 <Header>
-  <img src="/icon.png" alt="Logo" width="16" />
+  <img slot="left" src="/icon.png" alt="Logo" width="16" />
 </Header>
 
 <div class="flex grow flex-col items-center justify-center">

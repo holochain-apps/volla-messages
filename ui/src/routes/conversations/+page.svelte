@@ -42,11 +42,12 @@
 </script>
 
 <Header>
-  <button on:click={() => goto("/account")} class="flex flex-1 items-start">
+  <button slot="left" on:click={() => goto("/account")}>
     <Avatar size={24} agentPubKey={myPubKey} />
   </button>
 
   <ButtonIconBare
+    slot="right"
     on:click={() => goto("/create")}
     icon="plusCircle"
     moreClasses="text-primary-600"
