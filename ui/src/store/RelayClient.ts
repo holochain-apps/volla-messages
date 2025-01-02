@@ -76,6 +76,15 @@ export class RelayClient {
       });
   }
 
+  async getAgentsWithProfile(cellId: CellId): Promise<AgentPubKey[]> {
+    return this.client.callZome({
+      cell_id: cellId,
+      zome_name: "profiles",
+      fn_name: "get_agents_with_profile",
+      payload: null,
+    });
+  }
+
   /********* Conversations **********/
   async getRelayClonedCellInfos(): Promise<ClonedCell[]> {
     const appInfo = await this.client.appInfo();
@@ -264,7 +273,13 @@ export class RelayClient {
     return r;
   }
 
-  /********* Contacts **********/
+  /**
+   * Contacts
+   *
+   * Contacts are all stored in the original provisioned relay Cell.
+   * So these functions do NOT take a CellId.
+   *
+   */
 
   public async getAllContacts(): Promise<ContactRecord[]> {
     return this.client.callZome({

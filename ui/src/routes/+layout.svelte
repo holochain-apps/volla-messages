@@ -16,10 +16,12 @@
   import ProfileSetupName from "./ProfileSetupName.svelte";
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
+  import { createContactStore, type ContactStore } from "$store/ContactStore";
 
   let client: AppClient;
   let relayStore: RelayStore;
   let profilesStore: ProfilesStore | undefined = undefined;
+  let contactStore: ContactStore;
   let connected = false;
   let readyToCreateProfile = false;
 
@@ -65,8 +67,8 @@
 
       // Setup stores
       profilesStore = new ProfilesStore(new ProfilesClient(client, ROLE_NAME));
-
       const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
+      contactStore = createContactStore(relayClient);
       relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
 
@@ -99,6 +101,10 @@
 
   setContext("relayStore", {
     getStore: () => relayStore,
+  });
+
+  setContext("contactStore", {
+    getStgore: () => contactStore,
   });
 </script>
 

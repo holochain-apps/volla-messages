@@ -194,11 +194,13 @@ export interface UpdateContactInput {
 
 export interface ContactExtended {
   contact: Contact;
-  fullName: string; // Full name
+  fullName: string;
   publicKeyB64: AgentPubKeyB64;
   originalActionHash: ActionHash;
   previousActionHash: ActionHash;
-  privateConversationDnaHashB64?: DnaHashB64;
+
+  // CellId of private 1-1 conversation with this contact
+  cellId: CellId;
 }
 
 /**
