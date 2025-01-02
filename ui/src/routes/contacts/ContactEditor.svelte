@@ -1,6 +1,5 @@
 <script lang="ts">
   import { isEmpty } from "lodash-es";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { decodeHashFromBase64, type AgentPubKeyB64, type HoloHash } from "@holochain/client";
   import { goto } from "$app/navigation";
@@ -8,11 +7,11 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
-  import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import { get } from "svelte/store";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ButtonsCopyShareIcon from "$lib/ButtonsCopyShareIcon.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import InputImageAvatar from "$lib/InputImageAvatar.svelte";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -115,36 +114,7 @@
 </script>
 
 <div class="flex flex-1 flex-col items-center p-4">
-  <div class="mb-5 mt-6 flex flex-col items-center justify-center">
-    <HiddenFileInput
-      id="avatarInput"
-      accept="image/jpeg, image/png, image/gif"
-      on:change={(event) => {
-        editing = true;
-        imageUrl = event.detail;
-      }}
-    />
-
-    <!-- Label styled as a big clickable icon -->
-    {#if imageUrl}
-      <div class="relative">
-        <img src={imageUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
-        <label
-          for="avatarInput"
-          class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-0 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
-        >
-          <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} />
-        </label>
-      </div>
-    {:else}
-      <label
-        for="avatarInput"
-        class="bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
-      >
-        <SvgIcon icon="image" size={44} color={$modeCurrent ? "%232e2e2e" : "white"} />
-      </label>
-    {/if}
-  </div>
+  <InputImageAvatar bind:value={imageUrl} />
 
   {#if editing}
     <div class="flex w-full grow flex-col justify-start px-8">
@@ -226,7 +196,7 @@
       <div
         class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
       >
-        <SvgIcon icon="handshake" size={36} color={$modeCurrent ? "%23232323" : "white"} />
+        <SvgIcon icon="handshake" moreClasses="w-[36px] h-[36px]" />
         <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
           {$t("contacts.pending_connection_header")}
         </h1>

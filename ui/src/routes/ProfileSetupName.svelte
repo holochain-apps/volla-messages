@@ -1,39 +1,35 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { MIN_FIRST_NAME_LENGTH } from "$config";
   import { Alignment } from "$lib/types";
+  import toast from "svelte-french-toast";
 
-  let firstName = "";
-  let lastName = "";
-
-  $: {
-    // Subscribe to the store and update local state
-    ProfileCreateStore.subscribe(($profile) => {
-      firstName = $profile.firstName;
-      lastName = $profile.lastName;
-    });
-  }
+  let firstName = $ProfileCreateStore.firstName;
+  let lastName = $ProfileCreateStore.lastName;
+  let saving = false;
 
   $: isFirstNameValid = firstName.trim().length >= MIN_FIRST_NAME_LENGTH;
 
-  function saveName() {
-    firstName = firstName.trim();
-    lastName = lastName.trim();
-    ProfileCreateStore.update((current) => {
-      return { ...current, firstName, lastName };
-    });
-    if (isFirstNameValid) {
-      goto("/register/avatar");
+  async function saveName() {
+    if (!isFirstNameValid) return;
+
+    saving = true;
+    try {
+      firstName = firstName.trim();
+      lastName = lastName.trim();
+      ProfileCreateStore.update((p) => ({ ...p, firstName, lastName }));
+    } catch (e) {
+      toast.error("Failed to set name");
     }
+    saving = false;
   }
 </script>
 
 <Header>
-  <img src="/icon.png" alt="Logo" width="16" />
+  <div slot="left" class="bg-appLogo h-auto w-[16px] bg-contain bg-center bg-no-repeat" />
 </Header>
 
 <form on:submit|preventDefault={saveName} class="contents">
@@ -60,9 +56,8 @@
   <div class="items-right my-8 flex w-full justify-end pr-4">
     <Button
       on:click={saveName}
-      disabled={!isFirstNameValid}
+      disabled={!isFirstNameValid || saving}
       icon="arrowRight"
-      iconSize={42}
       iconAlign={Alignment.Right}
       moreClasses="!font-normal"
     >

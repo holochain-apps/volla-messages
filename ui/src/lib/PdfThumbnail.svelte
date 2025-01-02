@@ -1,20 +1,24 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
-  export let pdfDataUrl: string;
-  export let width: number;
-  export let height: number;
-  export let fallbackIcon: string = "file";
   import * as pdfjs from "pdfjs-dist";
+
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
     import.meta.url,
   ).toString();
-  let thumbnailUrl: string | null = null;
+
+  export let dataUrl: string | undefined;
+  export let width: number;
+  export let height: number;
+
+  let renderedDataUrl: string | undefined = undefined;
+
   onMount(async () => {
+    if (!dataUrl) return;
+
     try {
-      const pdf = await pdfjs.getDocument(pdfDataUrl).promise;
+      const pdf = await pdfjs.getDocument(dataUrl).promise;
       const page = await pdf.getPage(1);
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
@@ -31,21 +35,20 @@
         }),
       };
       await page.render(renderContext).promise;
-      thumbnailUrl = canvas.toDataURL();
+      renderedDataUrl = canvas.toDataURL();
     } catch (error) {
       console.error("Error generating PDF thumbnail:", error);
-      thumbnailUrl = null;
     }
   });
 </script>
 
-{#if thumbnailUrl}
+{#if renderedDataUrl !== undefined}
   <img
-    src={thumbnailUrl}
+    src={renderedDataUrl}
     alt="PDF Thumbnail"
     class="rounded object-cover"
     style="width: {width}px; height: {height}px;"
   />
 {:else}
-  <SvgIcon icon={fallbackIcon} color={$modeCurrent ? "black" : "white"} size={50} />
+  <SvgIcon icon="pdf" style="width: {height}px; height: {height}px;" />
 {/if}

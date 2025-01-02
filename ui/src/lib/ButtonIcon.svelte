@@ -2,18 +2,17 @@
   import SvgIcon from "./SvgIcon.svelte";
 
   export let moreClasses = "";
+  export let moreClassesButton = "";
   export let icon: string;
-  export let iconSize: number = 22;
-  export let iconColor: string = "%23FD3524";
   export let disabled: boolean = false;
 </script>
 
 <button
-  class="variant-filled-primary dark:variant-filled-tertiary flex cursor-pointer cursor-pointer items-center rounded-full px-5 py-2 disabled:opacity-50
-  {moreClasses}"
+  class="bg-tertiary-500 dark:bg-secondary-500 dark:text-tertiary-400 flex cursor-pointer items-center rounded-md p-1 disabled:opacity-50
+  {moreClassesButton} h-[24px] w-[24px]"
   {disabled}
   on:click
   {...$$restProps}
 >
-  <SvgIcon {icon} size={iconSize} color={iconColor} />
+  <SvgIcon {icon} moreClasses="h-[13px] w-[13px] {moreClasses}" />
 </button>

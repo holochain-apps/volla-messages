@@ -14,3 +14,6 @@ export const MIN_FIRST_NAME_LENGTH = 3;
 // Maximum size of a file that can be uploaded
 // Currently set to 15MB
 export const MAX_FILE_SIZE = 15 * 1024 * 1024;
+
+export const ROLE_NAME = "relay";
+export const ZOME_NAME = "relay";

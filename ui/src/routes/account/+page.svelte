@@ -1,25 +1,23 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext, onMount } from "svelte";
   import { QRCodeImage } from "svelte-qrcode-image";
-  import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { makeFullName } from "$lib/utils";
   import { ProfilesStore } from "@holochain-open-dev/profiles";
   import { get } from "svelte/store";
   import toast from "svelte-french-toast";
-  import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import { MIN_FIRST_NAME_LENGTH } from "$config";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ProfileNameInput from "./ProfileNameInput.svelte";
   import type { AgentPubKey, AgentPubKeyB64 } from "@holochain/client";
   import type { RelayStore } from "$store/RelayStore";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import InputImageAvatar from "$lib/InputImageAvatar.svelte";
 
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
-  const profilesStore = getContext<{ getStore: () => ProfilesStore }>("profiles").getStore();
+  const profilesContext: { getStore: () => ProfilesStore } = getContext("profiles");
+  let profilesStore = profilesContext.getStore();
   const agentPublicKey64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -52,10 +50,9 @@
 
 <Header back />
 
-<div class="flex w-full grow flex-col items-center pt-10">
-  <HiddenFileInput
-    id="avatarInput"
-    accept="image/jpeg, image/png, image/gif"
+<div class="flex w-full grow flex-col items-center">
+  <InputImageAvatar
+    value={avatar}
     on:change={(event) => {
       try {
         relayStore.client.updateProfile(firstName, lastName, event.detail);
@@ -65,15 +62,6 @@
     }}
   />
 
-  <div style="position:relative">
-    <Avatar agentPubKey={myPubKey} size={128} moreClasses="mb-4" />
-    <label
-      for="avatarInput"
-      class="bg-tertiary-500 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
-    >
-      <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} size={26} />
-    </label>
-  </div>
   <div class="mb-10 flex flex-row items-center justify-center py-2">
     {#if editingName}
       <ProfileNameInput
@@ -87,7 +75,11 @@
         {makeFullName(firstName, lastName)}
       </h1>
 
-      <ButtonIconBare on:click={() => (editingName = true)} icon="write" iconColor="gray" />
+      <ButtonIconBare
+        on:click={() => (editingName = true)}
+        icon="write"
+        moreClasses="text-gray-500"
+      />
     {/if}
   </div>
 

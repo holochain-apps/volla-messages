@@ -9,6 +9,8 @@
   export let initialValue: string;
 
   let value: string = initialValue;
+
+  $: isTitleValid = value.trim().length >= MIN_TITLE_LENGTH;
 </script>
 
 <div class="flex flex-row flex-wrap items-center justify-center">
@@ -25,17 +27,13 @@
       if (event.key === "Escape") dispatch("cancel");
     }}
   />
-  <div class="flex flex-none items-center justify-center">
+  <div class="flex flex-none items-center justify-center space-x-2">
     <ButtonIcon
-      moreClasses="h-6 w-6 rounded-md !p-1 mb-0 mr-2 bg-primary-100 flex items-center justify-center"
+      moreClasses="!text-primary-600"
       on:click={() => dispatch("save", value)}
+      disabled={!isTitleValid}
       icon="checkMark"
     />
-    <ButtonIcon
-      moreClasses="h-6 w-6 !p-1 mb-0 rounded-md bg-surface-400 flex items-center justify-center"
-      on:click={() => dispatch("cancel")}
-      icon="x"
-      iconColor="gray"
-    />
+    <ButtonIcon on:click={() => dispatch("cancel")} icon="x" moreClasses="!text-gray-500" />
   </div>
 </div>

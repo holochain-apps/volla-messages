@@ -25,6 +25,13 @@ export default {
         "1/2": "50%",
         "2/3": "66%",
       },
+      backgroundImage: {
+        appLogo: "url(/app-logo.png)",
+        clearSkiesGray: "url(/clear-skies-gray.png)",
+        clearSkiesWhite: "url(/clear-skies-white.png)",
+        holochainLogoCharcoal: "url(/holochain-charcoal.png)",
+        holochainLogoWhite: "url(/holochain-white.png)",
+      },
     },
   },
   plugins: [
