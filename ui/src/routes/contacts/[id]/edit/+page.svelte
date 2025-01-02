@@ -4,15 +4,16 @@
   import { scanStore } from "$store/ScanStore";
   import { isMobile, makeFullName } from "$lib/utils";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
-  import InputContact from "../InputContact.svelte";
+  import InputContact from "../../InputContact.svelte";
   import { goto } from "$app/navigation";
-  import { Privacy, type Contact } from "$lib/types";
+  import { type Contact } from "$lib/types";
   import { getContext } from "svelte";
-  import type { ContactStore } from "$store/ContactStore";
+  import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
   import type { RelayStore } from "$store/RelayStore";
   import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import { get } from "svelte/store";
   import toast from "svelte-french-toast";
+  import { page } from "$app/stores";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -21,33 +22,21 @@
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
   let saving = false;
-  let contact: Contact = {
-    first_name: "",
-    last_name: "",
-    avatar: "",
-    public_key: new Uint8Array(),
-  };
+  $: contact = deriveOneContactStore(contactStore, $page.params.id);
 
-  async function create(contact: Contact) {
+  let newContact = get(contact).contact;
+
+  async function update(val: Contact) {
     saving = true;
     try {
-      // Create cell for private convesation
-      const conversation = await relayStore.createConversation(
-        makeFullName(contact.first_name, contact.last_name),
-        "",
-        Privacy.Private,
-        [encodeHashToBase64(contact.public_key)],
-      );
-      const cellId = get(conversation).conversation.cellId;
-
       // Create contact
-      await contactStore.create(contact, cellId);
+      await contact.update(val);
 
       // Navigate to private conversation
-      await goto(`/conversations/${encodeHashToBase64(cellId[0])}`);
+      await goto(`/conversations/${encodeHashToBase64($contact.cellId[0])}`);
     } catch (e) {
       console.error(e);
-      toast.error($tAny("contacts.error_saving", { updating: false }));
+      toast.error($tAny("contacts.error_saving", { updating: true }));
     }
     saving = false;
   }
@@ -56,7 +45,7 @@
     const agentPubKeyB64: AgentPubKeyB64 | null = scanStore.readResult();
     if (!agentPubKeyB64) return;
 
-    contact.public_key = decodeHashFromBase64(agentPubKeyB64);
+    newContact.public_key = decodeHashFromBase64(agentPubKeyB64);
   }
   loadScanResult();
 </script>
@@ -70,7 +59,7 @@
 </Header>
 
 <InputContact
-  bind:value={contact}
+  bind:value={newContact}
   on:cancel={() => history.back()}
-  on:change={(e) => create(e.detail)}
+  on:change={(e) => update(e.detail)}
 />

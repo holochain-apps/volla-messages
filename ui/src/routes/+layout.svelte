@@ -69,6 +69,8 @@
       profilesStore = new ProfilesStore(new ProfilesClient(client, ROLE_NAME));
       const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
       contactStore = createContactStore(relayClient);
+      await contactStore.initialize();
+
       relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
 

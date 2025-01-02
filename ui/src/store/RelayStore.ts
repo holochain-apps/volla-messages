@@ -42,7 +42,6 @@ export class RelayStore {
   async initialize() {
     const clonedCellInfos = await this.client.getRelayClonedCellInfos();
     await Promise.allSettled(clonedCellInfos.map(async (c) => this._addConversation(c)));
-    await this.fetchAllContacts();
 
     const myPubKeyB64 = encodeHashToBase64(this.client.client.myPubKey);
     this.client.client.on("signal", async (signal: Signal) => {
@@ -141,74 +140,5 @@ export class RelayStore {
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
     console.log("conversations", this.conversations);
     return this.conversations.find((c) => get(c).conversation.dnaHashB64 === dnaHashB64);
-  }
-
-  /***** Contacts ******/
-  async fetchAllContacts() {
-    const contactRecords = await this.client.getAllContacts();
-    this.contacts = contactRecords.map((contactRecord: any) => {
-      return createContactStore(
-        this,
-        contactRecord.contact,
-        contactRecord.original_action,
-        contactRecord.signed_action.hashed.hash,
-      );
-    });
-  }
-
-  async createContact(contact: Contact) {
-    const contactResult = await this.client.createContact(contact);
-    const contactPubKeyB64 = encodeHashToBase64(contact.public_key);
-
-    if (contactResult) {
-      // Immediately add a conversation with the new contact, unless you already have one with them
-      let conversation = this.conversations.find(
-        (c) =>
-          get(c).conversation.privacy === Privacy.Private &&
-          c.getAllMembers().every((m) => m.publicKeyB64 === contactPubKeyB64),
-      );
-      if (!conversation) {
-        conversation = await this.createConversation(
-          makeFullName(contact.first_name, contact.last_name),
-          "",
-          Privacy.Private,
-          [contactPubKeyB64],
-        );
-      }
-      const contactStore = createContactStore(
-        this,
-        contact,
-        contactResult.signed_action.hashed.hash,
-        contactResult.signed_action.hashed.hash,
-        conversation ? get(conversation).conversation.dnaHashB64 : undefined,
-      );
-      this.contacts = [...this.contacts, contactStore];
-      return contactStore;
-    }
-  }
-
-  async updateContact(input: UpdateContactInput) {
-    const contactResult = await this.client.updateContact(input);
-    const contactPubKeyB64 = encodeHashToBase64(input.updated_contact.public_key);
-
-    if (contactResult) {
-      const contactStore = createContactStore(
-        this,
-        input.updated_contact,
-        input.original_contact_hash,
-        input.previous_contact_hash,
-        input.updated_contact.avatar,
-      );
-      this.contacts = [
-        ...this.contacts.filter((c) => get(c).publicKeyB64 !== contactPubKeyB64),
-        contactStore,
-      ];
-      return contactStore;
-    }
-    return false;
-  }
-
-  getContact(publicKey: AgentPubKeyB64): ContactStore | undefined {
-    return this.contacts.find((c) => get(c).publicKeyB64 === publicKey);
   }
 }
