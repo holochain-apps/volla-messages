@@ -1,17 +1,15 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { MIN_TITLE_LENGTH } from "$config";
   import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
-  import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import { get } from "svelte/store";
+  import InputImageAvatar from "$lib/InputImageAvatar.svelte";
 
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
@@ -36,9 +34,8 @@
 <Header back title={$t("common.new_group")} />
 
 <div class="my-10 flex flex-col items-center justify-center">
-  <HiddenFileInput
-    id="avatarInput"
-    accept="image/jpeg, image/png, image/gif"
+  <InputImageAvatar
+    value={imageUrl}
     on:change={(event) => {
       try {
         imageUrl = event.detail;
@@ -47,18 +44,6 @@
       }
     }}
   />
-
-  <!-- Label styled as a big clickable icon -->
-  <label
-    for="avatarInput"
-    class="file-icon-label bg-tertiary-500 hover:bg-tertiary-600 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full"
-  >
-    {#if imageUrl}
-      <img src={imageUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
-    {:else}
-      <SvgIcon icon="image" size={44} color={$modeCurrent ? "%232e2e2e" : "white"} />
-    {/if}
-  </label>
 </div>
 
 <div class="flex min-w-[66%] grow flex-col justify-start">

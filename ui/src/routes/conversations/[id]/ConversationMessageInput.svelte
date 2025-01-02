@@ -1,7 +1,6 @@
 <script lang="ts">
   import { FileStatus, Size, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { t } from "$translations";
   import { createEventDispatcher } from "svelte";
   import toast from "svelte-french-toast";
@@ -92,13 +91,11 @@
   <form class="flex" method="POST" on:submit|preventDefault={send}>
     <input type="file" multiple id="files" class="hidden" on:change={handleImagesSelected} />
     <label for="files" class="flex cursor-pointer">
-      <SvgIcon
-        icon="fileClip"
-        color={$modeCurrent ? "%232e2e2e" : "white"}
-        size={26}
-        moreClasses="ml-3"
-      />
+      <div class="flex h-full w-full items-center justify-center">
+        <SvgIcon icon="fileClip" moreClasses="ml-2" />
+      </div>
     </label>
+
     <div class="flex w-full flex-col">
       <!-- svelte-ignore a11y-autofocus -->
       <input
@@ -118,14 +115,14 @@
           }
         }}
       />
-      <div class="flex flex-row flex-wrap px-4">
+      <div class="mx-4 flex flex-row flex-wrap">
         {#each images as file (file.id)}
           <FilePreview
             {file}
             size={Size.Small}
             showCancel
             maxFilenameLength={10}
-            className="mr-2"
+            moreClasses="mr-2 mt-2"
             on:cancel={(e) => cancelUpload(e.detail)}
           />
         {/each}
@@ -133,10 +130,8 @@
     </div>
     <ButtonIconBare
       disabled={text.trim() === "" && images.length === 0}
-      class="pr-2 disabled:opacity-50"
+      moreClassesButton="pr-2 disabled:opacity-50"
       icon="caretRight"
-      iconColor={$modeCurrent ? "#2e2e2e" : "white"}
-      iconSize={10}
     />
   </form>
 </div>

@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { derived, get } from "svelte/store";
   import { goto } from "$app/navigation";
   import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
@@ -15,6 +13,7 @@
   import ButtonSquare from "$lib/ButtonSquare.svelte";
   import ButtonInline from "$lib/ButtonInline.svelte";
   import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
+  import InputSearch from "$lib/InputSearch.svelte";
 
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
@@ -101,21 +100,8 @@
 
 <Header backUrl="/welcome" title={$t("create.page_title")} />
 
-<div class="text-secondary-500 relative mx-auto flex w-full flex-1 flex-col items-center p-5">
-  <div class="relative my-5 w-full">
-    <input
-      type="text"
-      class="!bg-tertiary-500 dark:!bg-secondary-500 dark:text-tertiary-500 text-md h-12 w-full rounded-full border-0 pl-10 pr-4"
-      placeholder={$t("create.search_placeholder")}
-      bind:value={search}
-    />
-    <SvgIcon
-      icon="search"
-      size={24}
-      color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
-      moreClasses="absolute top-3 left-3"
-    />
-  </div>
+<div class="flex w-full flex-col items-center p-5">
+  <InputSearch bind:value={search} />
 
   <div class="mb-5 flex w-full justify-between gap-4">
     <ButtonSquare
@@ -138,11 +124,9 @@
   </div>
 
   {#if contactsFilteredStores.length === 0}
-    <img
-      src={$modeCurrent ? "/clear-skies-gray.png" : "/clear-skies-white.png"}
-      alt="No contacts"
-      class="mb-4 mt-10 h-32 w-32"
-    />
+    <div
+      class="bg-clearSkiesGray dark:bg-clearSkiesWhite mb-4 mt-10 h-32 w-32 bg-contain bg-center bg-no-repeat"
+    ></div>
     <h2 class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold">
       {$t("create.no_contacts_header")}
     </h2>

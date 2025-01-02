@@ -1,7 +1,6 @@
 <script lang="ts">
   import { debounce } from "lodash-es";
   import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
@@ -140,46 +139,39 @@
 </script>
 
 <Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
-  {#if conversationStore}
-    <h1 class="block grow self-center overflow-hidden text-ellipsis whitespace-nowrap text-center">
-      {conversationStore.getTitle()}
-    </h1>
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+    {conversationStore?.getTitle()}
+  </h1>
+
+  <div class="flex items-center justify-center" slot="right">
     <ButtonIconBare
-      class="self-center pl-2"
+      moreClasses="ml-2 !w-[18px] !h-auto"
       icon="gear"
-      iconColor={$modeCurrent ? "%232e2e2e" : "white"}
-      iconSize={18}
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     />
+
     {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <ButtonIconBare
-        class="flex-none pl-5"
-        iconSize={24}
+        moreClasses="ml-5 h-[24px] w-[24px]"
+        icon="addPerson"
         on:click={() =>
           goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
-        icon="addPerson"
-        iconColor={$modeCurrent ? "%232e2e2e" : "white"}
       />
     {/if}
-  {/if}
+  </div>
 </Header>
 
 {#if conversationStore && $conversationStore && typeof $conversationStore.processedMessages !== undefined}
   <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
     <div
-      class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-10"
+      class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
       bind:this={conversationContainer}
     >
       {#if $conversationStore.conversation.privacy === Privacy.Private}
         <div class="flex items-center justify-center gap-4">
           {#if encodeHashToBase64($conversationStore.conversation.progenitor) !== myPubKeyB64 && numMembers === 1}
             <!-- When you join a private conversation and it has not synced yet -->
-            <SvgIcon
-              icon="spinner"
-              size={44}
-              color={$modeCurrent ? "%232e2e2e" : "white"}
-              moreClasses="mb-5"
-            />
+            <SvgIcon icon="spinner" moreClasses="mb-5 w-[44px] h-[44px]" />
           {/if}
 
           <ConversationMembers {conversationStore} />

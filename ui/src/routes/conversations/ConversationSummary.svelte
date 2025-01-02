@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { slide } from "svelte/transition";
   import { quintOut } from "svelte/easing";
   import { pan, type PanCustomEvent } from "svelte-gestures";
-  import Avatar from "./Avatar.svelte";
-  import SvgIcon from "./SvgIcon.svelte";
+  import Avatar from "../../lib/Avatar.svelte";
+  import SvgIcon from "../../lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { isMobile } from "$lib/utils";
   import type { ConversationStore } from "$store/ConversationStore";
@@ -13,6 +12,7 @@
   import DOMPurify from "dompurify";
 
   export let conversationStore: ConversationStore;
+
   $: conversation = $conversationStore.conversation;
   $: unread = $conversationStore.unread;
   $: archived = $conversationStore.archived;
@@ -162,7 +162,7 @@
             <span
               class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
             >
-              <SvgIcon icon="group" size={20} color="#ccc" />
+              <SvgIcon icon="group" />
             </span>
           {:else if allMembers.length == 1}
             <Avatar
@@ -213,7 +213,7 @@
         <span
           class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
         >
-          <SvgIcon icon="group" size={20} color="#ccc" />
+          <SvgIcon icon="group" />
         </span>
       {/if}
       <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden" class:unread>
@@ -237,18 +237,16 @@
           {/if}
         </span>
       </div>
-      <span class="text-secondary-300 relative flex flex-row items-center text-xs">
-        <SvgIcon icon="person" size={8} color={$modeCurrent ? "#aaa" : "#ccc"} />
-        <span class="ml-1">{Object.values(conversation.agentProfiles).length}</span>
-      </span>
+      <div class="text-secondary-300 relative flex flex-row items-center text-xs">
+        <SvgIcon icon="person" moreClasses="h-[8px] w-[8px]" />
+        <div class="ml-1">{Object.values(conversation.agentProfiles).length}</div>
+      </div>
       {#if !isMobile() && isHovering && x === 0}
-        <button class="z-10" on:click|preventDefault|stopPropagation={toggleMenu}>
-          <SvgIcon
-            icon="caretDown"
-            size={24}
-            color={$modeCurrent ? "#aaa" : "#ccc"}
-            moreClasses="border-2 rounded-md ml-2 shadow-md"
-          />
+        <button
+          class="z-10 flex items-center justify-center"
+          on:click|preventDefault|stopPropagation={toggleMenu}
+        >
+          <SvgIcon icon="caretDown" moreClasses="border-2 rounded-md ml-2 shadow-md" />
         </button>
       {/if}
     </button>
@@ -264,7 +262,7 @@
           class="text-surface-100 dark:text-tertiary-100 mr-2 flex flex-col items-center justify-center font-bold"
           on:click={startArchive}
         >
-          <SvgIcon icon="archive" size={20} color="white" moreClasses="" />
+          <SvgIcon icon="archive" />
           <span class="text-xs"
             >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
           >
@@ -283,12 +281,7 @@
   >
     <li>
       <button class="flex flex-row items-center justify-start" on:click={startArchive}>
-        <SvgIcon
-          icon="archive"
-          size={20}
-          color={$modeCurrent ? "#aaa" : "#ccc"}
-          moreClasses="mr-2"
-        />
+        <SvgIcon icon="archive" moreClasses="mr-2" />
         <span class="text-xs"
           >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
         >

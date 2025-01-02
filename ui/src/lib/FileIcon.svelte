@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import type { Image } from "$lib/types";
 
   export let file: Image;
-  export let size = 50;
+  export let style: string = "";
 
   const commonFileTypes: { [key: string]: string[] } = {
     document: ["doc", "docx", "rtf", "txt", "odt"],
@@ -33,4 +32,4 @@
   $: iconName = getIconName(file);
 </script>
 
-<SvgIcon icon={iconName} color={$modeCurrent ? "black" : "white"} {size} />
+<SvgIcon icon={iconName} {style} />

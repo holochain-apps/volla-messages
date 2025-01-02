@@ -19,20 +19,21 @@
 </script>
 
 <Header>
-  <button on:click={() => goto("/account")}>
+  <button slot="left" on:click={() => goto("/account")}>
     <Avatar size={24} agentPubKey={myPubKey} />
   </button>
 
   <ButtonIconBare
+    slot="right"
     icon="plusCircle"
     iconSize={24}
     on:click={() => goto("/create")}
-    moreClasses="absolute right-4"
+    moreClasses="text-primary-600"
   />
 </Header>
 
 <div class="mx-auto flex w-full grow flex-col items-center justify-center px-10 text-center">
-  <SvgIcon icon="hand" size={48} />
+  <SvgIcon icon="hand" moreClasses="w-[48px] h-[48px] text-primary-600" />
   <h1 class="h1 mb-4 mt-12">{$t("common.welcome")}</h1>
   <p class="mb-4">{$t("common.welcome_text_1")}</p>
   <p>{$t("common.welcome_text_2")}</p>

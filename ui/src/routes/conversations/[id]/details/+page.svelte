@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import { page } from "$app/stores";
@@ -10,10 +9,10 @@
   import type { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
   import { goto } from "$app/navigation";
-  import HiddenFileInput from "$lib/HiddenFileInput.svelte";
   import ButtonsCopyShareInline from "$lib/ButtonsCopyShareInline.svelte";
   import TitleInput from "./TitleInput.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import InputImageAvatar from "$lib/InputImageAvatar.svelte";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -50,28 +49,26 @@
 </script>
 
 <Header backUrl={`/conversations/${$page.params.id}`}>
-  {#if conversationStore && $conversationStore}
-    <h1 class="flex-1 grow text-center">
-      {#if $conversationStore.conversation.privacy === Privacy.Public}{$t(
-          "conversations.group_details",
-        )}{:else}{conversationStore.getTitle()}{/if}
-    </h1>
-    {#if $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+    {conversationStore?.getTitle()}
+  </h1>
+
+  <div slot="right">
+    {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
       <ButtonIconBare
+        moreClasses="h-[24px] w-[24px]"
         icon="addPerson"
-        iconSize={24}
-        iconColor={$modeCurrent ? "%232e2e2e" : "white"}
-        class="absolute right-5"
-        on:click={() => goto(`/conversations/${$conversationStore.conversation.dnaHashB64}/invite`)}
+        on:click={() =>
+          goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
       />
     {/if}
-  {/if}
+  </div>
 </Header>
 
 {#if conversationStore && $conversationStore}
   {@const numMembers = Object.values($conversationStore.conversation.agentProfiles).length}
 
-  <div class="relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-10">
+  <div class="relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-6">
     {#if $conversationStore.conversation.privacy === Privacy.Private}
       <div class="flex items-center justify-center gap-4">
         {#each conversationStore.getAllMembers().slice(0, 2) as profile}
@@ -93,30 +90,7 @@
         {/if}
       </div>
     {:else}
-      <HiddenFileInput
-        id="avatarInput"
-        accept="image/jpeg, image/png, image/gif"
-        on:change={(e) => saveImage(e.detail)}
-      />
-
-      {#if image}
-        <div style="position:relative">
-          <img src={image} alt="Group" class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover" />
-          <label
-            for="avatarInput"
-            class="bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute bottom-5 right-0 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full pl-1"
-          >
-            <SvgIcon icon="image" color={$modeCurrent ? "%232e2e2e" : "white"} />
-          </label>
-        </div>
-      {:else}
-        <label
-          for="avatarInput"
-          class="bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex h-32 min-h-32 w-32 cursor-pointer items-center justify-center rounded-full rounded-full"
-        >
-          <SvgIcon icon="image" size={44} color={$modeCurrent ? "%232e2e2e" : "white"} />
-        </label>
-      {/if}
+      <InputImageAvatar value={image} on:change={(e) => saveImage(e.detail)} />
     {/if}
 
     <div class="flex items-center justify-center space-x-2">
@@ -131,7 +105,11 @@
           {title}
         </h1>
         {#if $conversationStore.conversation.privacy !== Privacy.Private}
-          <ButtonIconBare on:click={() => (editingTitle = true)} icon="write" iconColor="gray" />
+          <ButtonIconBare
+            on:click={() => (editingTitle = true)}
+            icon="write"
+            moreClasses="text-gray-500"
+          />
         {/if}
       {/if}
     </div>
@@ -150,9 +128,9 @@
             class="variant-filled-primary mb-2 flex flex-row items-center rounded-full p-2 text-xl"
           >
             <span
-              class="bg-surface-500 inline-block flex h-10 w-10 items-center justify-center rounded-full"
+              class="bg-tertiary-500 inline-block flex h-10 w-10 items-center justify-center rounded-full"
             >
-              <SvgIcon icon="addPerson" size={24} color="%23FD3524" />
+              <SvgIcon icon="addPerson" moreClasses="text-primary-600" />
             </span>
             <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.add_members")}</span>
 

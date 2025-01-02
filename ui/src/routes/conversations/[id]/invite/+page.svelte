@@ -1,18 +1,17 @@
 <script lang="ts">
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { getContext } from "svelte";
   import { derived } from "svelte/store";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
+  import InputSearch from "$lib/InputSearch.svelte";
 
   const tAny = t as any;
 
@@ -76,28 +75,13 @@
 />
 
 {#if $conversationStore}
-  <div class="text-secondary-500 relative mx-auto flex w-full flex-1 flex-col items-center p-5">
-    <div class="relative my-5 w-full">
-      <input
-        type="text"
-        class="text-md !bg-tertiary-500 dark:!bg-secondary-500 dark:text-tertiary-500 h-12 w-full rounded-full border-0 pl-10 pr-4"
-        placeholder={$t("create.search_placeholder")}
-        bind:value={search}
-      />
-      <SvgIcon
-        icon="search"
-        size={24}
-        color={$modeCurrent ? "%232e2e2e" : "%23ccc"}
-        moreClasses="absolute top-3 left-3"
-      />
-    </div>
+  <div class="relative mx-auto flex w-full flex-1 flex-col items-center p-5">
+    <InputSearch bind:value={search} />
 
     {#if $contacts.length === 0}
-      <img
-        src={$modeCurrent ? "/clear-skies-gray.png" : "/clear-skies-white.png"}
-        alt="No contacts"
-        class="mb-4 mt-10 h-32 w-32"
-      />
+      <div
+        class="bg-clearSkiesGray dark:bg-clearSkiesWhite mb-4 mt-10 h-32 w-32 bg-contain bg-center bg-no-repeat"
+      ></div>
       <h2 class="text-primary-200 text-lg">
         {$t("create.no_contacts_header")}
       </h2>

@@ -72,7 +72,6 @@
               size={Size.Large}
               imageLightbox
               align={fromMe ? Alignment.Right : Alignment.Left}
-              className="mb-2"
             />
           </div>
         {/each}
