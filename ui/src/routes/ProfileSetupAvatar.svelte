@@ -35,7 +35,7 @@
 </script>
 
 <Header>
-  <div slot="left" class="bg-appLogo h-auto w-[16px] bg-contain bg-center bg-no-repeat" />
+  <div slot="left" class="bg-appLogo h-[16px] w-[16px] bg-contain bg-center bg-no-repeat" />
 </Header>
 
 <div class="flex grow flex-col items-center justify-center">
