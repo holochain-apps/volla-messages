@@ -19,6 +19,7 @@ import type { RelayClient } from "./RelayClient";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import { persisted } from "./GenericPersistedStore";
 import { createGenericAgentKeyedStore } from "./GenericAgentStore";
+import { sortBy } from "lodash-es";
 
 export interface ContactsExtendedObj {
   [agentPubKeyB64: AgentPubKeyB64]: ContactExtended;
@@ -240,4 +241,6 @@ export function deriveOneContactStore(contactStore: ContactStore, agentPubKeyB64
  * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
  */
 export const deriveContactListStore = (contactStore: ContactStore) =>
-  derived(contactStore, ($contactStore) => Object.entries($contactStore));
+  derived(contactStore, ($contactStore) =>
+    sortBy(Object.entries($contactStore), [(c) => c[1].fullName]),
+  );

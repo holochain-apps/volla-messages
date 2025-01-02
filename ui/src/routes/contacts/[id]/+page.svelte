@@ -20,7 +20,7 @@
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
-  $: contact = deriveOneContactStore(contactStore, $page.params.id);
+  let contact = deriveOneContactStore(contactStore, $page.params.id);
   $: conversationStore = relayStore.getConversation(encodeHashToBase64($contact.cellId[0]));
 
   let pollInterval: NodeJS.Timeout;

@@ -25,7 +25,7 @@
 
   const tAny = t as any;
 
-  $: contactListStore = deriveContactListStore(contactStore);
+  let contactListStore = deriveContactListStore(contactStore);
 
   $: searchQueryNormalized = searchQuery.trim().toLowerCase();
 
@@ -33,6 +33,7 @@
     .map((agentPubKeyB64) => $contactStore[agentPubKeyB64])
     .filter((c) => c !== undefined);
 
+  // Derive a string with the names of the selected contacts
   let selectedContactNames = "";
   $: {
     if (selectedContactExtendeds.length === 1) {
@@ -44,22 +45,26 @@
     }
   }
 
-  $: searchFilteredAgentPubKeyB64s = $contactListStore
-    .filter(
-      ([agentPubKeyB64, contactExtended]) =>
-        contactExtended.contact.first_name.toLowerCase().includes(searchQueryNormalized) ||
-        contactExtended.contact.first_name.toLowerCase().includes(searchQueryNormalized) ||
-        (searchQueryNormalized.length > 2 &&
-          agentPubKeyB64.toLowerCase().includes(searchQueryNormalized)),
-    )
-    .sort(([, contactExtendedA], [, contactExtendedB]) =>
-      contactExtendedA.contact.first_name.localeCompare(contactExtendedB.contact.first_name),
-    )
-    .map(([agentPubKeyB64]) => agentPubKeyB64);
+  // Derive the list of contacts to display, filtered by the search input
+  $: searchResults =
+    searchQueryNormalized.length > 0
+      ? $contactListStore.filter(([, contactExtended]) =>
+          contactExtended.fullName.toLowerCase().includes(searchQueryNormalized),
+        )
+      : $contactListStore;
+
+  // Derive the list of contacts to display, along with if the first character should be displayed
+  $: searchResultsExtended = searchResults.map((c, i) => ({
+    element: c,
+    displayFirstCharacter:
+      i === 0
+        ? true
+        : c[1].contact.first_name.charAt(0) !==
+          searchResults[i - 1][1].contact.first_name.charAt(0),
+  }));
 
   async function createConversation() {
     // TODO if conversation already exists, navigate to it
-
     pendingCreate = true;
     try {
       const conversationStore = await relayStore.createConversation(
@@ -101,7 +106,7 @@
     />
   </div>
 
-  {#if searchFilteredAgentPubKeyB64s.length === 0}
+  {#if searchResultsExtended.length === 0}
     <div
       class="bg-clearSkiesGray dark:bg-clearSkiesWhite mb-4 mt-10 h-32 w-32 bg-contain bg-center bg-no-repeat"
     ></div>
@@ -113,15 +118,16 @@
     </p>
   {:else}
     <div class="w-full">
-      {#each searchFilteredAgentPubKeyB64s as agentPubKeyB64, i}
+      {#each searchResultsExtended as { element: [agentPubKeyB64, contactExtended], displayFirstCharacter }, i}
+        {#if displayFirstCharacter}
+          <p class="text-secondary-300 mb-1 mt-2 pl-0">
+            {contactExtended.contact.first_name.charAt(0).toUpperCase()}
+          </p>
+        {/if}
+
         <ContactListItem
           {agentPubKeyB64}
           selected={selectedAgentPubKeyB64s.includes(agentPubKeyB64)}
-          displayFirstCharacter={i === 0 ||
-            $contactStore[searchFilteredAgentPubKeyB64s[i - 1]].contact.first_name
-              .charAt(0)
-              .toLowerCase() !==
-              $contactStore[agentPubKeyB64].contact.first_name.charAt(0).toLowerCase()}
           on:click={() =>
             (selectedAgentPubKeyB64s = xor(selectedAgentPubKeyB64s, [agentPubKeyB64]))}
         />

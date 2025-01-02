@@ -11,7 +11,6 @@
 
   export let agentPubKeyB64: AgentPubKeyB64;
   export let selected: boolean = false;
-  export let displayFirstCharacter: boolean = false;
 
   $: contact = deriveOneContactStore(contactStore, agentPubKeyB64);
 
@@ -20,12 +19,6 @@
     hasAgentJoinedDht = await contactStore.getHasAgentJoinedDht(agentPubKeyB64);
   });
 </script>
-
-{#if displayFirstCharacter}
-  <p class="text-secondary-300 mb-1 mt-2 pl-0">
-    {$contact.contact.first_name[0].toUpperCase()}
-  </p>
-{/if}
 
 <button
   class="-ml-1 mb-2 flex w-full items-center justify-between rounded-3xl py-1 pl-1 pr-2 {selected &&
