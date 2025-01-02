@@ -50,7 +50,7 @@
 
 <Header back />
 
-<div class="flex w-full grow flex-col items-center pt-10">
+<div class="flex w-full grow flex-col items-center">
   <InputImageAvatar
     value={avatar}
     on:change={(event) => {

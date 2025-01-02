@@ -68,7 +68,7 @@
 {#if conversationStore && $conversationStore}
   {@const numMembers = Object.values($conversationStore.conversation.agentProfiles).length}
 
-  <div class="relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-10">
+  <div class="relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-6">
     {#if $conversationStore.conversation.privacy === Privacy.Private}
       <div class="flex items-center justify-center gap-4">
         {#each conversationStore.getAllMembers().slice(0, 2) as profile}

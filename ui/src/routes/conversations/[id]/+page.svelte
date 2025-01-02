@@ -151,7 +151,7 @@
 
   <div class="flex items-center justify-center" slot="right">
     <ButtonIconBare
-      moreClasses="ml-2 w-[18px]"
+      moreClasses="ml-2 !w-[18px] !h-auto"
       icon="gear"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     />
@@ -170,7 +170,7 @@
 {#if conversationStore && $conversationStore && typeof $conversationStore.processedMessages !== undefined}
   <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
     <div
-      class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-10"
+      class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
       bind:this={conversationContainer}
     >
       {#if $conversationStore.conversation.privacy === Privacy.Private}
