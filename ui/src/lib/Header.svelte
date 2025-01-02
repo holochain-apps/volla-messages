@@ -1,6 +1,5 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import ButtonIconBare from "./ButtonIconBare.svelte";
 
   export let back: boolean = false;
@@ -19,11 +18,9 @@
 <div class="relative flex w-full flex-row items-center px-4 pt-4">
   {#if backUrl !== undefined || back}
     <ButtonIconBare
-      class="pr-5 text-4xl"
       on:click={gotoBack}
       icon="caretLeft"
-      iconColor={$modeCurrent ? "%232e2e2e" : "white"}
-      iconSize={10}
+      moreClasses="!h-[16px] !w-[16px] text-base"
     />
   {/if}
 

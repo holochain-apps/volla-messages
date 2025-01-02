@@ -17,9 +17,9 @@
   {...$$restProps}
 >
   {#if loading}
-    <SvgIcon icon="spinner" size={iconSize} color="%23FD3524" />
+    <SvgIcon icon="spinner" moreClasses="text-primary-500 w-[{iconSize}px]" />
   {:else if icon !== undefined}
-    <SvgIcon {icon} size={iconSize} color="%23FD3524" />
+    <SvgIcon {icon} moreClasses="text-primary-500 w-[{iconSize}px]" />
   {/if}
 
   <div class="flex w-full justify-center">

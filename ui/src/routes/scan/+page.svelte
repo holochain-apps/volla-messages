@@ -81,7 +81,7 @@
       <div class="shadow-full h-64 w-64 rounded-lg border-2 border-solid border-white">
         {#if needsPermission}
           <div class="flex h-full w-full items-center justify-center">
-            <SvgIcon icon="warning" color="%232e2e2e" size={120} />
+            <SvgIcon icon="warning" moreClasses="w-[120px] h-[120px]" />
           </div>
         {/if}
       </div>

@@ -1,24 +1,11 @@
 <script lang="ts">
+  import { getContext } from "svelte";
   import SvgIcon from "./SvgIcon.svelte";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
 
   export let moreClasses = "";
   export let icon: string;
-  export let iconSize: number = 32;
-  export let iconColor: string | undefined = undefined;
   export let disabled: boolean = false;
   export let label: string | undefined = undefined;
-
-  function getColor() {
-    if (iconColor !== undefined) {
-      return iconColor;
-    } else if ($modeCurrent) {
-      return "%232e2e2e";
-    } else {
-      return "white";
-    }
-  }
-  $: color = getColor();
 </script>
 
 <button
@@ -27,7 +14,7 @@
   on:click
   {disabled}
 >
-  <SvgIcon {icon} size={iconSize} {color} moreClasses="flex-grow" />
+  <SvgIcon {icon} moreClasses="flex-grow h-[32px] w-[32px]" />
 
   {#if label !== undefined}
     {label}

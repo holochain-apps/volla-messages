@@ -3,8 +3,6 @@
 
   export let moreClasses = "";
   export let icon: string;
-  export let iconSize: number = 12;
-  export let iconColor: string = "%23FD3524";
   export let disabled: boolean = false;
   export let loading: boolean = false;
   export let number: number | undefined = undefined;
@@ -18,9 +16,9 @@
 >
   <div class="bg-surface-500 flex h-9 w-9 items-center justify-center rounded-full">
     {#if loading}
-      <SvgIcon icon="spinner" size={iconSize} color={iconColor} />
+      <SvgIcon icon="spinner" moreClasses="text-primary-600 w-[10px] h-[10px]" />
     {:else}
-      <SvgIcon {icon} size={iconSize} color={iconColor} />
+      <SvgIcon {icon} moreClasses="text-primary-600 w-[13px] h-[13px]" />
     {/if}
 
     {#if number !== undefined}

@@ -26,8 +26,8 @@ export const vollaTheme: CustomThemeConfig = {
     "--color-primary-200": "255 205 200", // #ffcdc8
     "--color-primary-300": "254 174 167", // #feaea7
     "--color-primary-400": "254 114 102", // #fe7266
-    "--color-primary-500": "253 53 36", // %23FD3524
-    "--color-primary-600": "228 48 32", // #e43020
+    "--color-primary-500": "253 53 36", // #FD3524
+    "--color-primary-600": "255 54 21", // #FF3615
     "--color-primary-700": "190 40 27", // #be281b
     "--color-primary-800": "152 32 22", // #982016
     "--color-primary-900": "124 26 18", // #7c1a12

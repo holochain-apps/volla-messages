@@ -2,29 +2,36 @@
   import type { AppClient } from "@holochain/client";
   import { AppWebsocket, encodeHashToBase64 } from "@holochain/client";
   import { ProfilesClient, ProfilesStore } from "@holochain-open-dev/profiles";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import { onMount, setContext } from "svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
   import toast, { Toaster } from "svelte-french-toast";
   import { handleLinkClick, initLightDarkModeSwitcher } from "$lib/utils";
-  import "../app.postcss";
   import { RelayClient } from "$store/RelayClient";
-
-  const ROLE_NAME = "relay";
-  const ZOME_NAME = "relay";
+  import AppLanding from "$lib/AppLanding.svelte";
+  import { MIN_FIRST_NAME_LENGTH, ROLE_NAME, ZOME_NAME } from "$config";
+  import "../app.postcss";
+  import { goto } from "$app/navigation";
+  import Button from "$lib/Button.svelte";
+  import ProfileSetupName from "./ProfileSetupName.svelte";
+  import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
+  import { ProfileCreateStore } from "$store/ProfileCreateStore";
 
   let client: AppClient;
   let relayStore: RelayStore;
+  let profilesStore: ProfilesStore | undefined = undefined;
   let connected = false;
-  let profilesStore: ProfilesStore | null = null;
+  let readyToCreateProfile = false;
 
-  let appHeight: number;
+  $: myProfile = profilesStore ? profilesStore.myProfile : undefined;
+  $: myProfileExists =
+    $myProfile && $myProfile.status == "complete" && $myProfile.value !== undefined;
 
-  function updateAppHeight() {
-    appHeight = window.innerHeight;
-    document.documentElement.style.setProperty("--app-height", `${appHeight}px`);
+  $: if (myProfileExists && relayStore) {
+    if (relayStore.conversations.length > 0) {
+      goto("/conversations");
+    }
+    goto("/welcome");
   }
 
   async function initHolochain() {
@@ -53,8 +60,8 @@
       console.log("Relay cell ready. App Info is ", appInfo);
 
       // Setup stores
-      let profilesClient = new ProfilesClient(client, ROLE_NAME);
-      profilesStore = new ProfilesStore(profilesClient);
+      profilesStore = new ProfilesStore(new ProfilesClient(client, ROLE_NAME));
+
       const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
       relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
@@ -68,21 +75,14 @@
   }
 
   onMount(() => {
-    initHolochain();
-
     initLightDarkModeSwitcher();
-
-    setTimeout(updateAppHeight, 300);
-    window.addEventListener("resize", updateAppHeight);
+    initHolochain();
 
     document.addEventListener("click", handleLinkClick);
     return () => {
       document.removeEventListener("click", handleLinkClick);
-      window.removeEventListener("resize", updateAppHeight);
     };
   });
-
-  $: prof = profilesStore ? profilesStore.myProfile : undefined;
 
   setContext("myPubKey", {
     getMyPubKey: () => client.myPubKey,
@@ -98,57 +98,24 @@
   });
 </script>
 
-<div class="wrapper full-screen mx-auto flex h-screen flex-col items-center px-5 py-4">
-  {#if !connected || ($prof && $prof.status === "pending")}
-    <div class="flex grow flex-col items-center justify-center">
-      <img src="/icon.png" alt="Icon" width="58" class="mb-4" />
-      <h1 class="text-2xl font-bold">{$t("common.app_name")}</h1>
-      <span class="mt-3 flex text-xs"
-        >v{window.__APP_VERSION__}<SvgIcon
-          icon="betaTag"
-          size={24}
-          moreClasses="ml-1"
-          color={$modeCurrent ? "#000" : "#fff"}
-        /></span
-      >
-      <p class="mt-10">{$t("common.tagline")}</p>
-    </div>
-    <div class="flex flex-col items-center justify-center">
-      <p class="mb-8">{$t("common.connecting_to_holochain")}</p>
-    </div>
-    <div class="flex flex-col items-center justify-center pb-10">
-      <p class="mb-2 text-xs">{$t("common.secured_by")}</p>
-      <img
-        class="max-w-52"
-        src={$modeCurrent ? "/holochain-charcoal.png" : "/holochain-white.png"}
-        alt="holochain"
-      />
-    </div>
-  {:else}
+<div class="flex h-screen w-full flex-col items-center">
+  {#if connected && myProfileExists}
     <slot />
+  {:else if connected && !myProfileExists && !readyToCreateProfile}
+    <AppLanding>
+      <Button icon="lock" on:click={() => (readyToCreateProfile = true)} moreClasses="!font-normal">
+        {$t("common.create_an_account")}
+      </Button>
+    </AppLanding>
+  {:else if connected && !myProfileExists && readyToCreateProfile && $ProfileCreateStore.firstName === ""}
+    <ProfileSetupName />
+  {:else if connected && !myProfileExists && readyToCreateProfile && $ProfileCreateStore.firstName.length >= MIN_FIRST_NAME_LENGTH}
+    <ProfileSetupAvatar />
+  {:else}
+    <AppLanding>
+      {$t("common.connecting_to_holochain")}
+    </AppLanding>
   {/if}
 </div>
 
 <Toaster position="bottom-end" />
-
-<style>
-  /* Add this to ensure the page doesn't scroll */
-  :global(body) {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background-color: var(--app-background-color);
-  }
-
-  .wrapper {
-    max-width: 1000px;
-    margin: 0 auto;
-    height: var(--app-height);
-    overflow-y: auto;
-  }
-
-  .wrapper.full-screen {
-    padding: 0;
-  }
-</style>
