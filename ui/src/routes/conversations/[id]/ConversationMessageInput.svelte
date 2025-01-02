@@ -130,7 +130,7 @@
     </div>
     <ButtonIconBare
       disabled={text.trim() === "" && images.length === 0}
-      class="pr-2 disabled:opacity-50"
+      moreClassesButton="pr-2 disabled:opacity-50"
       icon="caretRight"
     />
   </form>
