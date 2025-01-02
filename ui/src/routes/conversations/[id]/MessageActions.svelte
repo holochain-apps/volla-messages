@@ -70,7 +70,7 @@
     <ButtonInline
       on:click={copy}
       icon="copy"
-      moreClasses="bg-tertiary-400 dark:bg-secondary-700 dark:text-tertiary-400"
+      moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
     >
       <span class="text-xs md:text-sm">{$t("conversations.copy_text")}</span>
     </ButtonInline>
@@ -80,8 +80,8 @@
     <ButtonInline
       on:click={download}
       icon="download"
-      iconSize={25}
-      moreClasses="bg-tertiary-400 dark:bg-secondary-700 dark:text-tertiary-400"
+      moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
+      moreClasses="w-[30px]"
     >
       <span class="text-xs md:text-sm">{$t("conversations.download")}</span>
     </ButtonInline>

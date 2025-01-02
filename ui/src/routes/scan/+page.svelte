@@ -96,7 +96,7 @@
       {/if}
 
       <div class="my-8 flex items-center justify-center space-x-4">
-        <Button on:click={() => scanCancel()} big={false}>
+        <Button on:click={() => scanCancel()}>
           {$t("common.cancel")}
         </Button>
 
@@ -106,7 +106,6 @@
               scanCancel();
               openAppSettings();
             }}
-            big={false}
           >
             {$t("common.open_app_settings")}
           </Button>

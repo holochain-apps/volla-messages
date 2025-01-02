@@ -29,7 +29,7 @@
 </script>
 
 <Header>
-  <img slot="left" src="/icon.png" alt="Logo" width="16" />
+  <div slot="left" class="bg-appLogo h-auto w-[16px] bg-contain bg-center bg-no-repeat" />
 </Header>
 
 <form on:submit|preventDefault={saveName} class="contents">

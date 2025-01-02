@@ -26,7 +26,7 @@ export default {
         "2/3": "66%",
       },
       backgroundImage: {
-        appLogo: "url(/icon.png)",
+        appLogo: "url(/app-logo.png)",
         clearSkiesGray: "url(/clear-skies-gray.png)",
         clearSkiesWhite: "url(/clear-skies-white.png)",
         holochainLogoCharcoal: "url(/holochain-charcoal.png)",
