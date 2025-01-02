@@ -1,6 +1,7 @@
 import { writable } from "svelte/store";
 import { get as svelteGet } from "svelte/store";
-import { stringify, parse } from "devalue";
+import { encode, decode } from "@msgpack/msgpack";
+import { Base64 } from "js-base64";
 
 export function persisted<T>(key: string, defaultValue: T) {
   const savedValue = localStorage.getItem(key);
@@ -18,11 +19,11 @@ export function persisted<T>(key: string, defaultValue: T) {
   }
 
   function _encode(val: T): string {
-    return stringify(val);
+    return Base64.fromUint8Array(encode(val), true);
   }
 
   function _decode(val: string): T {
-    return parse(val) as T;
+    return decode(Base64.toUint8Array(val)) as T;
   }
 
   return {
