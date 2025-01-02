@@ -28,10 +28,14 @@
     $myProfile && $myProfile.status == "complete" && $myProfile.value !== undefined;
 
   $: if (myProfileExists && relayStore) {
+    gotoAppPage();
+  }
+
+  async function gotoAppPage() {
     if (relayStore.conversations.length > 0) {
-      goto("/conversations");
+      await goto("/conversations");
     }
-    goto("/welcome");
+    await goto("/welcome");
   }
 
   async function initHolochain() {
