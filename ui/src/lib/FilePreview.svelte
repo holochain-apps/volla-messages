@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Alignment, FileStatus, Size, type Image } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { modeCurrent } from "@skeletonlabs/skeleton";
   import prettyBytes from "pretty-bytes";
   import PdfThumbnail from "$lib/PdfThumbnail.svelte";
   import FileIcon from "$lib/FileIcon.svelte";
@@ -15,7 +14,7 @@
   export let size: Size = Size.Large;
   export let imageLightbox: boolean = false;
   export let showCancel = false;
-  export let className = "";
+  export let moreClasses = "";
   export let maxFilenameLength = 20;
 
   const sizeConfig = {
@@ -23,14 +22,12 @@
       imageClass: "h-16 w-16",
       spacing: "p-2 gap-2",
       thumbnailSize: { width: 30, height: 43 },
-      iconSize: 43,
       textClass: "text-sm",
     },
     [Size.Large]: {
       imageClass: "w-full sm:max-w-md lg:max-w-lg",
       spacing: "p-3 gap-3",
       thumbnailSize: { width: 50, height: 70 },
-      iconSize: 50,
       textClass: "text-sm sm:text-base",
     },
   };
@@ -42,31 +39,32 @@
       : `${fileName.slice(0, maxFilenameLength)}...`;
   }
 
-  $: config = sizeConfig[size];
+  let config = sizeConfig[size];
+
   $: isImage = file.fileType.startsWith("image/");
   $: isPdf = file.fileType === "application/pdf";
   $: isLoading = file.status === FileStatus.Loading || file.status === FileStatus.Pending;
   $: hasError = file.status === FileStatus.Error;
 </script>
 
-<div class="relative {className}">
+<div class="relative {moreClasses}">
   {#if showCancel}
     <button
       class="absolute -right-1 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white p-1 text-black hover:bg-gray-100"
       on:click={() => dispatch("cancel", file.id)}
       aria-label="Cancel Upload"
     >
-      <SvgIcon icon="x" size={8} />
+      <SvgIcon icon="x" moreClasses="h-[8px] w-[8px]" />
     </button>
   {/if}
 
   {#if hasError}
     <div class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg">
-      <SvgIcon icon="x" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
+      <SvgIcon icon="x" moreClasses="h-[30px] w-[30px]" />
     </div>
   {:else if isLoading}
     <div class="bg-surface-800/60 mb-2 flex h-20 w-20 items-center justify-center rounded-lg">
-      <SvgIcon icon="spinner" color={$modeCurrent ? "%232e2e2e" : "white"} size={30} />
+      <SvgIcon icon="spinner" moreClasses="h-[30px] w-[30px]" />
     </div>
   {:else if isImage}
     <div class={config.imageClass}>
@@ -89,13 +87,15 @@
       <div class="flex-shrink-0">
         {#if isPdf}
           <PdfThumbnail
-            pdfDataUrl={file.dataURL ?? ""}
+            dataUrl={file.dataURL}
             width={config.thumbnailSize.width}
             height={config.thumbnailSize.height}
-            fallbackIcon="pdf"
           />
         {:else}
-          <FileIcon {file} size={config.iconSize} />
+          <FileIcon
+            {file}
+            style="width:{config.thumbnailSize.height}px; height:{config.thumbnailSize.height}px;"
+          />
         {/if}
       </div>
 

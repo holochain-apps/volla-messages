@@ -7,7 +7,6 @@
   export let text: string;
   export let copyLabel: string;
   export let shareLabel: string;
-  export let big: boolean = true;
 
   async function copy() {
     try {
@@ -28,12 +27,20 @@
 </script>
 
 <div class="flex items-center justify-center space-x-2">
-  <ButtonInline on:click={copy} icon="copy" {big} moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs">
+  <ButtonInline
+    on:click={copy}
+    icon="copy"
+    moreClassesButton="h-8 px-1 sm:px-3 text-xs !space-x-1 sm:space-x-4"
+  >
     {copyLabel}
   </ButtonInline>
 
   {#if isMobile()}
-    <ButtonInline on:click={share} icon="share" {big} moreClasses="h-8 px-[0.3rem] sm:px-3 text-xs">
+    <ButtonInline
+      on:click={share}
+      icon="share"
+      moreClassesButton="h-8 px-1 sm:px-3 text-xs !space-x-0 sm:space-x-4"
+    >
       {shareLabel}
     </ButtonInline>
   {/if}
