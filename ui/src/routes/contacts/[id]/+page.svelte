@@ -12,6 +12,7 @@
   import { t } from "$translations";
   import { encodeHashToBase64 } from "@holochain/client";
   import type { RelayStore } from "$store/RelayStore";
+  import Avatar from "$lib/Avatar.svelte";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -35,7 +36,9 @@
 
 <Header back />
 
-<div class="flex flex-1 flex-col items-center">
+<div class="flex flex-1 flex-col items-center space-y-4">
+  <Avatar image={$contact.contact.avatar} agentPubKey={$contact.publicKeyB64} size={128} />
+
   <div class="flex flex-row justify-center">
     <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact.fullName}</h1>
 

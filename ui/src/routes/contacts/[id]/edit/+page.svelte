@@ -9,7 +9,6 @@
   import { type Contact } from "$lib/types";
   import { getContext } from "svelte";
   import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
-  import type { RelayStore } from "$store/RelayStore";
   import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import { get } from "svelte/store";
   import toast from "svelte-french-toast";
@@ -19,12 +18,10 @@
   const tAny = t as any;
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
-  let saving = false;
-  $: contact = deriveOneContactStore(contactStore, $page.params.id);
-
+  let contact = deriveOneContactStore(contactStore, $page.params.id);
   let newContact = get(contact).contact;
+  let saving = false;
 
   async function update(val: Contact) {
     saving = true;
@@ -50,7 +47,7 @@
   loadScanResult();
 </script>
 
-<Header back title={$t("contacts.create_new_contact")}>
+<Header back title={$t("contacts.edit_contact")}>
   <div slot="right">
     {#if isMobile()}
       <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" />
@@ -60,6 +57,8 @@
 
 <InputContact
   bind:value={newContact}
+  editMode
+  {saving}
   on:cancel={() => history.back()}
   on:change={(e) => update(e.detail)}
 />

@@ -231,3 +231,13 @@ export function deriveOneContactStore(contactStore: ContactStore, agentPubKeyB64
     subscribe,
   };
 }
+
+/**
+ * Creates a derived store for a single contact from the main contact store
+ *
+ * @param contactStore - The main contact store instance
+ * @param agentPubKeyB64 - The base64 encoded public key of the agent
+ * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
+ */
+export const deriveContactListStore = (contactStore: ContactStore) =>
+  derived(contactStore, ($contactStore) => Object.entries($contactStore));

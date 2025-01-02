@@ -19,6 +19,8 @@
   }>();
 
   export let value: Contact | undefined = undefined;
+  export let saving = false;
+  export let editMode = false;
 
   let contact: Contact = value
     ? value
@@ -28,30 +30,31 @@
         avatar: "",
         public_key: new Uint8Array(),
       };
-  let agentPubKeyB64 = value?.public_key ? encodeHashToBase64(value.public_key) : "";
-  let saving = false;
+  let agentPubKeyB64: AgentPubKeyB64 =
+    value && value.public_key.length > 0 ? encodeHashToBase64(value.public_key) : "";
 
   $: isFirstNameValid = contact.first_name.trim().length >= MIN_FIRST_NAME_LENGTH;
-  $: isAgentPubKeyB64Valid = checkIsAgentPubKeyB64Valid();
-  $: isContactUniqueAgent = agentPubKeyB64 && $contactStore[agentPubKeyB64] === undefined;
-  $: isContactOtherAgent = myPubKeyB64 === agentPubKeyB64;
-  $: valid =
-    isFirstNameValid && isAgentPubKeyB64Valid && isContactUniqueAgent && isContactOtherAgent;
-
-  function checkIsAgentPubKeyB64Valid() {
+  let isAgentPubKeyB64Valid = false;
+  $: {
     try {
-      decodeHashFromBase64(agentPubKeyB64);
-      return true;
+      const agentPubKey = decodeHashFromBase64(agentPubKeyB64);
+      isAgentPubKeyB64Valid = agentPubKey.length === 39;
     } catch (e) {
-      return false;
+      isAgentPubKeyB64Valid = false;
     }
   }
+  $: isContactNewAgent = !(agentPubKeyB64 in $contactStore);
+  $: isContactOtherAgent = myPubKeyB64 !== agentPubKeyB64;
+  $: valid =
+    isFirstNameValid &&
+    isAgentPubKeyB64Valid &&
+    (isContactNewAgent || editMode) &&
+    isContactOtherAgent;
 
   function save() {
     if (!valid) return;
-    if (!saving) return;
+    if (saving) return;
 
-    saving = true;
     value = {
       ...contact,
       first_name: contact.first_name.trim(),
@@ -59,11 +62,10 @@
       public_key: decodeHashFromBase64(agentPubKeyB64),
     };
     dispatch("change", value);
-    saving = false;
   }
 </script>
 
-<div class="flex flex-1 flex-col items-center p-4">
+<div class="flex w-full max-w-screen-md flex-1 flex-col items-center p-4">
   <InputImageAvatar bind:value={contact.avatar} />
 
   <div class="flex w-full grow flex-col justify-start px-8">
@@ -97,12 +99,12 @@
       minlength={1}
     />
 
-    {#if !isAgentPubKeyB64Valid}
-      <p class="text-error-500 ml-1 mt-1 text-xs">$t("contacts.invalid_contact_code")</p>
-    {:else if !isContactUniqueAgent}
-      <p class="text-error-500 ml-1 mt-1 text-xs">$t("contacts.contact_already_exist")</p>
+    {#if !isAgentPubKeyB64Valid && agentPubKeyB64.length > 0}
+      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("contacts.invalid_contact_code")}</p>
+    {:else if !isContactNewAgent && !editMode}
+      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("contacts.contact_already_exist")}</p>
     {:else if !isContactOtherAgent}
-      <p class="text-error-500 ml-1 mt-1 text-xs">$t("contacts.cant_add_yourself")</p>
+      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("contacts.cant_add_yourself")}</p>
     {/if}
 
     {#if !agentPubKeyB64}
@@ -115,6 +117,7 @@
   <div class="my-4 flex flex-wrap justify-center">
     <Button
       on:click={() => dispatch("cancel")}
+      disabled={saving}
       moreClasses=" !variant-filled-tertiary dark:!variant-filled-secondary m-2"
     >
       {$t("common.cancel")}

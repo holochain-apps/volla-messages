@@ -71,6 +71,7 @@
 
 <InputContact
   bind:value={contact}
+  {saving}
   on:cancel={() => history.back()}
   on:change={(e) => create(e.detail)}
 />

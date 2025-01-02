@@ -106,7 +106,7 @@
   });
 
   setContext("contactStore", {
-    getStgore: () => contactStore,
+    getStore: () => contactStore,
   });
 </script>
 
