@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { AppClient } from "@holochain/client";
-  import { AppWebsocket, encodeHashToBase64 } from "@holochain/client";
-  import { ProfilesClient, ProfilesStore } from "@holochain-open-dev/profiles";
+  import type { AppClient, CellId } from "@holochain/client";
+  import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
   import { onMount, setContext } from "svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
@@ -17,17 +16,26 @@
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { createContactStore, type ContactStore } from "$store/ContactStore";
+  import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
+  import { encodeCellIdToBase64 } from "$store/GenericCellIdAgentStore";
 
   let client: AppClient;
   let relayStore: RelayStore;
-  let profilesStore: ProfilesStore | undefined = undefined;
+  let profileStore: ProfileStore;
   let contactStore: ContactStore;
+  let provisionedRelayCellId: CellId;
   let connected = false;
   let readyToCreateProfile = false;
 
-  $: myProfile = profilesStore ? profilesStore.myProfile : undefined;
-  $: myProfileExists =
-    $myProfile && $myProfile.status == "complete" && $myProfile.value !== undefined;
+  $: myProfile =
+    profileStore &&
+    provisionedRelayCellId &&
+    $profileStore[encodeCellIdToBase64(provisionedRelayCellId)]
+      ? $profileStore[encodeCellIdToBase64(provisionedRelayCellId)][
+          encodeHashToBase64(client.myPubKey)
+        ]
+      : undefined;
+  $: myProfileExists = myProfile !== undefined;
 
   $: if (myProfileExists && relayStore) {
     gotoAppPage();
@@ -63,13 +71,24 @@
         5 * 60 * 1000,
       );
       const appInfo = await client.appInfo();
+      if (appInfo === null) throw new Error("Failed to get appInfo");
       console.log("Relay cell ready. App Info is ", appInfo);
 
+      // Get provisioned relay CellId
+      const provisionedRelayCellInfo = appInfo.cell_info[ROLE_NAME].find(
+        (c) => CellType.Provisioned in c,
+      );
+      if (provisionedRelayCellInfo === undefined)
+        throw new Error("Failed to get CellInfo for cell 'relay'");
+      provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
+
       // Setup stores
-      profilesStore = new ProfilesStore(new ProfilesClient(client, ROLE_NAME));
-      const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
+      const relayClient = new RelayClient(client, ROLE_NAME, ZOME_NAME);
       contactStore = createContactStore(relayClient);
+      profileStore = createProfileStore(relayClient);
+
       await contactStore.initialize();
+      await profileStore.initialize();
 
       relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
@@ -97,16 +116,20 @@
     getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
   });
 
-  setContext("profiles", {
-    getStore: () => profilesStore,
-  });
-
   setContext("relayStore", {
     getStore: () => relayStore,
   });
 
+  setContext("profileStore", {
+    getStore: () => profileStore,
+  });
+
   setContext("contactStore", {
     getStore: () => contactStore,
+  });
+
+  setContext("provisionedRelayCellId", {
+    getCellId: () => provisionedRelayCellId,
   });
 </script>
 

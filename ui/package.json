@@ -18,7 +18,6 @@
     "@buildyourwebapp/tauri-plugin-sharesheet": "0.0.1",
     "@holochain-open-dev/elements": "^0.400.0-dev.3",
     "@holochain-open-dev/file-storage": "^0.400.0-dev.1",
-    "@holochain-open-dev/profiles": "^0.400.0-dev.3",
     "@holochain-open-dev/utils": "^0.400.0-dev.4",
     "@holochain/client": "^0.18.0-dev.13",
     "@lightningrodlabs/we-applet": "^0.17.0-dev.2",

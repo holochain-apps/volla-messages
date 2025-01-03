@@ -5,14 +5,7 @@ import {
   type CellId,
   type Record,
 } from "@holochain/client";
-import {
-  writable,
-  get,
-  type Invalidator,
-  type Subscriber,
-  type Unsubscriber,
-  derived,
-} from "svelte/store";
+import { get, type Invalidator, type Subscriber, type Unsubscriber, derived } from "svelte/store";
 import { makeFullName } from "$lib/utils";
 import type { Contact, ContactExtended, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
@@ -39,12 +32,10 @@ export interface ContactStore {
 }
 
 /**
- * Creates a store for managing contacts with persistence and real-time updates.
- * Provides functionality for creating, updating, and retrieving contact information,
- * as well as managing private conversation cells between contacts.
+ * Creates a store for managing contacts
  *
- * @param client - The RelayClient instance for handling contact-related operations
- * @returns ContactStore interface with methods for contact management and subscription
+ * @param client
+ * @returns
  */
 export function createContactStore(client: RelayClient): ContactStore {
   const contacts = createGenericAgentKeyedStore<ContactExtended>();

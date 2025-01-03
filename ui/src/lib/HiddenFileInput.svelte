@@ -2,8 +2,9 @@
   import { createEventDispatcher } from "svelte";
   const dispatch = createEventDispatcher<{ change: string }>();
 
+  export let value: string = "";
   export let accept: string;
-  export let id: string;
+  export let disabled: boolean = false;
 
   // Crop avatar image and return a base64 bytes string of its content
   function convertImageToDataUrl(
@@ -66,12 +67,13 @@
 
 <input
   type="file"
+  {disabled}
   {accept}
-  {id}
+  {...$$restProps}
   class="hidden"
   on:change={(event) =>
     handleFileChange(event, (imageData) => {
-      console.log("imagedata", imageData);
+      value = imageData;
       dispatch("change", imageData);
     })}
 />

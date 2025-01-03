@@ -206,12 +206,23 @@ export interface ContactExtended {
 /**
  * Profiles
  */
-import type { Profile } from "@holochain-open-dev/profiles";
-export type { Profile } from "@holochain-open-dev/profiles";
-
+export interface Profile {
+  nickname: string;
+  fields: {
+    firstName: string;
+    lastName: string;
+    avatar: string;
+  };
+}
 export interface ProfileExtended {
   profile: Profile;
   publicKeyB64: AgentPubKeyB64;
+}
+
+export interface CreateProfileInputUI {
+  firstName: string;
+  lastName: string;
+  avatar: string;
 }
 
 /**

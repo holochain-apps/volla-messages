@@ -135,59 +135,7 @@ export function createConversationStore(
     page,
     ($page) => $page.route.id === "/conversations/[id]" && $page.params.id === dnaHashB64,
   );
-  const processedMessages = derived(conversation, ($conversation) => {
-    const messages = Object.values(($conversation as Conversation).messages).sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
-    const result: Message[] = [];
-
-    let newLastMessage: Message | null = null;
-
-    messages.forEach((message) => {
-      // Don't display message if we don't have a profile from the author yet.
-      if (!$conversation.agentProfiles[message.authorKey]) {
-        return;
-      }
-
-      const contact = relayStore.contacts.find((c) => get(c).publicKeyB64 === message.authorKey);
-
-      const displayMessage = {
-        ...message,
-        author: contact
-          ? get(contact).contact.first_name
-          : $conversation.agentProfiles[message.authorKey].fields.firstName,
-        avatar: contact
-          ? get(contact).contact.avatar
-          : $conversation.agentProfiles[message.authorKey].fields.avatar,
-      };
-
-      if (
-        !newLastMessage ||
-        message.timestamp.toDateString() !== newLastMessage.timestamp.toDateString()
-      ) {
-        displayMessage.header = message.timestamp.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        });
-      }
-
-      // If same person is posting a bunch of messages in a row, hide their name and avatar
-      if (
-        newLastMessage?.authorKey === message.authorKey &&
-        message.timestamp.getTime() - newLastMessage.timestamp.getTime() < 1000 * 60 * 5
-      ) {
-        displayMessage.hideDetails = true;
-      }
-
-      result.push(displayMessage);
-      newLastMessage = message;
-    });
-
-    lastMessage.set(newLastMessage);
-
-    return result;
-  });
+  const processedMessages = derived(conversation, ($conversation) => []);
 
   const { subscribe } = derived(
     [
@@ -531,12 +479,8 @@ export function createConversationStore(
     );
 
     // The name of the conversation we are inviting to should be our name + # of other people invited
-    let myProfile = get(client.profilesStore.myProfile);
-    const profileData = myProfile.status === "complete" ? myProfile.value?.entry : undefined;
-    let title = (profileData?.fields.firstName || "") + " " + profileData?.fields.lastName;
-    if (get(localData).invitedContactKeys.length > 1) {
-      title = `${title} + ${get(localData).invitedContactKeys.length - 1}`;
-    }
+    // TODO
+    const title = "derp";
 
     const invitation: Invitation = {
       created,
@@ -551,16 +495,7 @@ export function createConversationStore(
   }
 
   function getInvitedUnjoinedContacts(): ContactExtended[] {
-    const joinedAgents = get(conversation).agentProfiles;
-    return get(localData)
-      .invitedContactKeys.filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
-      .map((contactKey) => {
-        const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey);
-        if (!contactProfile) return;
-
-        return get(contactProfile);
-      })
-      .filter((c) => c !== undefined);
+    return [];
   }
 
   function getAllMembers(): ProfileExtended[] {
@@ -572,35 +507,7 @@ export function createConversationStore(
   }
 
   function _getMembers(includeInvited: boolean): ProfileExtended[] {
-    // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
-    const joinedAgents = get(conversation).agentProfiles;
-
-    const keys = uniq(
-      Object.keys(joinedAgents).concat(includeInvited ? get(localData).invitedContactKeys : []),
-    );
-
-    // Filter out progenitor, as they are always in the list,
-    // use contact data for each agent if it exists locally, otherwise use their profile
-    // sort by first name (for now)
-    const myPubKeyB64 = encodeHashToBase64(client.client.myPubKey);
-    return keys
-      .filter((k) => k !== myPubKeyB64)
-      .map((agentKey) => {
-        const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
-
-        if (contactProfile) {
-          return contactProfile.getAsProfile();
-        } else if (joinedAgents[agentKey]) {
-          return {
-            profile: joinedAgents[agentKey],
-            publicKeyB64: agentKey,
-          };
-        } else {
-          return undefined;
-        }
-      })
-      .filter((u) => u !== undefined)
-      .sort((a, b) => a.profile.nickname.localeCompare(b.profile.nickname));
+    return [];
   }
 
   function getTitle() {

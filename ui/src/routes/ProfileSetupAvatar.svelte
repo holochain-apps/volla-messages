@@ -7,30 +7,22 @@
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import toast from "svelte-french-toast";
   import HiddenFileInput from "$lib/HiddenFileInput.svelte";
-  import type { RelayStore } from "$store/RelayStore";
+  import type { ProfileStore } from "$store/ProfileStore";
 
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
 
-  let firstName = "";
-  let lastName = "";
-  let avatarDataUrl = "";
-
-  $: {
-    // Subscribe to the store and update local state
-    ProfileCreateStore.subscribe(($profile) => {
-      firstName = $profile.firstName;
-      lastName = $profile.lastName;
-      avatarDataUrl = $profile.avatar;
-    });
-  }
+  let profileInput = $ProfileCreateStore;
+  let loading = false;
 
   async function createAccount() {
+    loading = true;
     try {
-      await relayStore.client.createProfile(firstName, lastName, avatarDataUrl);
-      goto("/welcome");
+      await profileStore.create(profileInput);
+      await goto("/welcome");
     } catch (e) {
-      toast.error(`${$t("common.create_account_error")}: ${e.message}`);
+      toast.error(`${$t("common.create_account_error")}: ${e}`);
     }
+    loading = false;
   }
 </script>
 
@@ -41,22 +33,15 @@
 <div class="flex grow flex-col items-center justify-center">
   <h1 class="h1 mb-10">{$t("common.select_an_avatar")}</h1>
 
-  <HiddenFileInput
-    accept="image/*"
-    id="avatarInput"
-    on:change={(e) =>
-      ProfileCreateStore.update((current) => {
-        return { firstName, lastName, avatar: e.detail };
-      })}
-  />
+  <HiddenFileInput accept="image/*" id="avatarInput" bind:value={profileInput.avatar} />
 
   <!-- Label styled as a big clickable icon -->
   <label
     for="avatarInput"
     class="file-icon-label bg-secondary-300 hover:bg-secondary-400 flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full"
   >
-    {#if avatarDataUrl}
-      <img src={avatarDataUrl} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
+    {#if profileInput.avatar}
+      <img src={profileInput.avatar} alt="Avatar" class="h-32 w-32 rounded-full object-cover" />
     {:else}
       <img src="/image-placeholder.png" alt="Avatar Uploader" class="h-16 w-16 rounded-full" />
     {/if}
@@ -64,7 +49,7 @@
 </div>
 
 <div class="items-right my-8 flex w-full justify-end pr-4">
-  <Button on:click={createAccount} icon="hand">
+  <Button on:click={createAccount} icon="hand" {loading}>
     {$t("common.jump_in")}
   </Button>
 </div>

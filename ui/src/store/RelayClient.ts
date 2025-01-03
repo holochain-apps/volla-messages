@@ -10,10 +10,9 @@ import {
   type ActionHash,
   type Record,
   type ClonedCell,
+  type ProvisionedCell,
 } from "@holochain/client";
 import { EntryRecord } from "@holochain-open-dev/utils";
-import type { ProfilesStore } from "@holochain-open-dev/profiles";
-import { get } from "svelte/store";
 import type {
   Config,
   Contact,
@@ -26,54 +25,42 @@ import type {
   Privacy,
   UpdateContactInput,
   Profile,
+  ProfileExtended,
 } from "$lib/types";
-import { makeFullName } from "$lib/utils";
+import { encodeCellIdToBase64 } from "./GenericCellIdAgentStore";
 
 export class RelayClient {
   constructor(
     public client: AppClient,
-    public profilesStore: ProfilesStore,
     public roleName: string,
     public zomeName: string,
   ) {}
 
-  async createProfile(firstName: string, lastName: string, avatar: string): Promise<void> {
-    await this.client.callZome({
-      role_name: this.roleName,
+  async createProfile(cellId: CellId, payload: Profile): Promise<Record> {
+    return this.client.callZome({
+      cell_id: cellId,
       zome_name: "profiles",
       fn_name: "create_profile",
-      payload: {
-        nickname: makeFullName(firstName, lastName),
-        fields: { avatar, firstName, lastName },
-      },
+      payload,
     });
   }
 
-  async updateProfile(firstName: string, lastName: string, avatar: string): Promise<void> {
-    const payload = {
-      nickname: makeFullName(firstName, lastName),
-      fields: { avatar, firstName, lastName },
-    };
-
-    await this.client.callZome({
-      role_name: this.roleName,
+  async updateProfile(cellId: CellId, payload: Profile): Promise<Record> {
+    return this.client.callZome({
+      cell_id: cellId,
       zome_name: "profiles",
       fn_name: "update_profile",
       payload,
     });
+  }
 
-    // Update profile in every conversation I am a part of
-    const clonedCellInfos = await this.getRelayClonedCellInfos();
-    clonedCellInfos
-      .map((c) => c.cell_id)
-      .forEach(async (cell_id) => {
-        await this.client.callZome({
-          cell_id,
-          zome_name: "profiles",
-          fn_name: "update_profile",
-          payload,
-        });
-      });
+  async getAgentProfile(cellId: CellId, agentPubKey: AgentPubKey): Promise<Record | undefined> {
+    return this.client.callZome({
+      cell_id: cellId,
+      zome_name: "profiles",
+      fn_name: "get_agent_profile",
+      payload: agentPubKey,
+    });
   }
 
   async getAgentsWithProfile(cellId: CellId): Promise<AgentPubKey[]> {
@@ -85,6 +72,36 @@ export class RelayClient {
     });
   }
 
+  async getAllProfiles(cellId: CellId): Promise<ProfileExtended[]> {
+    const agentPubKeys = await this.getAgentsWithProfile(cellId);
+    const profileExtendeds = (
+      await Promise.allSettled(
+        agentPubKeys.map(async (a) => {
+          const record = await this.getAgentProfile(cellId, a);
+          if (record === undefined)
+            throw new Error(
+              `Failed to get agent profile for cellId [${encodeCellIdToBase64(cellId)} and agent ${encodeHashToBase64(a)}`,
+            );
+
+          const profile = new EntryRecord<Profile>(record).entry;
+          if (profile === undefined)
+            throw new Error(
+              `Failed to decode agent profile entry for cellId [${encodeCellIdToBase64(cellId)} and agent ${encodeHashToBase64(a)}`,
+            );
+
+          return {
+            profile,
+            publicKeyB64: encodeHashToBase64(a),
+          } as ProfileExtended;
+        }),
+      )
+    )
+      .filter((p) => p.status === "fulfilled")
+      .map((p) => p.value);
+
+    return profileExtendeds;
+  }
+
   /********* Conversations **********/
   async getRelayClonedCellInfos(): Promise<ClonedCell[]> {
     const appInfo = await this.client.appInfo();
@@ -93,6 +110,16 @@ export class RelayClient {
     return appInfo.cell_info[this.roleName]
       .filter((c) => CellType.Cloned in c)
       .map((c) => c[CellType.Cloned]);
+  }
+
+  async getRelayProvisionedCellInfo(): Promise<ProvisionedCell> {
+    const appInfo = await this.client.appInfo();
+    if (!appInfo) throw new Error("Failed to get appInfo");
+
+    const cellInfo = appInfo.cell_info[this.roleName].find((c) => CellType.Provisioned in c);
+    if (!cellInfo) throw new Error("Provisioned relay cell not found in appInfo");
+
+    return cellInfo[CellType.Provisioned];
   }
 
   async createConversation(title: string, image: string, privacy: Privacy): Promise<ClonedCell> {
@@ -234,10 +261,17 @@ export class RelayClient {
   }
 
   async _setMyProfileForConversation(cell_id: CellId): Promise<null> {
-    const myProfile = get(this.profilesStore.myProfile);
-    const myProfileValue =
-      myProfile && myProfile.status === "complete" && (myProfile.value as EntryRecord<Profile>);
-    const profile = myProfileValue ? myProfileValue.entry : undefined;
+    const record = await this.getAgentProfile(cell_id, this.client.myPubKey);
+    if (!record)
+      throw new Error(
+        `Failed to get profile record for agent ${encodeHashToBase64(this.client.myPubKey)}`,
+      );
+
+    const profile = new EntryRecord<Profile>(record).entry;
+    if (!profile)
+      throw new Error(
+        `Failed to decode profile entry for agent ${encodeHashToBase64(this.client.myPubKey)}`,
+      );
 
     return this.client.callZome({
       cell_id,
