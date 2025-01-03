@@ -42,8 +42,6 @@
   }
 </script>
 
-<Header backUrl="/welcome" title={$t("create.page_title")} />
-
 <div class="flex w-full flex-col items-center p-5">
   <ContactsList {searchQuery} bind:selectedAgentPubKeyB64s={value} />
 

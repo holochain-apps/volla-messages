@@ -2,8 +2,8 @@
   import { decodeHashFromBase64, type AgentPubKeyB64, type CellId } from "@holochain/client";
   import { getContext } from "svelte";
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
-  import type { ProfileStore } from "$store/ProfileStore";
-  import { encodeCellIdToBase64 } from "$store/GenericCellIdAgentStore";
+  import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
+  import { deriveGenericCellIdStore, encodeCellIdToBase64 } from "$store/GenericCellIdAgentStore";
 
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
   const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
@@ -17,11 +17,13 @@
   export let namePosition = "row";
   export let moreClasses = "";
 
-  $: profileExtended = $profileStore[encodeCellIdToBase64(cellId)][agentPubKeyB64];
+  $: profiles = deriveCellProfileStore(profileStore, encodeCellIdToBase64(cellId));
+  $: profileExtended = $profiles ? $profiles[agentPubKeyB64] : undefined;
+  $: title = profileExtended ? profileExtended.profile.nickname : "";
 </script>
 
-<div class="avatar-{namePosition} {moreClasses}" title={profileExtended.profile.nickname}>
-  {#if profileExtended.profile.fields.avatar}
+<div class="avatar-{namePosition} {moreClasses}" {title}>
+  {#if profileExtended && profileExtended.profile.fields.avatar}
     <div
       class="flex h-[150px] w-[150px] items-center justify-center overflow-hidden rounded-full"
       style="width: {size}px; height: {size}px"

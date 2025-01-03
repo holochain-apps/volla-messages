@@ -83,16 +83,17 @@
       provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
 
       // Setup stores
-      const relayClient = new RelayClient(client, ROLE_NAME, ZOME_NAME);
+      const relayClient = new RelayClient(client, provisionedRelayCellId);
       contactStore = createContactStore(relayClient);
       profileStore = createProfileStore(relayClient);
+      relayStore = new RelayStore(relayClient);
 
+      // Initialize store data
       await contactStore.initialize();
       await profileStore.initialize();
-
-      relayStore = new RelayStore(relayClient);
       await relayStore.initialize();
 
+      // Setup complete
       connected = true;
       console.log("Connected");
     } catch (e) {

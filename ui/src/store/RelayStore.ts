@@ -138,7 +138,6 @@ export class RelayStore {
   }
 
   getConversation(dnaHashB64: DnaHashB64): ConversationStore | undefined {
-    console.log("conversations", this.conversations);
     return this.conversations.find((c) => get(c).conversation.dnaHashB64 === dnaHashB64);
   }
 }

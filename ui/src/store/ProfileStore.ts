@@ -1,5 +1,5 @@
 import { encodeHashToBase64, type AgentPubKeyB64, type CellId } from "@holochain/client";
-import { type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
+import { derived, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import { makeFullName } from "$lib/utils";
 import type { CreateProfileInputUI, Profile, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
@@ -8,6 +8,7 @@ import { flatten } from "lodash-es";
 import {
   createGenericCellIdAgentKeyedStore,
   encodeCellIdToBase64,
+  type CellIdB64,
   type GenericCellIdAgentKeyedStoreData,
 } from "./GenericCellIdAgentStore";
 
@@ -82,8 +83,6 @@ export function createProfileStore(client: RelayClient): ProfileStore {
    * Update your profile
    */
   async function update(val: CreateProfileInputUI) {
-    console.log("update profile", val);
-
     const input = {
       nickname: makeFullName(val.firstName, val.lastName),
       fields: val,
@@ -117,8 +116,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     // Add all profiles to writable
     data.forEach(({ cellIdB64, agentPubKeyB64, profileExtended }) => {
-      profiles.updateOne(cellIdB64, agentPubKeyB64, profileExtended),
-        console.log("update", cellIdB64);
+      profiles.updateOne(cellIdB64, agentPubKeyB64, profileExtended);
     });
   }
 
@@ -163,4 +161,8 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     subscribe: profiles.subscribe,
   };
+}
+
+export function deriveCellProfileStore(profileStore: ProfileStore, cellIdB64: CellIdB64) {
+  return derived(profileStore, ($profileStore) => $profileStore[cellIdB64]);
 }

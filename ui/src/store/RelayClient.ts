@@ -28,12 +28,12 @@ import type {
   ProfileExtended,
 } from "$lib/types";
 import { encodeCellIdToBase64 } from "./GenericCellIdAgentStore";
+import { ZOME_NAME, ROLE_NAME } from "$config";
 
 export class RelayClient {
   constructor(
     public client: AppClient,
-    public roleName: string,
-    public zomeName: string,
+    public provisionedRelayCellId: CellId,
   ) {}
 
   async createProfile(cellId: CellId, payload: Profile): Promise<Record> {
@@ -107,16 +107,16 @@ export class RelayClient {
     const appInfo = await this.client.appInfo();
     if (!appInfo) throw new Error("Failed to get appInfo");
 
-    return appInfo.cell_info[this.roleName]
-      .filter((c) => CellType.Cloned in c)
-      .map((c) => c[CellType.Cloned]);
+    return appInfo.cell_info[ROLE_NAME].filter((c) => CellType.Cloned in c).map(
+      (c) => c[CellType.Cloned],
+    );
   }
 
   async getRelayProvisionedCellInfo(): Promise<ProvisionedCell> {
     const appInfo = await this.client.appInfo();
     if (!appInfo) throw new Error("Failed to get appInfo");
 
-    const cellInfo = appInfo.cell_info[this.roleName].find((c) => CellType.Provisioned in c);
+    const cellInfo = appInfo.cell_info[ROLE_NAME].find((c) => CellType.Provisioned in c);
     if (!cellInfo) throw new Error("Provisioned relay cell not found in appInfo");
 
     return cellInfo[CellType.Provisioned];
@@ -132,7 +132,7 @@ export class RelayClient {
       },
     };
     const cellInfo = await this.client.createCloneCell({
-      role_name: this.roleName,
+      role_name: ROLE_NAME,
       name: title,
       modifiers,
     });
@@ -152,7 +152,7 @@ export class RelayClient {
       },
     };
     const cellInfo = await this.client.createCloneCell({
-      role_name: this.roleName,
+      role_name: ROLE_NAME,
       name: invitation.title,
       membrane_proof: invitation.proof,
       modifiers,
@@ -169,7 +169,7 @@ export class RelayClient {
   ): Promise<Array<ActionHash>> {
     return this.client.callZome({
       cell_id,
-      zome_name: this.zomeName,
+      zome_name: ZOME_NAME,
       fn_name: "get_message_hashes",
       payload: { bucket, count },
     });
@@ -181,7 +181,7 @@ export class RelayClient {
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
       cell_id,
-      zome_name: this.zomeName,
+      zome_name: ZOME_NAME,
       fn_name: "get_message_entries",
       payload: hashes,
     });
@@ -225,7 +225,7 @@ export class RelayClient {
   async setConfig(cell_id: CellId, config: Config): Promise<null> {
     return this.client.callZome({
       cell_id,
-      zome_name: this.zomeName,
+      zome_name: ZOME_NAME,
       fn_name: "set_config",
       payload: config,
     });
@@ -234,7 +234,7 @@ export class RelayClient {
   async getConfig(cell_id: CellId): Promise<Config | undefined> {
     const config = await this.client.callZome({
       cell_id,
-      zome_name: this.zomeName,
+      zome_name: ZOME_NAME,
       fn_name: "get_config",
       payload: null,
     });
@@ -250,7 +250,7 @@ export class RelayClient {
   ): Promise<EntryRecord<Message>> {
     const record = await this.client.callZome({
       cell_id,
-      zome_name: this.zomeName,
+      zome_name: ZOME_NAME,
       fn_name: "create_message",
       payload: {
         message: { content, bucket, images },
@@ -260,8 +260,8 @@ export class RelayClient {
     return new EntryRecord(record);
   }
 
-  async _setMyProfileForConversation(cell_id: CellId): Promise<null> {
-    const record = await this.getAgentProfile(cell_id, this.client.myPubKey);
+  async _setMyProfileForConversation(cell_id: CellId): Promise<Record> {
+    const record = await this.getAgentProfile(this.provisionedRelayCellId, this.client.myPubKey);
     if (!record)
       throw new Error(
         `Failed to get profile record for agent ${encodeHashToBase64(this.client.myPubKey)}`,
@@ -299,7 +299,7 @@ export class RelayClient {
     };
     const r = await this.client.callZome({
       cell_id,
-      zome_name: this.zomeName,
+      zome_name: ZOME_NAME,
       fn_name: "generate_membrane_proof",
       payload: data,
     });
@@ -317,8 +317,8 @@ export class RelayClient {
 
   public async getAllContacts(): Promise<ContactRecord[]> {
     return this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
       fn_name: "get_all_contact_entries",
       payload: null,
     });
@@ -326,8 +326,8 @@ export class RelayClient {
 
   public async createContact(payload: Contact): Promise<Record> {
     return this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
       fn_name: "create_contact",
       payload,
     });
@@ -335,8 +335,8 @@ export class RelayClient {
 
   public async updateContact(payload: UpdateContactInput): Promise<Record> {
     return this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
       fn_name: "update_contact",
       payload,
     });
