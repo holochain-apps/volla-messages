@@ -11,7 +11,7 @@
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
   import type { ProfileStore } from "$store/ProfileStore";
-  import { encodeCellIdToBase64 } from "$store/GenericCellIdAgentStore";
+  import { encodeCellIdToBase64 } from "$lib/utils";
 
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(

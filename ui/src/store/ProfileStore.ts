@@ -1,16 +1,14 @@
-import { encodeHashToBase64, type AgentPubKeyB64, type CellId } from "@holochain/client";
+import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
 import { derived, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
-import { makeFullName } from "$lib/utils";
-import type { CreateProfileInputUI, Profile, ProfileExtended } from "$lib/types";
+import { encodeCellIdToBase64, makeFullName } from "$lib/utils";
+import type { CellIdB64, CreateProfileInputUI, Profile, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import { flatten } from "lodash-es";
 import {
-  createGenericCellIdAgentKeyedStore,
-  encodeCellIdToBase64,
-  type CellIdB64,
-  type GenericCellIdAgentKeyedStoreData,
-} from "./GenericCellIdAgentStore";
+  createGenericKeyKeyValueStore,
+  type GenericKeyKeyValueStoreData,
+} from "./GenericKeyKeyValueStore";
 
 export interface ProfilesExtendedObj {
   [agentPubKeyB64: AgentPubKeyB64]: ProfileExtended;
@@ -22,8 +20,8 @@ export interface ProfileStore {
   update: (val: CreateProfileInputUI) => Promise<void>;
   subscribe: (
     this: void,
-    run: Subscriber<GenericCellIdAgentKeyedStoreData<ProfileExtended>>,
-    invalidate?: Invalidator<GenericCellIdAgentKeyedStoreData<ProfileExtended>> | undefined,
+    run: Subscriber<GenericKeyKeyValueStoreData<ProfileExtended>>,
+    invalidate?: Invalidator<GenericKeyKeyValueStoreData<ProfileExtended>> | undefined,
   ) => Unsubscriber;
 }
 
@@ -34,7 +32,7 @@ export interface ProfileStore {
  * @returns
  */
 export function createProfileStore(client: RelayClient): ProfileStore {
-  const profiles = createGenericCellIdAgentKeyedStore<ProfileExtended>();
+  const profiles = createGenericKeyKeyValueStore<ProfileExtended>();
 
   /**
    * Create your profile
@@ -75,7 +73,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     // Add all profiles to writable
     data.forEach(({ cellIdB64, agentPubKeyB64, profileExtended }) =>
-      profiles.setOne(cellIdB64, agentPubKeyB64, profileExtended),
+      profiles.setKeyKeyValue(cellIdB64, agentPubKeyB64, profileExtended),
     );
   }
 
@@ -116,7 +114,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     // Add all profiles to writable
     data.forEach(({ cellIdB64, agentPubKeyB64, profileExtended }) => {
-      profiles.updateOne(cellIdB64, agentPubKeyB64, profileExtended);
+      profiles.updateKeyKeyValue(cellIdB64, agentPubKeyB64, profileExtended);
     });
   }
 
@@ -149,7 +147,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     // Add all profiles to writable
     flatten(data).forEach(({ cellIdB64, agentPubKeyB64, profileExtended }) =>
-      profiles.setOne(cellIdB64, agentPubKeyB64, profileExtended),
+      profiles.setKeyKeyValue(cellIdB64, agentPubKeyB64, profileExtended),
     );
   }
 

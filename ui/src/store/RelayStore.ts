@@ -11,11 +11,9 @@ import {
   type DnaHashB64,
   type ClonedCell,
 } from "@holochain/client";
-import { type ContactStore, createContactStore } from "./ContactStore";
 import { type ConversationStore, createConversationStore } from "./ConversationStore";
 import { RelayClient } from "$store/RelayClient";
 import {
-  type Contact,
   type Image,
   type Invitation,
   type Message,
@@ -23,12 +21,10 @@ import {
   type RelaySignal,
   type FileStatus,
   Privacy,
-  type UpdateContactInput,
 } from "$lib/types";
-import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
+import { enqueueNotification, isMobile } from "$lib/utils";
 
 export class RelayStore {
-  public contacts: ContactStore[] = [];
   public conversations: ConversationStore[] = [];
   public archivedConversations = derived(this.conversations, ($conversations) =>
     $conversations.filter((c) => c.archived),
@@ -105,7 +101,7 @@ export class RelayStore {
   ): Promise<ConversationStore> {
     const properties: DnaProperties = decode(cellInfo.dna_modifiers.properties) as DnaProperties;
     const newConversation = createConversationStore(
-      this,
+      this.client,
       cellInfo.dna_modifiers.network_seed,
       cellInfo.cell_id,
       properties.created,

@@ -237,3 +237,5 @@ export enum Size {
   Small,
   Large,
 }
+
+export type CellIdB64 = string;

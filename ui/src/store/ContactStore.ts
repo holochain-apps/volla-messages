@@ -11,7 +11,7 @@ import type { Contact, ContactExtended, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import { persisted } from "./GenericPersistedStore";
-import { createGenericAgentKeyedStore } from "./GenericAgentStore";
+import { createGenericKeyValueStore } from "./GenericKeyValueStore";
 import { sortBy } from "lodash-es";
 
 export interface ContactsExtendedObj {
@@ -38,7 +38,7 @@ export interface ContactStore {
  * @returns
  */
 export function createContactStore(client: RelayClient): ContactStore {
-  const contacts = createGenericAgentKeyedStore<ContactExtended>();
+  const contacts = createGenericKeyValueStore<ContactExtended>();
   const cellIds = persisted<{ [agentPubKeyB64: AgentPubKeyB64]: CellId }>(
     `CONTACTS.PRIVATE_CONVERSATION`,
     {},

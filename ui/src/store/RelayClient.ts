@@ -27,8 +27,8 @@ import type {
   Profile,
   ProfileExtended,
 } from "$lib/types";
-import { encodeCellIdToBase64 } from "./GenericCellIdAgentStore";
 import { ZOME_NAME, ROLE_NAME } from "$config";
+import { encodeCellIdToBase64 } from "$lib/utils";
 
 export class RelayClient {
   constructor(

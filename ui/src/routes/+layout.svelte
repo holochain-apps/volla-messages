@@ -17,12 +17,17 @@
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { createContactStore, type ContactStore } from "$store/ContactStore";
   import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
-  import { encodeCellIdToBase64 } from "$store/GenericCellIdAgentStore";
+  import { encodeCellIdToBase64 } from "$lib/utils";
+  import {
+    createMergedProfileContactStore,
+    type MergedProfileContactStore,
+  } from "$store/MergedProfileContactStore";
 
   let client: AppClient;
   let relayStore: RelayStore;
   let profileStore: ProfileStore;
   let contactStore: ContactStore;
+  let mergedProfileContactStore: MergedProfileContactStore;
   let provisionedRelayCellId: CellId;
   let connected = false;
   let readyToCreateProfile = false;
@@ -86,6 +91,8 @@
       const relayClient = new RelayClient(client, provisionedRelayCellId);
       contactStore = createContactStore(relayClient);
       profileStore = createProfileStore(relayClient);
+      mergedProfileContactStore = createMergedProfileContactStore(profileStore, contactStore);
+
       relayStore = new RelayStore(relayClient);
 
       // Initialize store data
@@ -127,6 +134,10 @@
 
   setContext("contactStore", {
     getStore: () => contactStore,
+  });
+
+  setContext("mergedProfileContactStore", {
+    getStore: () => mergedProfileContactStore,
   });
 
   setContext("provisionedRelayCellId", {

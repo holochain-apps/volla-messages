@@ -20,7 +20,6 @@ import {
   type Unsubscriber,
 } from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
-import { RelayStore } from "$store/RelayStore";
 import {
   type Config,
   type ContactExtended,
@@ -41,6 +40,7 @@ import { fileToDataUrl } from "$lib/utils";
 import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
 import { page } from "$app/stores";
 import { persisted } from "svelte-persisted-store";
+import type { RelayClient } from "./RelayClient";
 
 export interface ConversationStoreData {
   conversation: Conversation;
@@ -85,7 +85,7 @@ export interface ConversationStore {
 }
 
 export function createConversationStore(
-  relayStore: RelayStore,
+  client: RelayClient,
   networkSeed: string,
   cellId: CellId,
   created: number,
@@ -93,14 +93,6 @@ export function createConversationStore(
   progenitor: AgentPubKey,
   invitationTitle: string | undefined = undefined,
 ): ConversationStore {
-  const client = relayStore.client;
-  const fileStorageClient = new FileStorageClient(
-    relayStore.client.client,
-    "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
-    "file_storage",
-    cellId,
-  );
-
   const dnaHashB64 = encodeHashToBase64(cellId[0]);
   const conversation = writable<Conversation>({
     networkSeed,
@@ -327,6 +319,13 @@ export function createConversationStore(
       images,
     };
     addMessage(oldMessage);
+
+    const fileStorageClient = new FileStorageClient(
+      client.client,
+      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
+      "file_storage",
+      cellId,
+    );
     const imageStructs = await Promise.all(
       images
         .filter((i) => !!i.file)
@@ -401,6 +400,12 @@ export function createConversationStore(
       if (image.storageEntryHash === undefined) return image;
 
       // Download image file, retrying up to 10 times if download fails
+      const fileStorageClient = new FileStorageClient(
+        client.client,
+        "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
+        "file_storage",
+        cellId,
+      );
       const file = await pRetry(
         () => fileStorageClient.downloadFile(image.storageEntryHash as Uint8Array),
         {
@@ -428,7 +433,7 @@ export function createConversationStore(
 
   async function setConfig(config: Config) {
     const c = get(conversation);
-    await relayStore.client.setConfig(cellId, config);
+    await this.client.setConfig(cellId, config);
     conversation.update((c) => ({ ...c, config }));
   }
 

@@ -2,10 +2,15 @@
   import { decodeHashFromBase64, type AgentPubKeyB64, type CellId } from "@holochain/client";
   import { getContext } from "svelte";
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
-  import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
-  import { deriveGenericCellIdStore, encodeCellIdToBase64 } from "$store/GenericCellIdAgentStore";
+  import { encodeCellIdToBase64 } from "$lib/utils";
+  import {
+    deriveCellMergedProfileContactStore,
+    type MergedProfileContactStore,
+  } from "$store/MergedProfileContactStore";
 
-  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+    "mergedProfileContactStore",
+  ).getStore();
   const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
     "provisionedRelayCellId",
   ).getCellId();
@@ -17,7 +22,10 @@
   export let namePosition = "row";
   export let moreClasses = "";
 
-  $: profiles = deriveCellProfileStore(profileStore, encodeCellIdToBase64(cellId));
+  $: profiles = deriveCellMergedProfileContactStore(
+    mergedProfileContactStore,
+    encodeCellIdToBase64(cellId),
+  );
   $: profileExtended = $profiles ? $profiles[agentPubKeyB64] : undefined;
   $: title = profileExtended ? profileExtended.profile.nickname : "";
 </script>

@@ -9,6 +9,9 @@ import { platform } from "@tauri-apps/plugin-os";
 import { setModeCurrent } from "@skeletonlabs/skeleton";
 import { open } from "@tauri-apps/plugin-shell";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { Base64 } from "js-base64";
+import type { CellId } from "@holochain/client";
+import type { CellIdB64 } from "./types";
 
 /**
  * Share text via sharesheet
@@ -153,4 +156,15 @@ export function convertDataURIToUint8Array(dataURI: string): Uint8Array {
 export function makeFullName(firstName: string, lastName?: string): string {
   const hasLastName = lastName !== undefined && lastName.length > 0;
   return `${firstName}${hasLastName ? " " + lastName : ""}`;
+}
+
+const URL_SAFE_DELIMETER = "+";
+
+export function encodeCellIdToBase64(cellId: CellId): CellIdB64 {
+  return `${Base64.fromUint8Array(cellId[0], true)}${URL_SAFE_DELIMETER}${Base64.fromUint8Array(cellId[1])}`;
+}
+
+export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
+  const val = base64.split(URL_SAFE_DELIMETER);
+  return [Base64.toUint8Array(val[0]), Base64.toUint8Array(val[1])] as CellId;
 }
