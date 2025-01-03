@@ -201,7 +201,10 @@
         <ConversationEmpty {conversationStore} />
       {:else}
         <!-- Display conversation messages -->
-        <ConversationMessages messages={$conversationStore.processedMessages} />
+        <ConversationMessages
+          cellId={$conversationStore.conversation.cellId}
+          messages={$conversationStore.processedMessages}
+        />
       {/if}
     </div>
   </div>

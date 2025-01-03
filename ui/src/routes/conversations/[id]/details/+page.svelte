@@ -74,8 +74,8 @@
         {#each conversationStore.getAllMembers().slice(0, 2) as profile}
           {#if profile}
             <Avatar
-              image={profile.profile.fields.avatar}
-              agentPubKey={profile.publicKeyB64}
+              cellId={$conversationStore.conversation.cellId}
+              agentPubKeyB64={profile.publicKeyB64}
               size={120}
               moreClasses="mb-5"
             />
@@ -149,8 +149,8 @@
             {#each conversationStore.getInvitedUnjoinedContacts() as contact}
               <li class="mb-4 flex flex-row items-center px-2 text-xl">
                 <Avatar
-                  image={contact.contact.avatar}
-                  agentPubKey={contact.publicKeyB64}
+                  cellId={$conversationStore.conversation.cellId}
+                  agentPubKeyB64={contact.publicKeyB64}
                   size={38}
                   moreClasses="-ml-30"
                 />
@@ -171,7 +171,12 @@
           </h3>
         {/if}
         <li class="mb-4 flex flex-row items-center px-2 text-xl">
-          <Avatar agentPubKey={myPubKeyB64} size={38} moreClasses="-ml-30" />
+          <Avatar
+            cellId={$conversationStore.conversation.cellId}
+            agentPubKeyB64={myPubKeyB64}
+            size={38}
+            moreClasses="-ml-30"
+          />
           <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.you")}</span>
           {#if myPubKeyB64 === encodeHashToBase64($conversationStore.conversation.progenitor)}
             <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
@@ -180,8 +185,8 @@
         {#each conversationStore.getJoinedMembers() as profile}
           <li class="mb-4 flex flex-row items-center px-2 text-xl">
             <Avatar
-              image={profile.profile.fields.avatar}
-              agentPubKey={profile.publicKeyB64}
+              cellId={$conversationStore.conversation.cellId}
+              agentPubKeyB64={profile.publicKeyB64}
               size={38}
               moreClasses="-ml-30"
             />

@@ -7,12 +7,14 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { RelayStore } from "$store/RelayStore";
   import ConversationSummary from "./ConversationSummary.svelte";
-  import type { AgentPubKey } from "@holochain/client";
+  import type { AgentPubKeyB64 } from "@holochain/client";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputSearch from "$lib/InputSearch.svelte";
 
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
-  const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   let search = "";
 
@@ -43,7 +45,7 @@
 
 <Header>
   <button slot="left" on:click={() => goto("/account")}>
-    <Avatar size={24} agentPubKey={myPubKey} />
+    <Avatar size={24} agentPubKeyB64={myPubKeyB64} />
   </button>
 
   <ButtonIconBare

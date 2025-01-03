@@ -9,13 +9,14 @@
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
   import FilePreview from "$lib/FilePreview.svelte";
-  import type { AgentPubKeyB64 } from "@holochain/client";
+  import type { AgentPubKeyB64, CellId } from "@holochain/client";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
 
   export let message: MessageType;
+  export let cellId: CellId;
   export let isSelected: boolean = false;
 
   $: fromMe = message.authorKey === myPubKeyB64;
@@ -45,8 +46,8 @@
     {#if !fromMe}
       {#if !message.hideDetails}
         <Avatar
-          image={message.avatar}
-          agentPubKey={message.authorKey}
+          {cellId}
+          agentPubKeyB64={message.authorKey}
           size={24}
           moreClasses="items-start mt-1"
         />

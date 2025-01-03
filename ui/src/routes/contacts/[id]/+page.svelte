@@ -37,7 +37,7 @@
 <Header back />
 
 <div class="flex flex-1 flex-col items-center space-y-4">
-  <Avatar image={$contact.contact.avatar} agentPubKey={$contact.publicKeyB64} size={128} />
+  <Avatar agentPubKeyB64={$contact.publicKeyB64} size={128} />
 
   <div class="flex flex-row justify-center">
     <h1 class="mr-2 flex-shrink-0 text-3xl">{$contact.fullName}</h1>

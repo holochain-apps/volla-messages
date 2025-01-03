@@ -166,33 +166,33 @@
             </span>
           {:else if allMembers.length == 1}
             <Avatar
-              image={allMembers[0].profile.fields.avatar}
-              agentPubKey={allMembers[0]?.publicKeyB64}
+              cellId={conversation.cellId}
+              agentPubKeyB64={allMembers[0].publicKeyB64}
               size={40}
             />
           {:else if allMembers.length == 2}
             <Avatar
-              image={allMembers[0].profile.fields.avatar}
-              agentPubKey={allMembers[0]?.publicKeyB64}
+              cellId={conversation.cellId}
+              agentPubKeyB64={allMembers[0]?.publicKeyB64}
               size={22}
               moreClasses=""
             />
             <Avatar
-              image={allMembers[1].profile.fields.avatar}
-              agentPubKey={allMembers[1]?.publicKeyB64}
+              cellId={conversation.cellId}
+              agentPubKeyB64={allMembers[1]?.publicKeyB64}
               size={22}
               moreClasses="relative -ml-1"
             />
           {:else}
             <Avatar
-              image={allMembers[0].profile.fields.avatar}
-              agentPubKey={allMembers[0]?.publicKeyB64}
+              cellId={conversation.cellId}
+              agentPubKeyB64={allMembers[0]?.publicKeyB64}
               size={22}
               moreClasses="relative -mb-2"
             />
             <Avatar
-              image={allMembers[1].profile.fields.avatar}
-              agentPubKey={allMembers[1]?.publicKeyB64}
+              cellId={conversation.cellId}
+              agentPubKeyB64={allMembers[1]?.publicKeyB64}
               size={22}
               moreClasses="relative -ml-3 -mt-3"
             />

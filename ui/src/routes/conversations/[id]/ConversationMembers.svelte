@@ -8,8 +8,8 @@
 {#each conversationStore.getAllMembers().slice(0, 2) as profile, i}
   {#if profile}
     <Avatar
-      image={profile.profile.fields.avatar}
-      agentPubKey={profile.publicKeyB64}
+      cellId={$conversationStore.conversation.cellId}
+      agentPubKeyB64={profile.publicKeyB64}
       size={120}
       moreClasses="mb-5"
     />
