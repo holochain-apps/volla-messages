@@ -7,65 +7,27 @@
   import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
   import type { AgentPubKeyB64 } from "@holochain/client";
-  import { xor } from "lodash-es";
   import toast from "svelte-french-toast";
   import ButtonSquare from "$lib/ButtonSquare.svelte";
-  import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
   import InputSearch from "$lib/InputSearch.svelte";
-  import { deriveContactListStore, type ContactStore } from "$store/ContactStore";
-  import ContactListItem from "./ContactListItem.svelte";
-
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
-  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
-
-  let selectedAgentPubKeyB64s: AgentPubKeyB64[] = [];
-  let searchQuery = "";
-  let pendingCreate = false;
-  let existingConversationStore = false;
+  import InputContactsSelect from "$lib/InputContactsSelect.svelte";
 
   const tAny = t as any;
 
-  let contactListStore = deriveContactListStore(contactStore);
+  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
 
-  $: searchQueryNormalized = searchQuery.trim().toLowerCase();
+  let searchQuery = "";
+  let creating = false;
+  let existingConversationStore = false;
 
-  $: selectedContactExtendeds = selectedAgentPubKeyB64s
-    .map((agentPubKeyB64) => $contactStore[agentPubKeyB64])
-    .filter((c) => c !== undefined);
+  async function createConversation(
+    selectedAgentPubKeyB64s: AgentPubKeyB64[],
+    selectedContactNames: string,
+  ) {
+    if (selectedAgentPubKeyB64s.length === 0) return;
 
-  // Derive a string with the names of the selected contacts
-  let selectedContactNames = "";
-  $: {
-    if (selectedContactExtendeds.length === 1) {
-      selectedContactNames = selectedContactExtendeds[0].fullName;
-    } else if (selectedContactExtendeds.length === 2) {
-      selectedContactNames = selectedContactExtendeds.map((c) => c.contact.first_name).join(" & ");
-    } else if (selectedContactExtendeds.length > 2) {
-      selectedContactNames = selectedContactExtendeds.map((c) => c.contact.first_name).join(", ");
-    }
-  }
-
-  // Derive the list of contacts to display, filtered by the search input
-  $: searchResults =
-    searchQueryNormalized.length > 0
-      ? $contactListStore.filter(([, contactExtended]) =>
-          contactExtended.fullName.toLowerCase().includes(searchQueryNormalized),
-        )
-      : $contactListStore;
-
-  // Derive the list of contacts to display, along with if the first character should be displayed
-  $: searchResultsExtended = searchResults.map((c, i) => ({
-    element: c,
-    displayFirstCharacter:
-      i === 0
-        ? true
-        : c[1].contact.first_name.charAt(0) !==
-          searchResults[i - 1][1].contact.first_name.charAt(0),
-  }));
-
-  async function createConversation() {
     // TODO if conversation already exists, navigate to it
-    pendingCreate = true;
+    creating = true;
     try {
       const conversationStore = await relayStore.createConversation(
         selectedContactNames,
@@ -77,7 +39,7 @@
     } catch (e) {
       toast.error(`${$t("common.create_conversation_error")}: ${e.message}`);
     }
-    pendingCreate = false;
+    creating = false;
   }
 </script>
 
@@ -106,54 +68,14 @@
     />
   </div>
 
-  {#if searchResultsExtended.length === 0}
-    <div
-      class="bg-clearSkiesGray dark:bg-clearSkiesWhite mb-4 mt-10 h-32 w-32 bg-contain bg-center bg-no-repeat"
-    ></div>
-    <h2 class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold">
-      {$t("create.no_contacts_header")}
-    </h2>
-    <p class="text-secondary-400 dark:text-tertiary-700 text-center text-xs">
-      {$t("create.no_contacts_text")}
-    </p>
-  {:else}
-    <div class="w-full">
-      {#each searchResultsExtended as { element: [agentPubKeyB64, contactExtended], displayFirstCharacter }, i}
-        {#if displayFirstCharacter}
-          <p class="text-secondary-300 mb-1 mt-2 pl-0">
-            {contactExtended.contact.first_name.charAt(0).toUpperCase()}
-          </p>
-        {/if}
-
-        <ContactListItem
-          {agentPubKeyB64}
-          selected={selectedAgentPubKeyB64s.includes(agentPubKeyB64)}
-          on:click={() =>
-            (selectedAgentPubKeyB64s = xor(selectedAgentPubKeyB64s, [agentPubKeyB64]))}
-        />
-      {/each}
-    </div>
-
-    {#if selectedContactExtendeds.length > 0}
-      <ButtonFilledNumbered
-        icon="person"
-        number={selectedContactExtendeds.length}
-        moreClasses="fixed bottom-5 right-5"
-        disabled={pendingCreate}
-        on:click={createConversation}
-        loading={pendingCreate}
-      >
-        <div class="nowrap overflow-hidden text-ellipsis">
-          <div class="text-md text-start">
-            {$tAny("create.open_conversation", {
-              existingConversation: !!existingConversationStore,
-            })}
-          </div>
-          <div class="pb-1 text-start text-xs font-light">
-            with {selectedContactNames}
-          </div>
-        </div>
-      </ButtonFilledNumbered>
-    {/if}
-  {/if}
+  <InputContactsSelect
+    {searchQuery}
+    loading={creating}
+    disabled={creating}
+    buttonLabel={$tAny("create.open_conversation", {
+      existingConversation: !!existingConversationStore,
+    })}
+    on:change={(e) =>
+      createConversation(e.detail.selectedAgentPubKeyB64s, e.detail.selectedContactNames)}
+  />
 </div>

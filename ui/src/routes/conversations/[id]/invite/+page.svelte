@@ -1,60 +1,27 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import { derived } from "svelte/store";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
   import type { AgentPubKeyB64 } from "@holochain/client";
-  import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
   import InputSearch from "$lib/InputSearch.svelte";
+  import InputContactsSelect from "$lib/InputContactsSelect.svelte";
 
   const tAny = t as any;
-
   const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
-
   let conversationStore = relayStore.getConversation($page.params.id);
 
-  let selectedContacts: AgentPubKeyB64[] = [];
-  let search = "";
-  let addingContacts = false;
+  let searchQuery = "";
+  let saving = false;
 
-  $: contacts = derived(relayStore.contacts, ($contacts) => {
-    const test = search.trim().toLowerCase();
-    return $contacts
-      .filter(
-        (c) =>
-          c.contact.first_name.toLowerCase().includes(test) ||
-          c.contact.first_name.toLowerCase().includes(test) ||
-          (test.length > 2 && c.publicKeyB64.toLowerCase().includes(test)),
-      )
-      .sort((a, b) => a.contact.first_name.localeCompare(b.contact.first_name));
-  });
+  async function addContactsToConversation(selectedContacts: AgentPubKeyB64[]) {
+    if (selectedContacts.length === 0) return;
 
-  $: selectedContactsNames = selectedContacts
-    .map((c) => $contacts.find((contact) => c === contact.publicKeyB64)?.contact.first_name)
-    .join(", ");
-
-  function selectContact(publicKeyB64: string) {
-    const contact = $contacts.find((c) => c.publicKeyB64 === publicKeyB64);
-    if (contact) {
-      if (selectedContacts.find((c) => c === contact.publicKeyB64)) {
-        // If already selected then unselect
-        selectedContacts = selectedContacts.filter((c) => c !== contact.publicKeyB64);
-      } else {
-        // otherwise select the contact
-        selectedContacts = [...selectedContacts, contact.publicKeyB64];
-      }
-    }
-  }
-
-  async function addContactsToConversation() {
-    // TODO: update config.title?
-    addingContacts = true;
+    saving = true;
     try {
       if (conversationStore) {
         conversationStore.addContacts(selectedContacts);
@@ -63,7 +30,7 @@
     } catch (e) {
       toast.error(`${$t("common.add_contact_to_conversation_error")}: ${e.message}`);
     }
-    addingContacts = false;
+    saving = false;
   }
 </script>
 
@@ -74,80 +41,14 @@
   })}
 />
 
-{#if $conversationStore}
-  <div class="relative mx-auto flex w-full flex-1 flex-col items-center p-5">
-    <InputSearch bind:value={search} />
+<div class="relative mx-auto flex w-full flex-1 flex-col items-center p-5">
+  <InputSearch bind:value={searchQuery} />
 
-    {#if $contacts.length === 0}
-      <div
-        class="bg-clearSkiesGray dark:bg-clearSkiesWhite mb-4 mt-10 h-32 w-32 bg-contain bg-center bg-no-repeat"
-      ></div>
-      <h2 class="text-primary-200 text-lg">
-        {$t("create.no_contacts_header")}
-      </h2>
-      <p class="text-center text-xs">{$t("create.no_contacts_text")}</p>
-    {:else}
-      <div class="w-full font-light">
-        {#each $contacts as contact, i}
-          {#if i === 0 || contact.contact.first_name
-              .charAt(0)
-              .toUpperCase() !== $contacts[i - 1].contact.first_name.charAt(0).toUpperCase()}
-            <p class="text-secondary-300 mb-1 mt-2 pl-0">
-              {contact.contact.first_name[0].toUpperCase()}
-            </p>
-          {/if}
-          {@const selected = selectedContacts.find((c) => c === contact.publicKeyB64)}
-          {@const alreadyInvited = !!$conversationStore.invitedContactKeys.find(
-            (k) => k === contact.publicKeyB64,
-          )}
-          {@const alreadyInConversation = conversationStore
-            ? !!conversationStore
-                .getJoinedMembers()
-                .find((m) => m?.publicKeyB64 === contact.publicKeyB64)
-            : false}
-          <button
-            class="-ml-1 mb-2 flex w-full items-center justify-between rounded-3xl p-2 {selected &&
-              'bg-tertiary-500 dark:bg-secondary-500'} dark:disabled:text-tertiary-700 font-normal disabled:font-light"
-            on:click={() => selectContact(contact.publicKeyB64)}
-            disabled={alreadyInConversation || alreadyInvited}
-          >
-            <Avatar
-              size={38}
-              image={contact.contact.avatar}
-              agentPubKey={contact.publicKeyB64}
-              moreClasses="mr-3"
-            />
-            <p class="text-secondary-500 dark:text-tertiary-100 flex-1 text-start">
-              {contact.fullName}
-            </p>
-            {#if alreadyInConversation}
-              <span class="text-xs font-extralight">{$t("conversations.already_member")}</span>
-            {:else if alreadyInvited}
-              <span class="text-xs font-extralight">{$t("conversations.already_invited")}</span>
-            {:else}
-              <span class="text-primary-500 text-lg font-extrabold">+</span>
-            {/if}
-          </button>
-        {/each}
-      </div>
-
-      {#if selectedContacts.length > 0}
-        <ButtonFilledNumbered
-          icon="person"
-          number={selectedContacts.length}
-          moreClasses="fixed bottom-5 right-5"
-          disabled={addingContacts}
-          loading={addingContacts}
-          on:click={addContactsToConversation}
-        >
-          <div class="nowrap overflow-hidden text-ellipsis">
-            <div class="text-md text-start">
-              {$t("conversations.add_contact_to_conversation")}
-            </div>
-            <div class="pb-1 text-start text-xs font-light">with {selectedContactsNames}</div>
-          </div>
-        </ButtonFilledNumbered>
-      {/if}
-    {/if}
-  </div>
-{/if}
+  <InputContactsSelect
+    {searchQuery}
+    loading={saving}
+    disabled={saving}
+    buttonLabel={$t("conversations.add_contact_to_conversation")}
+    on:change={(e) => addContactsToConversation(e.detail.selectedAgentPubKeyB64s)}
+  />
+</div>

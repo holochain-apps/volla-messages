@@ -25,12 +25,7 @@
     'bg-tertiary-500 dark:bg-secondary-500'}"
   on:click
 >
-  <Avatar
-    size={38}
-    image={$contact.contact.avatar}
-    agentPubKey={$contact.publicKeyB64}
-    moreClasses="mr-3"
-  />
+  <Avatar size={38} agentPubKeyB64={$contact.publicKeyB64} moreClasses="mr-3" />
   <p
     class="dark:text-tertiary-100 flex-1 text-start font-bold {hasAgentJoinedDht
       ? 'text-secondary-400 dark:!text-secondary-300'
