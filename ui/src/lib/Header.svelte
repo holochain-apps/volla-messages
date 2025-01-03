@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import ButtonIconBare from "./ButtonIconBare.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   export let back: boolean = false;
   export let backUrl: string | undefined = undefined;
