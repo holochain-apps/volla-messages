@@ -13,3 +13,5 @@ hdk = { workspace = true }
 serde = { workspace = true }
 
 relay_integrity = { workspace = true }
+
+hex = "0.4"
