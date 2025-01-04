@@ -12,16 +12,23 @@ import type {
   DeleteLink,
   MembraneProof,
   ClonedCell,
-  DnaHashB64,
 } from "@holochain/client";
 
+/**
+ * App Signals
+ */
+
+export type EntryTypes = { type: "Message" } & Message;
+
+export interface MessageSignal {
+  type: "Message";
+  action: SignedActionHashed<Create>;
+  message: Message;
+  from: AgentPubKey;
+}
+
 export type RelaySignal =
-  | {
-      type: "Message";
-      action: SignedActionHashed<Create>;
-      message: Message;
-      from: AgentPubKey;
-    }
+  | MessageSignal
   | {
       type: "EntryCreated";
       action: SignedActionHashed<Create>;
@@ -49,56 +56,105 @@ export type RelaySignal =
       link_type: string;
     };
 
+/**
+ * Conversation Message File
+ */
+
+export interface MessageFile {
+  name: string;
+  last_modified: number;
+  size: number; // Size in bytes
+  file_type: string;
+  storage_entry_hash: EntryHash;
+}
+
+export interface MessageFileExtended {
+  messageFile: MessageFile;
+  status: FileStatus;
+  dataURL?: string;
+}
+
+/**
+ * Conversation Message
+ */
+
+// Mirror of rust struct "File", renamed to avoid naming conflict with javascript native File
+export interface Message {
+  content: string;
+  bucket: number;
+  images: MessageFile[];
+}
+
+export interface MessageExtended {
+  message: Message;
+  messageFileExtendeds: MessageFileExtended[];
+  authorAgentPubKeyB64: AgentPubKeyB64;
+}
+
+export interface MessageRecord {
+  original_action: ActionHash;
+  signed_action: SignedActionHashed;
+  message?: Message;
+}
+
+export interface SendMessageInput {
+  message: Message;
+  agents: AgentPubKey[];
+}
+
+/**
+ * Conversation
+ */
+
+export interface Config {
+  title: string;
+  image: string;
+}
+
 export enum Privacy {
   Private,
   Public,
 }
 
-// DNA modifier properties for a conversation
-export interface DnaProperties {
+export interface ConversationExtended {
+  cellInfo: ClonedCell;
+  dnaProperties: RelayDnaProperties;
+  publicInviteCode?: string; // undefined if the conversation is private
+  config?: Config; // undefined if we have not fetched the Config entry
+
+  // Locally persisted data
+  unread: boolean;
+  invited: AgentPubKeyB64[];
+  title: string;
+}
+
+export type BucketInput = {
+  bucket: number;
+  count: number;
+};
+
+// UI type only
+export interface CreateConversationInput {
+  config: Config;
+  privacy: Privacy;
+}
+
+/**
+ * Relay DNA
+ */
+
+// Mirror of rust type DnaProperties, renamed to avoid naming conflict with holochain client
+export interface RelayDnaProperties {
   created: number;
   privacy: Privacy;
 
-  // This is *NOT* the type specified in the DNA struct Properties (there it is an AgentPubKey)
+  // This is *NOT* the type specified in the rust struct DnaProperties (there it is an AgentPubKey)
   //
   // But because we have already been cloning cells rom the UI, using an AgentPubKeyB64 as progenitor,
   // we must keep it consistent to avoid an DNA-integrity breaking change.
   //
   // See https://github.com/holochain-apps/volla-messages/issues/392
   progenitor: AgentPubKeyB64;
-}
-
-export type EntryTypes = { type: "Message" } & MessageInput;
-
-export interface MessageInput {
-  content: string;
-  bucket: number;
-}
-
-export type Messages = { [key: string]: Message };
-
-export interface Conversation {
-  networkSeed: string;
-  dnaHashB64: DnaHashB64;
-  cellId: CellId;
-  config?: Config;
-  privacy: Privacy;
-  progenitor: AgentPubKey;
-  messages: Messages;
-  agentProfiles: { [key: AgentPubKeyB64]: Profile };
-}
-
-export interface LocalConversationData {
-  archived: boolean;
-  invitedContactKeys: string[];
-  unread: boolean;
-  invitationTitle?: string;
-}
-
-export interface MembraneProofData {
-  conversation_id: string;
-  for_agent: AgentPubKey;
-  as_role: number;
 }
 
 export interface Invitation {
@@ -110,63 +166,10 @@ export interface Invitation {
   proof?: MembraneProof;
 }
 
-// Holochain Type
-export interface ImageStruct {
-  last_modified: number;
-  name: string;
-  size: number;
-  storage_entry_hash: EntryHash;
-  file_type: string;
-}
-
-export enum FileStatus {
-  Preview, // Stored locally, ready for display in input field.
-  Pending, // Sent to holochain, but not published yet
-  Loading, // Fetched from holochain
-  Loaded, // Fetched from holochain and loaded into base64 data url
-  Error,
-}
-
-export interface Image {
-  id: string;
-  dataURL?: string;
-  fileType: string;
-  file?: File;
-  name: string;
-  lastModified: number;
-  size: number;
-  storageEntryHash?: EntryHash;
-  status: FileStatus;
-}
-
-export interface Message {
-  hash: string;
-  author?: string; // Used in the UI to display the author's name
-  authorKey: string;
-  avatar?: string; // Used in the UI to display the author's avatar
-  content: string;
-  header?: string; // an optional header to display above this message in the conversation UI
-  images: Image[];
-  hideDetails?: boolean; // Used in the UI to toggle the display of the message details
-  status?: "pending" | "confirmed" | "delivered" | "read"; // status of the message
-  timestamp: Date;
-  bucket: number;
-}
-
-export type BucketInput = {
-  bucket: number;
-  count: number;
-};
-
-export interface MessageRecord {
-  original_action: ActionHash;
-  signed_action: SignedActionHashed;
-  message?: Message;
-}
-
-export interface Config {
-  title: string;
-  image: string;
+export interface MembraneProofData {
+  conversation_id: string;
+  for_agent: AgentPubKey;
+  as_role: number;
 }
 
 /**
@@ -239,3 +242,11 @@ export enum Size {
 }
 
 export type CellIdB64 = string;
+
+export enum FileStatus {
+  Preview, // Stored locally, ready for display in input field.
+  Pending, // Sent to holochain, but not published yet
+  Loading, // Fetched from holochain
+  Loaded, // Fetched from holochain and loaded into base64 data url
+  Error,
+}

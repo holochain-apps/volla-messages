@@ -17,15 +17,15 @@ import type {
   Config,
   Contact,
   ContactRecord,
-  ImageStruct,
   Invitation,
   MembraneProofData,
-  Message,
   MessageRecord,
-  Privacy,
   UpdateContactInput,
   Profile,
   ProfileExtended,
+  BucketInput,
+  CreateConversationInput,
+  SendMessageInput,
 } from "$lib/types";
 import { ZOME_NAME, ROLE_NAME } from "$config";
 import { encodeCellIdToBase64 } from "$lib/utils";
@@ -122,22 +122,20 @@ export class RelayClient {
     return cellInfo[CellType.Provisioned];
   }
 
-  async createConversation(title: string, image: string, privacy: Privacy): Promise<ClonedCell> {
+  async createConversation(input: CreateConversationInput): Promise<ClonedCell> {
     const modifiers = {
       network_seed: uuidv4(),
       properties: {
         created: new Date().getTime(),
-        privacy,
+        privacy: input.privacy,
         progenitor: encodeHashToBase64(this.client.myPubKey),
       },
     };
     const cellInfo = await this.client.createCloneCell({
       role_name: ROLE_NAME,
-      name: title,
+      name: input.config.title,
       modifiers,
     });
-    await this.setConfig(cellInfo.cell_id, { title, image });
-    await this._setMyProfileForConversation(cellInfo.cell_id);
 
     return cellInfo;
   }
@@ -157,21 +155,16 @@ export class RelayClient {
       membrane_proof: invitation.proof,
       modifiers,
     });
-    await this._setMyProfileForConversation(cellInfo.cell_id);
 
     return cellInfo;
   }
 
-  public async getMessageHashes(
-    cell_id: CellId,
-    bucket: number,
-    count: number,
-  ): Promise<Array<ActionHash>> {
+  public async getMessageHashes(cell_id: CellId, payload: BucketInput): Promise<Array<ActionHash>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_message_hashes",
-      payload: { bucket, count },
+      payload,
     });
   }
 
@@ -241,26 +234,16 @@ export class RelayClient {
     return config ? new EntryRecord<Config>(config).entry : undefined;
   }
 
-  public async sendMessage(
-    cell_id: CellId,
-    content: string,
-    bucket: number,
-    images: ImageStruct[],
-    agents: AgentPubKey[],
-  ): Promise<EntryRecord<Message>> {
-    const record = await this.client.callZome({
+  public async createMessage(cell_id: CellId, payload: SendMessageInput): Promise<Record> {
+    return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "create_message",
-      payload: {
-        message: { content, bucket, images },
-        agents,
-      },
+      payload,
     });
-    return new EntryRecord(record);
   }
 
-  async _setMyProfileForConversation(cell_id: CellId): Promise<Record> {
+  async setMyProfileForConversation(cell_id: CellId): Promise<Record> {
     const record = await this.getAgentProfile(this.provisionedRelayCellId, this.client.myPubKey);
     if (!record)
       throw new Error(
@@ -281,7 +264,7 @@ export class RelayClient {
     });
   }
 
-  public async inviteAgentToConversation(
+  public async generateMembraneProof(
     cell_id: CellId,
     forAgent: AgentPubKey,
     role: number = 0,
@@ -305,6 +288,14 @@ export class RelayClient {
     });
 
     return r;
+  }
+
+  public async disableConversationCell(cell_id: CellId) {
+    return this.client.disableCloneCell({ clone_cell_id: cell_id[0] });
+  }
+
+  public async enableConversationCell(cell_id: CellId) {
+    return this.client.enableCloneCell({ clone_cell_id: cell_id[0] });
   }
 
   /**
