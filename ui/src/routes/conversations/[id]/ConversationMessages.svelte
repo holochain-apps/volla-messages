@@ -1,13 +1,32 @@
 <script lang="ts">
-  import { isMobile } from "$lib/utils";
-  import type { ActionHashB64, CellId } from "@holochain/client";
-  import type { Message, Image } from "$lib/types";
+  import { isMobile, isSameDay } from "$lib/utils";
+  import type { ActionHashB64 } from "@holochain/client";
+  import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
+  import { getContext } from "svelte";
+  import {
+    deriveCellMergedProfileContactStore,
+    type MergedProfileContactStore,
+  } from "$store/MergedProfileContactStore";
 
-  export let messages: Message[];
-  export let cellId: CellId;
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+    "mergedProfileContactStore",
+  ).getStore();
+
+  export let messages: [ActionHashB64, MessageExtended][];
+  export let cellIdB64: CellIdB64;
+
+  let mergedProfileContact = deriveCellMergedProfileContactStore(
+    mergedProfileContactStore,
+    cellIdB64,
+  );
 
   let selected: ActionHashB64 | undefined;
+
+  $: messagesByAgentsWithProfiles = messages.filter(
+    ([, messageExtended]) =>
+      $mergedProfileContact[messageExtended.authorAgentPubKeyB64] !== undefined,
+  );
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
     // prevent clickoutside event from firing at the same time
@@ -40,13 +59,23 @@
 
 <div class="flex w-full flex-1 flex-col-reverse p-4">
   <ul>
-    {#each messages as message (message.hash)}
+    {#each messagesByAgentsWithProfiles as [actionHashB64, messageExtended], i (actionHashB64)}
+      {@const prevMessageExtended = i === 0 ? undefined : messages[i - 1][1]}
+
       <BaseMessage
-        {cellId}
-        {message}
-        isSelected={selected === message.hash}
-        on:press={() => handlePress(message.hash)}
-        on:click={(e) => handleClick(e, message.hash)}
+        {cellIdB64}
+        message={messageExtended}
+        isSelected={selected === actionHashB64}
+        showAuthor={prevMessageExtended === undefined ||
+          messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
+          messageExtended.timestamp - prevMessageExtended.timestamp < 1000 * 60 * 5}
+        showDate={prevMessageExtended === undefined ||
+          !isSameDay(
+            new Date(messageExtended.timestamp / 1000),
+            new Date(prevMessageExtended.timestamp / 1000),
+          )}
+        on:press={() => handlePress(actionHashB64)}
+        on:click={(e) => handleClick(e, actionHashB64)}
         on:clickoutside={handleClickOutside}
       />
     {/each}

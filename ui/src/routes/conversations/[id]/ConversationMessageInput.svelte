@@ -1,89 +1,82 @@
 <script lang="ts">
-  import { FileStatus, Size, type Image } from "$lib/types";
+  import { type LocalFile } from "$lib/types";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { createEventDispatcher } from "svelte";
   import toast from "svelte-french-toast";
   import { MAX_FILE_SIZE } from "$config";
-  import FilePreview from "$lib/FilePreview.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import { v4 as uuidv4 } from "uuid";
+  import LocalFilePreview from "./LocalFilePreview.svelte";
 
   const dispatch = createEventDispatcher<{
     send: {
       text: string;
-      images: Image[];
+      files: LocalFile[];
     };
   }>();
 
   export let text = "";
-  export let images: Image[] = [];
+  export let files: LocalFile[] = [];
   export let ref: HTMLElement;
+  export let disabled: boolean = false;
+  export let loading: boolean = false;
+
+  $: isValid = text.trim().length > 0 || files.length > 0;
 
   async function handleImagesSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const files = Array.from(input.files);
-      const validFiles = files.filter((file) => {
-        if (file.size > MAX_FILE_SIZE) {
-          toast.error(`${$t("conversations.large_file_error", { maxSize: "15MB" } as any)}`);
-          return false;
-        }
-        return true;
-      });
-      const readers: Promise<Image>[] = validFiles.map((file) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        return new Promise<Image>((resolve) => {
-          reader.onload = async () => {
-            if (typeof reader.result === "string") {
-              resolve({
-                id: crypto.randomUUID(),
-                dataURL: reader.result,
-                lastModified: file.lastModified,
-                fileType: file.type,
-                file,
-                name: file.name,
-                size: file.size,
-                status: FileStatus.Preview,
-              });
-            }
-          };
-          reader.onerror = () => {
-            console.error("Error reading file");
-            resolve({
-              id: crypto.randomUUID(),
-              dataURL: "",
-              lastModified: file.lastModified,
-              fileType: file.type,
-              file,
-              name: file.name,
-              size: file.size,
-              status: FileStatus.Error,
-            });
-          };
-        });
-      });
+    if (input.files === null || input.files.length === 0) return;
 
+    const validFiles = Array.from(input.files).filter((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${$t("conversations.large_file_error", { maxSize: "15MB" } as any)}`);
+        return false;
+      }
+      return true;
+    });
+
+    const readers: Promise<LocalFile>[] = validFiles.map((file) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      return new Promise<LocalFile>((resolve, reject) => {
+        reader.onload = async () => {
+          if (typeof reader.result !== "string") reject();
+
+          resolve({
+            file,
+            dataURL: reader.result as string,
+            key: uuidv4(),
+          });
+        };
+
+        reader.onerror = reject;
+      });
+    });
+
+    try {
       // When all files are read, update the images store
-      const newImages: Image[] = await Promise.all(readers);
-      images = [...images, ...newImages];
-      // Resetting the file input, so user can upload the same file again
-      input.value = "";
+      const newFiles = await Promise.all(readers);
+      files = [...files, ...newFiles];
+    } catch (e) {
+      console.error(e);
+      toast.error(`{$t("conversations.error_loading_file")}: ${e}`);
     }
-  }
-
-  function cancelUpload(id: string) {
-    images = images.filter((img) => img.id !== id);
+    // Resetting the file input, so user can upload the same file again
+    input.value = "";
   }
 
   function send() {
+    if (!isValid) return;
+
     dispatch("send", {
       text,
-      images,
+      files,
     });
 
     text = "";
-    images = [];
+    files = [];
   }
 </script>
 
@@ -108,30 +101,33 @@
         on:keydown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            if (text.trim() || images.length > 0) {
-              const submitEvent = new SubmitEvent("submit");
-              e.currentTarget.form?.dispatchEvent(submitEvent);
-            }
+            const submitEvent = new SubmitEvent("submit");
+            e.currentTarget.form?.dispatchEvent(submitEvent);
           }
         }}
       />
       <div class="mx-4 flex flex-row flex-wrap">
-        {#each images as file (file.id)}
-          <FilePreview
+        {#each files as file, i (file.key)}
+          <LocalFilePreview
             {file}
-            size={Size.Small}
-            showCancel
-            maxFilenameLength={10}
             moreClasses="mr-2 mt-2"
-            on:cancel={(e) => cancelUpload(e.detail)}
+            on:cancel={() => {
+              files = [...files.slice(0, i), ...files.slice(i + 1)];
+            }}
           />
         {/each}
       </div>
     </div>
-    <ButtonIconBare
-      disabled={text.trim() === "" && images.length === 0}
-      moreClassesButton="pr-2 disabled:opacity-50"
-      icon="caretRight"
-    />
+    {#if loading}
+      <div class="flex items-center justify-center">
+        <SvgIcon icon="spinner" moreClasses="pr-2 disabled:opacity-50 w-8 h-8" />
+      </div>
+    {:else}
+      <ButtonIconBare
+        disabled={!isValid || disabled}
+        moreClassesButton="pr-2 disabled:opacity-50"
+        icon="caretRight"
+      />
+    {/if}
   </form>
 </div>

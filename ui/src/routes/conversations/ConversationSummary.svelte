@@ -5,26 +5,49 @@
   import Avatar from "../../lib/Avatar.svelte";
   import SvgIcon from "../../lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { isMobile } from "$lib/utils";
-  import type { ConversationStore } from "$store/ConversationStore";
-  import { Privacy } from "$lib/types";
+  import { encodeCellIdToBase64, isMobile } from "$lib/utils";
+  import {
+    deriveCellConversationMessagesListStore,
+    deriveCellConversationStore,
+    type ConversationStore,
+  } from "$store/ConversationStore";
+  import { Privacy, type CellIdB64 } from "$lib/types";
   import { goto } from "$app/navigation";
-  import DOMPurify from "dompurify";
-
-  export let conversationStore: ConversationStore;
-
-  $: conversation = $conversationStore.conversation;
-  $: unread = $conversationStore.unread;
-  $: archived = $conversationStore.archived;
-  $: lastMessage = $conversationStore.lastMessage;
-  $: lastMessageAuthor = lastMessage
-    ? conversation.agentProfiles[lastMessage.authorKey]?.fields.firstName
-    : null;
-
-  let allMembers = conversationStore.getAllMembers();
-  let joinedMembers = conversationStore.getJoinedMembers();
+  import { getContext } from "svelte";
+  import { type ProfileStore } from "$store/ProfileStore";
+  import { sortBy } from "lodash-es";
+  import {
+    deriveCellMergedProfileContactListStore,
+    deriveCellMergedProfileContactStore,
+  } from "$store/MergedProfileContactStore";
+  import MessagePreview from "./MessagePreview.svelte";
+  import UnreadIndicator from "./UnreadIndicator.svelte";
+  import type { AgentPubKeyB64 } from "@holochain/client";
+  import PrivateConversationImageThumbnail from "./[id]/PrivateConversationImageThumbnail.svelte";
 
   const tAny = t as any;
+
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
+  const mergedProfileContactStore = getContext<{ getStore: () => ProfileStore }>(
+    "mergedProfileContactStore",
+  ).getStore();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+
+  export let cellIdB64: CellIdB64;
+
+  let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
+  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+    mergedProfileContactStore,
+    cellIdB64,
+    myPubKeyB64,
+  );
+  let messagesList = deriveCellConversationMessagesListStore(conversation);
+
+  $: latestMessage = $messagesList.length > 0 ? $messagesList[0] : undefined;
 
   let isHovering = false;
   let menuOpen = 0;
@@ -106,8 +129,8 @@
     if (isDragging) {
       e.preventDefault();
       e.stopPropagation();
-    } else {
-      goto(`/conversations/${conversation.dnaHashB64}`);
+    } else if ($conversation.conversation.cellInfo.enabled) {
+      goto(`/conversations/${encodeCellIdToBase64($conversation.conversation.cellInfo.cell_id)}`);
     }
   }
 
@@ -128,9 +151,13 @@
     menuOpen = 0;
   }
 
-  function archiveConversation() {
-    conversationStore.toggleArchived();
-    isVisible = true;
+  async function archiveConversation() {
+    if ($conversation.conversation.cellInfo.enabled) {
+      conversation.disable();
+    } else {
+      conversation.enable();
+    }
+
     x = 0;
   }
 </script>
@@ -155,57 +182,11 @@
       on:mouseleave={handleLeave}
       on:blur={handleLeave}
     >
-      {#if conversation.privacy === Privacy.Private}
-        <div class="relative flex items-center justify-center">
-          {#if allMembers.length == 0}
-            <!-- When you join a private conversation and it has not synced yet -->
-            <span
-              class="bg-secondary-300 dark:bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full"
-            >
-              <SvgIcon icon="group" />
-            </span>
-          {:else if allMembers.length == 1}
-            <Avatar
-              cellId={conversation.cellId}
-              agentPubKeyB64={allMembers[0].publicKeyB64}
-              size={40}
-            />
-          {:else if allMembers.length == 2}
-            <Avatar
-              cellId={conversation.cellId}
-              agentPubKeyB64={allMembers[0]?.publicKeyB64}
-              size={22}
-              moreClasses=""
-            />
-            <Avatar
-              cellId={conversation.cellId}
-              agentPubKeyB64={allMembers[1]?.publicKeyB64}
-              size={22}
-              moreClasses="relative -ml-1"
-            />
-          {:else}
-            <Avatar
-              cellId={conversation.cellId}
-              agentPubKeyB64={allMembers[0]?.publicKeyB64}
-              size={22}
-              moreClasses="relative -mb-2"
-            />
-            <Avatar
-              cellId={conversation.cellId}
-              agentPubKeyB64={allMembers[1]?.publicKeyB64}
-              size={22}
-              moreClasses="relative -ml-3 -mt-3"
-            />
-            <div
-              class="variant-filled-tertiary relative -mb-3 -ml-2 flex h-4 w-4 items-center justify-center rounded-full p-2"
-            >
-              <span class="text-xxs">+{allMembers.length - 2}</span>
-            </div>
-          {/if}
-        </div>
-      {:else if conversation.config?.image}
+      {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private}
+        <PrivateConversationImageThumbnail {cellIdB64} />
+      {:else if $conversation.conversation.config?.image}
         <img
-          src={conversation.config.image}
+          src={$conversation.conversation.config.image}
           alt="Conversation"
           class="h-10 w-10 rounded-full object-cover"
         />
@@ -216,30 +197,23 @@
           <SvgIcon icon="group" />
         </span>
       {/if}
-      <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden" class:unread>
-        <span class="text-base">{conversationStore.getTitle()}</span>
+      <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden">
+        <span class="text-base">{$conversation.conversation.title}</span>
         <span class="flex min-w-0 items-center overflow-hidden text-ellipsis text-nowrap text-xs">
-          {#if unread}
-            <span class="bg-primary-500 mr-2 inline-block h-2 w-2 rounded-full"></span>
+          {#if $conversation.conversation.unread}
+            <UnreadIndicator />
           {/if}
-          {#if conversation.privacy === Privacy.Private && joinedMembers.length === 0 && allMembers.length === 1}
+
+          {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContactList.length === 1 && $conversation.conversation.invited.length > 0}
             <span class="text-secondary-400">{$t("conversations.unconfirmed")}</span>
-          {:else if lastMessage}
-            {lastMessageAuthor || ""}:&nbsp;
-            {@html DOMPurify.sanitize(lastMessage.content || "")}
-            {#if lastMessage.images.length > 0}
-              &nbsp;<span class="text-secondary-400 italic"
-                >({$tAny("conversations.images", {
-                  count: lastMessage.images.length,
-                })})</span
-              >
-            {/if}
+          {:else if latestMessage}
+            <MessagePreview {cellIdB64} messageExtended={latestMessage[1]} />
           {/if}
         </span>
       </div>
       <div class="text-secondary-300 relative flex flex-row items-center text-xs">
         <SvgIcon icon="person" moreClasses="h-[8px] w-[8px]" />
-        <div class="ml-1">{Object.values(conversation.agentProfiles).length}</div>
+        <div class="ml-1">{$mergedProfileContactList.length}</div>
       </div>
       {#if !isMobile() && isHovering && x === 0}
         <button
@@ -254,18 +228,19 @@
     <div class="absolute left-0 top-0 flex h-full w-full flex-row rounded-lg px-[1px] py-[1px]">
       <!-- <div class="flex flex-1 items-center justify-start ml-1  rounded-lg bg-secondary-500">Mark as Unread</div> -->
       <div
-        class="mr-1 flex flex-1 items-center justify-end rounded-lg {archived
-          ? 'bg-secondary-900'
-          : 'bg-primary-500'}"
+        class="mr-1 flex flex-1 items-center justify-end rounded-lg
+        {$conversation.conversation.cellInfo.enabled ? 'bg-primary-500' : 'bg-secondary-900'}"
       >
         <button
           class="text-surface-100 dark:text-tertiary-100 mr-2 flex flex-col items-center justify-center font-bold"
           on:click={startArchive}
         >
           <SvgIcon icon="archive" />
-          <span class="text-xs"
-            >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
-          >
+          <span class="text-xs">
+            {$conversation.conversation.cellInfo.enabled
+              ? $t("conversations.archive")
+              : $t("conversations.restore")}
+          </span>
         </button>
       </div>
     </div>
@@ -283,15 +258,11 @@
       <button class="flex flex-row items-center justify-start" on:click={startArchive}>
         <SvgIcon icon="archive" moreClasses="mr-2" />
         <span class="text-xs"
-          >{archived ? $t("conversations.restore") : $t("conversations.archive")}</span
+          >{$conversation.conversation.cellInfo.enabled
+            ? $t("conversations.archive")
+            : $t("conversations.restore")}</span
         >
       </button>
     </li>
   </ul>
 {/if}
-
-<style>
-  .unread {
-    font-weight: 550;
-  }
-</style>

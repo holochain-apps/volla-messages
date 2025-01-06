@@ -6,8 +6,8 @@ import {
   type Record,
 } from "@holochain/client";
 import { get, type Invalidator, type Subscriber, type Unsubscriber, derived } from "svelte/store";
-import { makeFullName } from "$lib/utils";
-import type { Contact, ContactExtended, ProfileExtended } from "$lib/types";
+import { decodeCellIdFromBase64, makeFullName } from "$lib/utils";
+import type { CellIdB64, Contact, ContactExtended, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import { persisted } from "./GenericPersistedStore";
@@ -20,7 +20,7 @@ export interface ContactsExtendedObj {
 
 export interface ContactStore {
   initialize: () => Promise<void>;
-  create: (val: Contact, cellId: CellId) => Promise<void>;
+  create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
   update: (val: Contact) => Promise<void>;
   getHasAgentJoinedDht: (agentPubKeyB64: AgentPubKeyB64) => Promise<boolean>;
   getAsProfileExtended: (agentPubKeyB64: AgentPubKeyB64) => ProfileExtended;
@@ -53,28 +53,28 @@ export function createContactStore(client: RelayClient): ContactStore {
    * @param val
    * @param cellId: The CellId of the private conversation with this contact
    */
-  async function create(val: Contact, cellId: CellId) {
+  async function create(val: Contact, cellIdB64: CellIdB64) {
     const record = await client.createContact(val);
     const agentPubKeyB64 = encodeHashToBase64(val.public_key);
-
+    const cellId = decodeCellIdFromBase64(cellIdB64);
     cellIds.update((d) => ({
       ...d,
       [agentPubKeyB64]: cellId,
     }));
-    contacts.updateOne(agentPubKeyB64, _makeContactExtendedFromRecord(record, cellId));
+    contacts.updateKeyValue(agentPubKeyB64, _makeContactExtendedFromRecord(record, cellId));
   }
 
   /**
    * Update a contact
    */
   async function update(val: Contact) {
-    const prevContact = contacts.getOne(encodeHashToBase64(val.public_key));
+    const prevContact = contacts.getKeyValue(encodeHashToBase64(val.public_key));
     const record = await client.updateContact({
       original_contact_hash: prevContact.originalActionHash,
       previous_contact_hash: prevContact.previousActionHash,
       updated_contact: val,
     });
-    contacts.updateOne(
+    contacts.updateKeyValue(
       encodeHashToBase64(val.public_key),
       _makeContactExtendedFromRecord(record, prevContact.cellId, prevContact.originalActionHash),
     );
@@ -113,7 +113,7 @@ export function createContactStore(client: RelayClient): ContactStore {
    * @returns
    */
   async function getHasAgentJoinedDht(agentPubKeyB64: AgentPubKeyB64): Promise<boolean> {
-    const c = contacts.getOne(agentPubKeyB64);
+    const c = contacts.getKeyValue(agentPubKeyB64);
     const agents = await client.getAgentsWithProfile(c.cellId);
     return agents.length >= 2;
   }
@@ -125,7 +125,7 @@ export function createContactStore(client: RelayClient): ContactStore {
    * @returns
    */
   function getAsProfileExtended(agentPubKeyB64: AgentPubKeyB64): ProfileExtended {
-    const c = contacts.getOne(agentPubKeyB64);
+    const c = contacts.getKeyValue(agentPubKeyB64);
 
     return {
       publicKeyB64: c.publicKeyB64,
@@ -232,6 +232,8 @@ export function deriveOneContactStore(contactStore: ContactStore, agentPubKeyB64
  * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
  */
 export const deriveContactListStore = (contactStore: ContactStore) =>
-  derived(contactStore, ($contactStore) =>
-    sortBy(Object.entries($contactStore), [(c) => c[1].fullName]),
-  );
+  derived(contactStore, ($contactStore) => {
+    if ($contactStore === undefined) return [];
+
+    return sortBy(Object.entries($contactStore), [(c) => c[1].fullName]);
+  });

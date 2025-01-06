@@ -1,4 +1,9 @@
-import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+import {
+  encodeHashToBase64,
+  type AgentPubKeyB64,
+  type ClonedCell,
+  type ProvisionedCell,
+} from "@holochain/client";
 import { derived, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import { encodeCellIdToBase64, makeFullName } from "$lib/utils";
 import type { CellIdB64, CreateProfileInputUI, Profile, ProfileExtended } from "$lib/types";
@@ -18,6 +23,8 @@ export interface ProfileStore {
   initialize: () => Promise<void>;
   create: (val: CreateProfileInputUI) => Promise<void>;
   update: (val: CreateProfileInputUI) => Promise<void>;
+  load: () => Promise<void>;
+  loadKey: (key: CellIdB64) => Promise<void>;
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyKeyValueStoreData<ProfileExtended>>,
@@ -122,26 +129,18 @@ export function createProfileStore(client: RelayClient): ProfileStore {
    * Fetch contacts data and load into writable
    */
   async function initialize() {
+    return load();
+  }
+
+  async function load() {
     // Get all relay cells
     const cellInfos = flatten(
       await Promise.all([client.getRelayClonedCellInfos(), client.getRelayProvisionedCellInfo()]),
     );
 
-    // Create profile in all relay cells
+    // Get all profiles in all relay cells
     // Ignore any failures
-    const data = (
-      await Promise.allSettled(
-        cellInfos.map(async (cellInfo) => {
-          const profilesExtended = await client.getAllProfiles(cellInfo.cell_id);
-
-          return profilesExtended.map((p) => ({
-            cellIdB64: encodeCellIdToBase64(cellInfo.cell_id),
-            agentPubKeyB64: p.publicKeyB64,
-            profileExtended: p,
-          }));
-        }),
-      )
-    )
+    const data = (await Promise.allSettled(cellInfos.map(_loadProfiles)))
       .filter((p) => p.status === "fulfilled")
       .map((p) => p.value);
 
@@ -151,8 +150,38 @@ export function createProfileStore(client: RelayClient): ProfileStore {
     );
   }
 
+  async function loadKey(key: CellIdB64) {
+    // Get all relay cells
+    const cellInfos = flatten(
+      await Promise.all([client.getRelayClonedCellInfos(), client.getRelayProvisionedCellInfo()]),
+    );
+
+    // Find selected cell
+    const cellInfo = cellInfos.find((c) => encodeCellIdToBase64(c.cell_id) === key);
+    if (!cellInfo) throw new Error(`Failed to get CellInfo for cellIdB64 ${key}`);
+
+    // Fetch profiles for cell
+    const data = await _loadProfiles(cellInfo);
+    profiles.setKeyValue(
+      key,
+      Object.fromEntries(data.map((d) => [d.agentPubKeyB64, d.profileExtended])),
+    );
+  }
+
+  async function _loadProfiles(cellInfo: ClonedCell | ProvisionedCell) {
+    const profilesExtended = await client.getAllProfiles(cellInfo.cell_id);
+
+    return profilesExtended.map((p) => ({
+      cellIdB64: encodeCellIdToBase64(cellInfo.cell_id),
+      agentPubKeyB64: p.publicKeyB64,
+      profileExtended: p,
+    }));
+  }
+
   return {
     initialize,
+    load,
+    loadKey,
 
     create,
     update,
@@ -162,5 +191,10 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 }
 
 export function deriveCellProfileStore(profileStore: ProfileStore, cellIdB64: CellIdB64) {
-  return derived(profileStore, ($profileStore) => $profileStore[cellIdB64]);
+  const store = derived(profileStore, ($profileStore) => $profileStore[cellIdB64]);
+
+  return {
+    ...store,
+    load: () => profileStore.loadKey(cellIdB64),
+  };
 }

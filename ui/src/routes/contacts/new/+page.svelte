@@ -2,23 +2,24 @@
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { scanStore } from "$store/ScanStore";
-  import { isMobile, makeFullName } from "$lib/utils";
+  import { decodeCellIdFromBase64, encodeCellIdToBase64, isMobile, makeFullName } from "$lib/utils";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputContact from "../InputContact.svelte";
   import { goto } from "$app/navigation";
   import { Privacy, type Contact } from "$lib/types";
   import { getContext } from "svelte";
   import type { ContactStore } from "$store/ContactStore";
-  import type { RelayStore } from "$store/RelayStore";
   import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
-  import { get } from "svelte/store";
   import toast from "svelte-french-toast";
+  import type { ConversationStore } from "$store/ConversationStore";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
 
   let saving = false;
   let contact: Contact = {
@@ -32,19 +33,21 @@
     saving = true;
     try {
       // Create cell for private convesation
-      const conversation = await relayStore.createConversation(
-        makeFullName(contact.first_name, contact.last_name),
-        "",
-        Privacy.Private,
-        [encodeHashToBase64(contact.public_key)],
-      );
-      const cellId = get(conversation).conversation.cellId;
+      const cellIdB64 = await conversationStore.create({
+        config: {
+          title: makeFullName(contact.first_name, contact.last_name),
+          image: "",
+        },
+        privacy: Privacy.Private,
+      });
+      // Invite agent to conversation
+      await conversationStore.invite(cellIdB64, [encodeHashToBase64(contact.public_key)]);
 
       // Create contact
-      await contactStore.create(contact, cellId);
+      await contactStore.create(contact, cellIdB64);
 
-      // Navigate to private conversation
-      await goto(`/conversations/${encodeHashToBase64(cellId[0])}`);
+      // Navigate to conversation
+      await goto(`/conversations/${cellIdB64}`);
     } catch (e) {
       console.error(e);
       toast.error($tAny("contacts.error_saving", { updating: false }));

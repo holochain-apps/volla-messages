@@ -18,7 +18,7 @@
     {#if loading}
       <SvgIcon icon="spinner" moreClasses="text-primary-600 w-[10px] h-[10px]" />
     {:else}
-      <SvgIcon {icon} moreClasses="text-primary-600 w-[13px] h-[13px]" />
+      <SvgIcon {icon} moreClasses="text-primary-600 !w-[14px] !h-[14px]" />
     {/if}
 
     {#if number !== undefined}

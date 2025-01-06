@@ -4,7 +4,7 @@
   import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
   import { t } from "$translations";
   import type { AgentPubKeyB64 } from "@holochain/client";
-  import { Avatar } from "@skeletonlabs/skeleton";
+  import Avatar from "$lib/Avatar.svelte";
   import { getContext, onMount } from "svelte";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();

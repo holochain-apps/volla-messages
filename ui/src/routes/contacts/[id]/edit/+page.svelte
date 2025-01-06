@@ -2,7 +2,7 @@
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { scanStore } from "$store/ScanStore";
-  import { isMobile, makeFullName } from "$lib/utils";
+  import { encodeCellIdToBase64, isMobile, makeFullName } from "$lib/utils";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputContact from "../../InputContact.svelte";
   import { goto } from "$app/navigation";
@@ -30,7 +30,7 @@
       await contact.update(val);
 
       // Navigate to private conversation
-      await goto(`/conversations/${encodeHashToBase64($contact.cellId[0])}`);
+      await goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
     } catch (e) {
       console.error(e);
       toast.error($tAny("contacts.error_saving", { updating: true }));

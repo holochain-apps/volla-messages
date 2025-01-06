@@ -11,17 +11,23 @@
   import { getContext, onDestroy, onMount } from "svelte";
   import { t } from "$translations";
   import { encodeHashToBase64 } from "@holochain/client";
-  import type { RelayStore } from "$store/RelayStore";
   import Avatar from "$lib/Avatar.svelte";
+  import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import { encodeCellIdToBase64 } from "$lib/utils";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
 
   let contact = deriveOneContactStore(contactStore, $page.params.id);
-  $: conversationStore = relayStore.getConversation(encodeHashToBase64($contact.cellId[0]));
+  let conversation = deriveCellConversationStore(
+    conversationStore,
+    encodeCellIdToBase64($contact.cellId),
+  );
 
   let pollInterval: NodeJS.Timeout;
   let hasAgentJoinedDht: boolean = false;
@@ -69,7 +75,7 @@
         name: $contact?.contact.first_name,
       })}
     </p>
-    {#await conversationStore?.makeInviteCodeForAgent($contact.publicKeyB64) then res}
+    {#await conversation.makePrivateInviteCode($contact.publicKeyB64) then res}
       {#if res}
         <div class="flex justify-center">
           <ButtonsCopyShare
@@ -86,7 +92,7 @@
     <Button
       icon="speechBubble"
       on:click={() => {
-        goto(`/conversations/${encodeHashToBase64($contact.cellId[0])}`);
+        goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
       }}
     >
       {$t("contacts.send_message")}

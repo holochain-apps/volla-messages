@@ -158,13 +158,21 @@ export function makeFullName(firstName: string, lastName?: string): string {
   return `${firstName}${hasLastName ? " " + lastName : ""}`;
 }
 
-const URL_SAFE_DELIMETER = "+";
-
 export function encodeCellIdToBase64(cellId: CellId): CellIdB64 {
-  return `${Base64.fromUint8Array(cellId[0], true)}${URL_SAFE_DELIMETER}${Base64.fromUint8Array(cellId[1])}`;
+  return Base64.fromUint8Array(new Uint8Array([...cellId[0], ...cellId[1]]), true);
 }
 
 export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
-  const val = base64.split(URL_SAFE_DELIMETER);
-  return [Base64.toUint8Array(val[0]), Base64.toUint8Array(val[1])] as CellId;
+  const bytes = Base64.toUint8Array(base64);
+  return [bytes.slice(0, 39), bytes.slice(39)];
+}
+
+export function isSameDay(d1: Date, d2?: Date) {
+  if (d2 === undefined) return false;
+
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
 }

@@ -5,17 +5,19 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { RelayStore } from "$store/RelayStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import ButtonSquare from "$lib/ButtonSquare.svelte";
+  import type { ConversationStore } from "$store/ConversationStore";
 
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
 
-  $: if (relayStore.conversations.length > 0) {
+  $: if (Object.keys($conversationStore.conversations).length > 0) {
     goto("/conversations");
   }
 </script>

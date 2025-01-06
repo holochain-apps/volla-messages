@@ -1,29 +1,25 @@
 <script lang="ts">
   import { createEventDispatcher, getContext } from "svelte";
-  import Header from "$lib/Header.svelte";
-  import { t } from "$translations";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import ContactsList from "$lib/ContactsList.svelte";
   import ButtonFilledNumbered from "$lib/ButtonFilledNumbered.svelte";
   import type { ContactStore } from "$store/ContactStore";
 
-  const tAny = t as any;
-
-  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const dispatch = createEventDispatcher<{
-    change: {
+    clickAction: {
       selectedAgentPubKeyB64s: AgentPubKeyB64[];
       selectedContactNames: string;
     };
   }>();
 
+  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
+
   export let value: AgentPubKeyB64[] = [];
+  export let excludedAgentPubKeyB64s: AgentPubKeyB64[] = [];
   export let searchQuery = "";
   export let loading = false;
   export let disabled = false;
   export let buttonLabel: string;
-
-  let existingConversationStore = false;
 
   $: selectedContactExtendeds = value
     .map((agentPubKeyB64) => $contactStore[agentPubKeyB64])
@@ -43,7 +39,7 @@
 </script>
 
 <div class="flex w-full flex-col items-center p-5">
-  <ContactsList {searchQuery} bind:selectedAgentPubKeyB64s={value} />
+  <ContactsList {excludedAgentPubKeyB64s} {searchQuery} bind:selectedAgentPubKeyB64s={value} />
 
   {#if value.length > 0}
     <ButtonFilledNumbered
@@ -53,7 +49,7 @@
       {disabled}
       {loading}
       on:click={() =>
-        dispatch("change", {
+        dispatch("clickAction", {
           selectedAgentPubKeyB64s: value,
           selectedContactNames,
         })}

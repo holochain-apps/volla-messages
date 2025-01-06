@@ -7,6 +7,7 @@
     deriveCellMergedProfileContactStore,
     type MergedProfileContactStore,
   } from "$store/MergedProfileContactStore";
+  import { type CellIdB64 } from "./types";
 
   const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
     "mergedProfileContactStore",
@@ -15,17 +16,14 @@
     "provisionedRelayCellId",
   ).getCellId();
 
-  export let cellId: CellId = provisionedRelayCellId;
+  export let cellIdB64: CellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
   export let agentPubKeyB64: AgentPubKeyB64;
 
   export let size: number = 32;
   export let namePosition = "row";
   export let moreClasses = "";
 
-  $: profiles = deriveCellMergedProfileContactStore(
-    mergedProfileContactStore,
-    encodeCellIdToBase64(cellId),
-  );
+  $: profiles = deriveCellMergedProfileContactStore(mergedProfileContactStore, cellIdB64);
   $: profileExtended = $profiles ? $profiles[agentPubKeyB64] : undefined;
   $: title = profileExtended ? profileExtended.profile.nickname : "";
 </script>
