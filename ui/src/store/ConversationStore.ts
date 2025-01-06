@@ -690,10 +690,10 @@ export const deriveConversationListStore = (conversationStore: ConversationStore
     if ($conversationStore.conversations === undefined) return [];
 
     return sortBy(Object.entries($conversationStore.conversations), [
-      (c, i) =>
-        $conversationStore.latestMessage[c[0]] !== undefined
-          ? -$conversationStore.latestMessage[c[0]].timestamp
-          : 9999999999999999999999999999,
+      (c) => {
+        const m = $conversationStore.latestMessage[c[0]];
+        return m === undefined ? Number.MAX_SAFE_INTEGER : -m.timestamp;
+      },
       (c) => c[1].title,
       (c) => c[1].dnaProperties.created,
     ]);
