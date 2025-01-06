@@ -5,7 +5,6 @@
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { Privacy, type LocalFile } from "$lib/types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
@@ -67,7 +66,7 @@
   // but only if the user is near the bottom already
   $: if ($messagesList.length > 0) {
     if (scrollAtBottom) {
-      setTimeout(scrollToBottom, 100);
+      scrollToBottom(100);
     }
   }
 
@@ -139,9 +138,12 @@
       conversationContainerRef.clientHeight + SCROLL_BOTTOM_THRESHOLD;
   }, 100);
 
-  function scrollToBottom() {
-    conversationContainerRef.scrollTop = conversationContainerRef.scrollHeight;
-    scrollAtBottom = true;
+  function scrollToBottom(delay: number = 0) {
+    setTimeout(() => {
+      if (!conversationContainerRef) return;
+      conversationContainerRef.scrollTop = conversationContainerRef.scrollHeight;
+      scrollAtBottom = true;
+    }, delay);
   }
 
   async function sendMessage(text: string, files: LocalFile[]) {
@@ -166,6 +168,8 @@
     window.addEventListener("resize", debouncedHandleResize);
 
     conversation.updateUnread(false);
+
+    scrollToBottom();
   });
 
   // Cleanup

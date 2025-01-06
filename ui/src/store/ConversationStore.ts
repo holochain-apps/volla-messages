@@ -89,11 +89,16 @@ export function createConversationStore(
   const conversations = createGenericKeyValueStore<ConversationExtended>();
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
 
+  // Unread is persisted to localstorage as it is never stored via holochain
   const unread = persisted<{ [cellIdB64: CellIdB64]: boolean }>("CONVERSATION.UNREAD", {});
+
+  // List of invited agents is persisted to localstorage as it is not stored via holochain
   const invited = persisted<{ [cellIdB64: CellIdB64]: AgentPubKeyB64[] }>(
     "CONVERSATION.INVITED",
     {},
   );
+
+  // Conversation title is persisted to localstorage to ensure it remains available when the cell is disabled.
   const title = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
   const { subscribe } = derived([conversations, messages], ([$conversations, $messages]) => ({
