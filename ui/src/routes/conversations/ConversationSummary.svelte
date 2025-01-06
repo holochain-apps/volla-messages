@@ -2,24 +2,15 @@
   import { slide } from "svelte/transition";
   import { quintOut } from "svelte/easing";
   import { pan, type PanCustomEvent } from "svelte-gestures";
-  import Avatar from "../../lib/Avatar.svelte";
   import SvgIcon from "../../lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { encodeCellIdToBase64, isMobile } from "$lib/utils";
-  import {
-    deriveCellConversationMessagesListStore,
-    deriveCellConversationStore,
-    type ConversationStore,
-  } from "$store/ConversationStore";
+  import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { Privacy, type CellIdB64 } from "$lib/types";
   import { goto } from "$app/navigation";
   import { getContext } from "svelte";
   import { type ProfileStore } from "$store/ProfileStore";
-  import { sortBy } from "lodash-es";
-  import {
-    deriveCellMergedProfileContactListStore,
-    deriveCellMergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+  import { deriveCellMergedProfileContactListStore } from "$store/MergedProfileContactStore";
   import MessagePreview from "./MessagePreview.svelte";
   import UnreadIndicator from "./UnreadIndicator.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
@@ -45,9 +36,6 @@
     cellIdB64,
     myPubKeyB64,
   );
-  let messagesList = deriveCellConversationMessagesListStore(conversation);
-
-  $: latestMessage = $messagesList.length > 0 ? $messagesList[0] : undefined;
 
   let isHovering = false;
   let menuOpen = 0;
@@ -206,8 +194,8 @@
 
           {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContactList.length === 1 && $conversation.conversation.invited.length > 0}
             <span class="text-secondary-400">{$t("conversations.unconfirmed")}</span>
-          {:else if latestMessage}
-            <MessagePreview {cellIdB64} messageExtended={latestMessage[1]} />
+          {:else if $conversation.latestMessage}
+            <MessagePreview {cellIdB64} messageExtended={$conversation.latestMessage} />
           {/if}
         </span>
       </div>

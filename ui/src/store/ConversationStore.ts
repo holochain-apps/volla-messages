@@ -70,11 +70,13 @@ export interface ConversationStore {
     run: Subscriber<{
       conversations: GenericKeyValueStoreData<ConversationExtended>;
       messages: GenericKeyKeyValueStoreData<MessageExtended>;
+      latestMessage: GenericKeyValueStoreData<MessageExtended | undefined>;
     }>,
     invalidate?:
       | Invalidator<{
           conversations: GenericKeyValueStoreData<ConversationExtended>;
           messages: GenericKeyKeyValueStoreData<MessageExtended>;
+          latestMessage: GenericKeyValueStoreData<MessageExtended | undefined>;
         }>
       | undefined,
   ) => Unsubscriber;
@@ -97,6 +99,12 @@ export function createConversationStore(
   const { subscribe } = derived([conversations, messages], ([$conversations, $messages]) => ({
     conversations: $conversations,
     messages: $messages,
+    latestMessage: Object.fromEntries(
+      Object.entries($messages).map(([cellIdB64, cellMessages]) => [
+        cellIdB64,
+        sortBy(cellMessages, [(m) => -m.timestamp])[0],
+      ]),
+    ),
   }));
 
   async function initialize(): Promise<void> {
@@ -598,11 +606,13 @@ export interface CellConversationStore {
     run: Subscriber<{
       conversation: ConversationExtended;
       messages: GenericKeyValueStoreData<MessageExtended>;
+      latestMessage?: MessageExtended;
     }>,
     invalidate?:
       | Invalidator<{
           conversation: ConversationExtended;
           messages: GenericKeyValueStoreData<MessageExtended>;
+          latestMessage?: MessageExtended;
         }>
       | undefined,
   ) => Unsubscriber;
@@ -615,6 +625,7 @@ export function deriveCellConversationStore(
   const { subscribe } = derived(conversationStore, ($conversationStore) => ({
     conversation: $conversationStore.conversations[key],
     messages: $conversationStore.messages[key],
+    latestMessage: $conversationStore.latestMessage[key],
   }));
 
   return {
@@ -679,6 +690,10 @@ export const deriveConversationListStore = (conversationStore: ConversationStore
     if ($conversationStore.conversations === undefined) return [];
 
     return sortBy(Object.entries($conversationStore.conversations), [
+      (c, i) =>
+        $conversationStore.latestMessage[c[0]] !== undefined
+          ? -$conversationStore.latestMessage[c[0]].timestamp
+          : 9999999999999999999999999999,
       (c) => c[1].title,
       (c) => c[1].dnaProperties.created,
     ]);

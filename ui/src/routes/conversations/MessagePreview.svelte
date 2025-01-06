@@ -21,15 +21,13 @@
     <div>{$profile[messageExtended.authorAgentPubKeyB64].profile.nickname}:</div>
   {/if}
 
-  <div class="flex flex-col">
-    <div>{@html DOMPurify.sanitize(messageExtended.message.content)}</div>
+  <div>{@html DOMPurify.sanitize(messageExtended.message.content)}</div>
 
-    {#if messageExtended.message.images.length > 0}
-      <div class="text-secondary-400 italic">
-        ({$tAny("conversations.images", {
-          count: messageExtended.message.images.length,
-        })})
-      </div>
-    {/if}
-  </div>
+  {#if messageExtended.message.images.length > 0}
+    <div class="text-secondary-400 italic">
+      ({$tAny("conversations.images", {
+        count: messageExtended.message.images.length,
+      })})
+    </div>
+  {/if}
 </div>
