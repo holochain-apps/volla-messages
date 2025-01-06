@@ -33,7 +33,9 @@
     >
       <SvgIcon icon="group" />
     </span>
-  {:else if $mergedProfileContactList.length <= 3}
+  {:else if $mergedProfileContactList.length === 2}
+    <Avatar {cellIdB64} agentPubKeyB64={$mergedProfileContactList[1][0]} size={40} />
+  {:else if $mergedProfileContactList.length === 3}
     {#each $mergedProfileContactList.slice(1, 3) as [agentPubKeyB64], i (agentPubKeyB64)}
       <Avatar {cellIdB64} {agentPubKeyB64} size={22} moreClasses={i === 0 ? "" : "-ml-1"} />
     {/each}
@@ -47,7 +49,7 @@
       />
     {/each}
     <div
-      class="variant-filled-tertiary dark:variant-filled-secondary text-xxs relative -mb-3 -ml-2 flex h-5 w-5 items-center justify-center rounded-full p-2"
+      class="variant-filled-tertiary dark:variant-filled-secondary text-xxs relative -mb-3 -ml-3 flex h-5 w-5 items-center justify-center rounded-full p-2"
     >
       +{$mergedProfileContactList.length - 3}
     </div>

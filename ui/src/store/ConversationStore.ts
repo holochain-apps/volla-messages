@@ -134,6 +134,16 @@ export function createConversationStore(
         .map((p) => p.value),
     );
     messages.set(messagesData);
+
+    // Load first bucket of messages
+    await Promise.allSettled(
+      cellInfos.map(async (cellInfo) =>
+        loadMessagesInBucket(
+          encodeCellIdToBase64(cellInfo.cell_id),
+          getBucket(encodeCellIdToBase64(cellInfo.cell_id), new Date().getTime()),
+        ),
+      ),
+    );
   }
 
   async function loadConfig(key: CellIdB64): Promise<void> {
