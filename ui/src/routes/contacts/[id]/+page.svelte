@@ -10,10 +10,12 @@
   import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
   import { getContext, onDestroy, onMount } from "svelte";
   import { t } from "$translations";
-  import { encodeHashToBase64 } from "@holochain/client";
   import Avatar from "$lib/Avatar.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
+  import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
+  import { CellIdB64 } from "$lib/types";
+  import type { AgentPubKeyB64 } from "@holochain/client";
 
   // Silly thing to get around typescript issues with sveltekit-i18n
   const tAny = t as any;
@@ -22,6 +24,15 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
+    "provisionedRelayCellId",
+  ).getCellIdB64();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+  let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
+  $: myProfile = $profiles[myPubKeyB64];
 
   let contact = deriveOneContactStore(contactStore, $page.params.id);
   let conversation = deriveCellConversationStore(
@@ -75,7 +86,7 @@
         name: $contact?.contact.first_name,
       })}
     </p>
-    {#await conversation.makePrivateInviteCode($contact.publicKeyB64) then res}
+    {#await conversation.makePrivateInviteCode($contact.publicKeyB64, myProfile.profile.nickname) then res}
       {#if res}
         <div class="flex justify-center">
           <ButtonsCopyShare

@@ -60,7 +60,11 @@ export interface ConversationStore {
   disable: (key: CellIdB64) => Promise<void>;
   updateUnread: (key: CellIdB64, val: boolean) => Promise<void>;
   invite: (key: CellIdB64, agents: AgentPubKeyB64[]) => Promise<void>;
-  makePrivateInviteCode: (key: CellIdB64, agentPubKeyB64: AgentPubKeyB64) => Promise<string>;
+  makePrivateInviteCode: (
+    key: CellIdB64,
+    agentPubKeyB64: AgentPubKeyB64,
+    title: string,
+  ) => Promise<string>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   loadMessagesInBucket: (key1: CellIdB64, bucket: number) => Promise<void>;
   getBucket: (key1: CellIdB64, timestamp: number) => number;
@@ -284,7 +288,11 @@ export function createConversationStore(
     }));
   }
 
-  async function makePrivateInviteCode(key: CellIdB64, agentPubKeyB64: AgentPubKeyB64) {
+  async function makePrivateInviteCode(
+    key: CellIdB64,
+    agentPubKeyB64: AgentPubKeyB64,
+    title: string,
+  ) {
     const c = get(conversations)[key];
     if (c.dnaProperties.privacy === Privacy.Public)
       throw new Error("Private invitation codes are only for private conversations");
@@ -301,7 +309,7 @@ export function createConversationStore(
       privacy: c.dnaProperties.privacy,
       proof: membraneProof,
       networkSeed: c.cellInfo.dna_modifiers.network_seed,
-      title: c.title,
+      title,
     };
     return Base64.fromUint8Array(encode(invitation));
   }
@@ -601,7 +609,7 @@ export interface CellConversationStore {
   disable: () => Promise<void>;
   updateUnread: (val: boolean) => Promise<void>;
   invite: (a: AgentPubKeyB64[]) => Promise<void>;
-  makePrivateInviteCode: (a: AgentPubKeyB64) => Promise<string>;
+  makePrivateInviteCode: (a: AgentPubKeyB64, title: string) => Promise<string>;
   sendMessage: (content: string, files: LocalFile[]) => Promise<void>;
   loadMessagesInBucket: (bucket: number) => Promise<void>;
   getBucket: (timestamp: number) => number;
@@ -640,7 +648,8 @@ export function deriveCellConversationStore(
     disable: () => conversationStore.disable(key),
     updateUnread: (val: boolean) => conversationStore.updateUnread(key, val),
     invite: (a: AgentPubKeyB64[]) => conversationStore.invite(key, a),
-    makePrivateInviteCode: (a: AgentPubKeyB64) => conversationStore.makePrivateInviteCode(key, a),
+    makePrivateInviteCode: (a: AgentPubKeyB64, title: string) =>
+      conversationStore.makePrivateInviteCode(key, a, title),
     sendMessage: (content: string, files: LocalFile[]) =>
       conversationStore.sendMessage(key, content, files),
     loadMessagesInBucket: (bucket: number) => conversationStore.loadMessagesInBucket(key, bucket),

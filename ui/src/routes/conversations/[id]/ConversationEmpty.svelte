@@ -5,6 +5,13 @@
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import { getContext } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
+  import type { AgentPubKeyB64 } from "@holochain/client";
+  import {
+    deriveCellMergedProfileContactListStore,
+    type MergedProfileContactStore,
+  } from "$store/MergedProfileContactStore";
+  import { page } from "$app/stores";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -12,10 +19,30 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+    "mergedProfileContactStore",
+  ).getStore();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
+    "provisionedRelayCellId",
+  ).getCellIdB64();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+    mergedProfileContactStore,
+    $page.params.id,
+    myPubKeyB64,
+  );
 
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
+  let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
+  $: invitationTitle =
+    $mergedProfileContactList.length === 1
+      ? `${$profiles[myPubKeyB64].profile.nickname}`
+      : `${$profiles[myPubKeyB64].profile.nickname} + ${$mergedProfileContactList.length - 1}`;
 </script>
 
 <div class="flex h-full w-full flex-col items-center justify-center">
@@ -37,7 +64,7 @@
         })}
       </p>
 
-      {#await conversation.makePrivateInviteCode($conversation.conversation.invited[0]) then text}
+      {#await conversation.makePrivateInviteCode($conversation.conversation.invited[0], invitationTitle) then text}
         <div class="flex justify-center">
           <ButtonsCopyShare
             moreClasses="bg-tertiary-600 dark:bg-secondary-700"

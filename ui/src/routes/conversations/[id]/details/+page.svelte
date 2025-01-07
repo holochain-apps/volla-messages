@@ -1,12 +1,11 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+  import { type AgentPubKeyB64 } from "@holochain/client";
   import { page } from "$app/stores";
-  import Avatar from "$lib/Avatar.svelte";
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { Privacy } from "$lib/types";
+  import { Privacy, type CellIdB64 } from "$lib/types";
   import { goto } from "$app/navigation";
   import ButtonsCopyShareInline from "$lib/ButtonsCopyShareInline.svelte";
   import TitleInput from "./TitleInput.svelte";
@@ -20,6 +19,7 @@
   } from "$store/MergedProfileContactStore";
   import MemberListItem from "./MemberListItem.svelte";
   import PrivateConversationImage from "../PrivateConversationImage.svelte";
+  import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -33,6 +33,10 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
+    "provisionedRelayCellId",
+  ).getCellIdB64();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let mergedProfileContact = deriveCellMergedProfileContactStore(
@@ -44,6 +48,13 @@
     $page.params.id,
     myPubKeyB64,
   );
+  let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
+
+  $: myProfile = $profiles[myPubKeyB64];
+  $: invitationTitle =
+    $mergedProfileContactList.length === 1
+      ? `${myProfile.profile.nickname}`
+      : `${myProfile.profile.nickname} + ${$mergedProfileContactList.length - 1}`;
 
   // used for editing Group conversation details
   let image = $conversation.conversation.config?.image || "";
@@ -147,7 +158,7 @@
 
           {#each invitedUnjoinedAgentPubKeyB64s as agentPubKeyB64 (agentPubKeyB64)}
             <MemberListItem cellIdB64={$page.params.id} {agentPubKeyB64}>
-              {#await conversation.makePrivateInviteCode(agentPubKeyB64) then res}
+              {#await conversation.makePrivateInviteCode(agentPubKeyB64, invitationTitle) then res}
                 <ButtonsCopyShareInline
                   text={res}
                   copyLabel={$t("conversations.copy_invite")}

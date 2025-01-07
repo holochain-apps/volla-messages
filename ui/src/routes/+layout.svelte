@@ -157,6 +157,7 @@
 
   setContext("provisionedRelayCellId", {
     getCellId: () => provisionedRelayCellId,
+    getCellIdB64: () => encodeCellIdToBase64(provisionedRelayCellId),
   });
 </script>
 
