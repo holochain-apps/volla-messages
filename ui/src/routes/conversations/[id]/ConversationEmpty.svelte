@@ -17,9 +17,6 @@
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
-
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
@@ -68,7 +65,7 @@
         {$t("contacts.pending_connection_header")}
       </h1>
       <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-        {$tAny("contacts.pending_connection_description", {
+        {$t("contacts.pending_connection_description", {
           name: $conversationTitle,
         })}
       </p>

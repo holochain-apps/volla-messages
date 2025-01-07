@@ -25,9 +25,6 @@
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
-
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
@@ -135,10 +132,10 @@
   </div>
 
   <p class="text-sm">
-    {$tAny("conversations.created", { date: $conversation.conversation.dnaProperties.created })}
+    {$t("conversations.created", { date: $conversation.conversation.dnaProperties.created })}
   </p>
   <p class="text-sm">
-    {$tAny("conversations.num_members", { count: $mergedProfileContactList.length })}
+    {$t("conversations.num_members", { count: $mergedProfileContactList.length })}
   </p>
 
   <div class="mx-auto flex w-full flex-col overflow-y-auto px-4">

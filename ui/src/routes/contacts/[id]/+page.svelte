@@ -14,11 +14,8 @@
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
   import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
-  import { CellIdB64 } from "$lib/types";
+  import { type CellIdB64 } from "$lib/types";
   import type { AgentPubKeyB64 } from "@holochain/client";
-
-  // Silly thing to get around typescript issues with sveltekit-i18n
-  const tAny = t as any;
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
@@ -82,7 +79,7 @@
       {$t("contacts.pending_connection_header")}
     </h1>
     <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-      {$tAny("contacts.pending_connection_description", {
+      {$t("contacts.pending_connection_description", {
         name: $contact?.contact.first_name,
       })}
     </p>

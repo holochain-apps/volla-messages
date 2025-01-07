@@ -16,7 +16,6 @@
   } from "$store/MergedProfileContactStore";
   import { uniq } from "lodash-es";
 
-  const tAny = t as any;
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
@@ -58,7 +57,7 @@
 
 <Header
   back
-  title={$tAny("conversations.add_people", {
+  title={$t("conversations.add_people", {
     public: $conversation.conversation.dnaProperties.privacy === Privacy.Public,
   })}
 />

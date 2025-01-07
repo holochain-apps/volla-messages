@@ -6,8 +6,6 @@
   import DOMPurify from "dompurify";
   import { getContext } from "svelte";
 
-  const tAny = t as any;
-
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
 
   export let messageExtended: MessageExtended;
@@ -25,7 +23,7 @@
 
   {#if messageExtended.message.images.length > 0}
     <div class="text-secondary-400 italic">
-      ({$tAny("conversations.images", {
+      ({$t("conversations.images", {
         count: messageExtended.message.images.length,
       })})
     </div>

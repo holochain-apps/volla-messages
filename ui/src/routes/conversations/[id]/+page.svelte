@@ -28,9 +28,6 @@
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
-
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
@@ -233,7 +230,7 @@
 
     <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
     <div class="text-left text-sm">
-      {$tAny("conversations.num_members", { count: $mergedProfileContactList.length })}
+      {$t("conversations.num_members", { count: $mergedProfileContactList.length })}
     </div>
 
     {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContactList.length === 1}
