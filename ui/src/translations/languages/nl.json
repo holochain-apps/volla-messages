@@ -30,7 +30,7 @@
   "error_saving": "Fout bij het {{updating; true:updating; false:creating;}} contact",
   "first": "Eerste",
   "first_name": "Voornaam",
-  "group_details": "Groep Details",
+  
   "group_name": "Groepsnaam",
   "holochain_connect_error": "Fout bij verbinding met Holochain",
   "images": "{{count}} {{count; 1:image; default:images;}}",

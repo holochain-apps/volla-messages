@@ -39,7 +39,6 @@
   "error_sending_message": "Failed to send message",
   "first": "First",
   "first_name": "First Name",
-  "group_details": "Group Details",
   "group_name": "Group name",
   "holochain_connect_error": "Error connecting to Holochain",
   "images": "{{count}} {{count; 1:image; default:images;}}",

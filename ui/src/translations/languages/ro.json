@@ -27,7 +27,7 @@
   "error_saving": "Eroare {{updating; true:updating; false:creating;}} Contactați-ne",
   "first": "În primul rând",
   "first_name": "Numele și prenumele",
-  "group_details": "Detalii despre grup",
+  
   "group_name": "Numele grupului",
   "invalid_contact_code": "Cod de contact invalid",
   "join_conversation": "Participați la conversație",

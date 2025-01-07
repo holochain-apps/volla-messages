@@ -30,7 +30,7 @@
   "error_saving": "Fel {{updating; true:updating; false:creating;}} kontakt",
   "first": "Förnamn",
   "first_name": "Förnamn, tack",
-  "group_details": "Information om gruppen",
+  
   "group_name": "Gruppens namn",
   "images": "{{count}} {{count; 1:image; default:images;}}",
   "invalid_contact_code": "Ogiltig kod",

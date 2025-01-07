@@ -27,7 +27,7 @@
   "error_saving": "Fehler {{updating; true:updating; false:creating;}} Kontakt",
   "first": "Erster",
   "first_name": "Vorname",
-  "group_details": "Gruppendetails",
+  
   "group_name": "Gruppenname",
   "invalid_contact_code": "Ungültiger Kontakt-Code",
   "join_conversation": "An der Konversation teilnehmen",

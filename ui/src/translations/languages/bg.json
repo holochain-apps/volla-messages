@@ -26,7 +26,7 @@
   "error_saving": "Грешка {{updating; true:updating; false:creating;}} контакт",
   "first": "First",
   "first_name": "Първо име",
-  "group_details": "Данни за групата",
+  
   "group_name": "Име на групата",
   "invalid_contact_code": "Невалиден код за контакт",
   "join_conversation": "Участвайте в разговора",

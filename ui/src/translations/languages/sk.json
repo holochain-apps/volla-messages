@@ -27,7 +27,7 @@
   "error_saving": "Chyba {{updating; true:updating; false:creating;}} Kontaktujte nás",
   "first": "First",
   "first_name": "Krstné meno",
-  "group_details": "Podrobnosti o skupine",
+  
   "group_name": "Názov skupiny",
   "invalid_contact_code": "Neplatný kód kontaktu",
   "join_conversation": "Zapojte sa do konverzácie",

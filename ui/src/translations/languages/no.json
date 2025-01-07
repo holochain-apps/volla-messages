@@ -30,7 +30,7 @@
   "error_saving": "Feil {{updating; true:updating; false:creating;}} kontakt",
   "first": "Fornavn",
   "first_name": "Skriv fornavn",
-  "group_details": "Gruppeinformasjon",
+  
   "group_name": "Gruppenavn",
   "images": "{{count}} {{count; 1:image; default:images;}}",
   "invalid_contact_code": "Ugyldig kode",
