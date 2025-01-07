@@ -76,10 +76,10 @@
   <div class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4">
     <SvgIcon icon="handshake" moreClasses="w-[36px] h-[36px]" />
     <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
-      {$t("contacts.pending_connection_header")}
+      {$t("common.pending_connection_header")}
     </h1>
     <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-      {$t("contacts.pending_connection_description", {
+      {$t("common.pending_connection_description", {
         name: $contact?.contact.first_name,
       })}
     </p>
@@ -88,8 +88,8 @@
         <div class="flex justify-center">
           <ButtonsCopyShare
             text={res}
-            copyLabel={$t("contacts.copy_invite_code")}
-            shareLabel={$t("contacts.share_invite_code")}
+            copyLabel={$t("common.copy_invite_code")}
+            shareLabel={$t("common.share_invite_code")}
           />
         </div>
       {/if}
@@ -103,7 +103,7 @@
         goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
       }}
     >
-      {$t("contacts.send_message")}
+      {$t("common.send_message")}
     </Button>
   </div>
 {/if}

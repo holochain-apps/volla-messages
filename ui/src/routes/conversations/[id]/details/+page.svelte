@@ -132,10 +132,10 @@
   </div>
 
   <p class="text-sm">
-    {$t("conversations.created", { date: $conversation.conversation.dnaProperties.created })}
+    {$t("common.created", { date: $conversation.conversation.dnaProperties.created })}
   </p>
   <p class="text-sm">
-    {$t("conversations.num_members", { count: $mergedProfileContactList.length })}
+    {$t("common.num_members", { count: $mergedProfileContactList.length })}
   </p>
 
   <div class="mx-auto flex w-full flex-col overflow-y-auto px-4">
@@ -147,18 +147,18 @@
           >
             <SvgIcon icon="addPerson" moreClasses="text-primary-600" />
           </span>
-          <span class="ml-4 flex-1 text-sm font-bold">{$t("conversations.add_members")}</span>
+          <span class="ml-4 flex-1 text-sm font-bold">{$t("common.add_members")}</span>
 
           <ButtonsCopyShareInline
             text={$conversation.conversation.publicInviteCode}
-            copyLabel={$t("conversations.copy_invite")}
-            shareLabel={$t("conversations.share_invite_code")}
+            copyLabel={$t("common.copy_invite")}
+            shareLabel={$t("common.share_invite_code")}
           />
         </li>
       {:else}
         {#if invitedUnjoinedAgentPubKeyB64s.length > 0}
           <h3 class="text-md text-secondary-300 mb-2 font-light">
-            {$t("conversations.unconfirmed_invitations")}
+            {$t("common.unconfirmed_invitations")}
           </h3>
 
           {#each invitedUnjoinedAgentPubKeyB64s as agentPubKeyB64 (agentPubKeyB64)}
@@ -166,8 +166,8 @@
               {#await conversation.makePrivateInviteCode(agentPubKeyB64, invitationTitle) then res}
                 <ButtonsCopyShareInline
                   text={res}
-                  copyLabel={$t("conversations.copy_invite")}
-                  shareLabel={$t("conversations.share_invite_code")}
+                  copyLabel={$t("common.copy_invite")}
+                  shareLabel={$t("common.share_invite_code")}
                 />
               {/await}
             </MemberListItem>
@@ -175,7 +175,7 @@
         {/if}
 
         <h3 class="text-md text-secondary-300 mb-2 mt-4 font-light">
-          {$t("conversations.members")}
+          {$t("common.members")}
         </h3>
       {/if}
 

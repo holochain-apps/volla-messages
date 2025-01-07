@@ -30,7 +30,7 @@
 
     const validFiles = Array.from(input.files).filter((file) => {
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`${$t("conversations.large_file_error", { maxSize: "15MB" } as any)}`);
+        toast.error(`${$t("common.large_file_error", { maxSize: "15MB" } as any)}`);
         return false;
       }
       return true;
@@ -61,7 +61,7 @@
       files = [...files, ...newFiles];
     } catch (e) {
       console.error(e);
-      toast.error(`{$t("conversations.error_loading_file")}: ${e}`);
+      toast.error(`{$t("common.error_loading_file")}: ${e}`);
     }
     // Resetting the file input, so user can upload the same file again
     input.value = "";
@@ -97,7 +97,7 @@
         bind:this={ref}
         bind:value={text}
         class="bg-tertiary-500 w-full border-0 placeholder:text-sm placeholder:text-gray-400 focus:border-gray-500 focus:ring-0"
-        placeholder={$t("conversations.message_placeholder")}
+        placeholder={$t("common.message_placeholder")}
         on:keydown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();

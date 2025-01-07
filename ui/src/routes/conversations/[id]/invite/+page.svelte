@@ -57,7 +57,7 @@
 
 <Header
   back
-  title={$t("conversations.add_people", {
+  title={$t("common.add_people", {
     public: $conversation.conversation.dnaProperties.privacy === Privacy.Public,
   })}
 />
@@ -69,7 +69,7 @@
     excludedAgentPubKeyB64s={conversationMemberAgentPubKeyB64s}
     loading={saving}
     disabled={saving}
-    buttonLabel={$t("conversations.add_contact_to_conversation")}
+    buttonLabel={$t("common.add_contact_to_conversation")}
     on:clickAction={(e) => invite(e.detail.selectedAgentPubKeyB64s)}
   />
 </div>

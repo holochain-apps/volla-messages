@@ -20,6 +20,6 @@
   }
 </script>
 
-<Header backUrl="/conversations" title={$t("conversations.archive")}></Header>
+<Header backUrl="/conversations" title={$t("common.archive")}></Header>
 
 <ConversationList enabled={false} />

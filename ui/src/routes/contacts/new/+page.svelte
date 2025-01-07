@@ -47,7 +47,7 @@
       await goto(`/conversations/${cellIdB64}`);
     } catch (e) {
       console.error(e);
-      toast.error($t("contacts.error_saving", { updating: false }));
+      toast.error($t("common.error_saving", { updating: false }));
     }
     saving = false;
   }
@@ -61,7 +61,7 @@
   loadScanResult();
 </script>
 
-<Header back title={$t("contacts.create_new_contact")}>
+<Header back title={$t("common.create_new_contact")}>
   <div slot="right">
     {#if isMobile()}
       <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" />

@@ -54,7 +54,7 @@
   }
 </script>
 
-<Header backUrl="/welcome" title={$t("create.page_title")} />
+<Header backUrl="/welcome" title={$t("common.page_title")} />
 
 <div class="flex w-full flex-col items-center p-5">
   <InputSearch bind:value={searchQuery} />
@@ -84,7 +84,7 @@
     {searchQuery}
     loading={creating}
     disabled={creating}
-    buttonLabel={$t("create.open_conversation", {
+    buttonLabel={$t("common.open_conversation", {
       existingConversation: !!conversationWithAllSelectedAgents,
     })}
     on:clickAction={(e) => {

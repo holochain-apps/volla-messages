@@ -23,7 +23,7 @@
 
   {#if messageExtended.message.images.length > 0}
     <div class="text-secondary-400 italic">
-      ({$t("conversations.images", {
+      ({$t("common.images", {
         count: messageExtended.message.images.length,
       })})
     </div>

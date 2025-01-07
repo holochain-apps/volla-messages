@@ -40,7 +40,7 @@
 
   <span class="ml-4 flex-1 text-sm font-bold">
     {#if isMe}
-      {$t("conversations.you")}
+      {$t("common.you")}
     {:else if $mergedProfileContact[agentPubKeyB64] !== undefined}
       {$mergedProfileContact[agentPubKeyB64].profile.nickname}
     {:else if $contactStore[agentPubKeyB64] !== undefined}
@@ -49,7 +49,7 @@
   </span>
 
   {#if isAdmin}
-    <span class="text-secondary-300 ml-2 text-xs">{$t("conversations.admin")}</span>
+    <span class="text-secondary-300 ml-2 text-xs">{$t("common.admin")}</span>
   {/if}
 
   <slot></slot>

@@ -159,7 +159,7 @@
       await conversation.sendMessage(text, files);
     } catch (e) {
       console.error(e);
-      toast.error(`${$t("conversations.error_sending_message")}: ${e.message}`);
+      toast.error(`${$t("common.error_sending_message")}: ${e.message}`);
     }
     sending = false;
   }
@@ -230,7 +230,7 @@
 
     <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
     <div class="text-left text-sm">
-      {$t("conversations.num_members", { count: $mergedProfileContactList.length })}
+      {$t("common.num_members", { count: $mergedProfileContactList.length })}
     </div>
 
     {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContactList.length === 1}

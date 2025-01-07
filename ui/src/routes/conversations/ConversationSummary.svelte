@@ -199,7 +199,7 @@
           {/if}
 
           {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContactList.length === 1 && $conversation.conversation.invited.length > 0}
-            <span class="text-secondary-400">{$t("conversations.unconfirmed")}</span>
+            <span class="text-secondary-400">{$t("common.unconfirmed")}</span>
           {:else if $conversation.latestMessage}
             <MessagePreview {cellIdB64} messageExtended={$conversation.latestMessage} />
           {/if}
@@ -232,8 +232,8 @@
           <SvgIcon icon="archive" />
           <span class="text-xs">
             {$conversation.conversation.cellInfo.enabled
-              ? $t("conversations.archive")
-              : $t("conversations.restore")}
+              ? $t("common.archive")
+              : $t("common.restore")}
           </span>
         </button>
       </div>
@@ -253,8 +253,8 @@
         <SvgIcon icon="archive" moreClasses="mr-2" />
         <span class="text-xs"
           >{$conversation.conversation.cellInfo.enabled
-            ? $t("conversations.archive")
-            : $t("conversations.restore")}</span
+            ? $t("common.archive")
+            : $t("common.restore")}</span
         >
       </button>
     </li>

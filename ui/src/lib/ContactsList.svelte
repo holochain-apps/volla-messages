@@ -33,10 +33,10 @@
     class="bg-clearSkiesGray dark:bg-clearSkiesWhite mb-4 mt-10 h-32 w-32 bg-contain bg-center bg-no-repeat"
   ></div>
   <h2 class="text-secondary-500 dark:text-tertiary-500 mb-1 text-lg font-bold">
-    {$t("create.no_contacts_header")}
+    {$t("common.no_contacts_header")}
   </h2>
   <p class="text-secondary-400 dark:text-tertiary-700 text-center text-xs">
-    {$t("create.no_contacts_text")}
+    {$t("common.no_contacts_text")}
   </p>
 {:else}
   <div class="w-full">
