@@ -40,7 +40,7 @@
   "no_contacts_text": "Il n'y a encore personne avec qui vous pouvez chatter ! Ajoutez vos amis et votre famille de confiance en demandant leur code de contact Volla Messages, que vous trouverez dans leur profil personnel dans l'application Volla Messages.",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Conversation",
-  "page_title": "Créer",
+  "create": "Créer",
   "profile_error": "Erreur lors du chargement du profil",
   "request_contact_code": "Demandez le code de contact Volla Messages unique de votre contact, que vous trouverez dans son profil personnel dans l'application Volla Messages.",
   "save": "Sauvegarder",

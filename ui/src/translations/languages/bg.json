@@ -40,7 +40,7 @@
   "no_contacts_text": "Все още няма с кого да разговаряте! Добавете доверени приятели и членове на семейството си, като поискате техния код за контакт в Volla Messages, който можете да намерите в личния им профил в приложението Volla Messages..",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Разговор",
-  "page_title": "Създаване на",
+  "create": "Създаване на",
   "profile_error": "Грешка при зареждането на профила",
   "request_contact_code": "Поискайте уникалния код за контакт на вашия контакт, който можете да намерите в личния му профил в приложението Volla Messages.",
   "save": "Запазете",

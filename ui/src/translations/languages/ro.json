@@ -40,7 +40,7 @@
   "no_contacts_text": "Nu există încă nimeni cu care să discutați! Adaugă-ți prietenii și membrii de familie de încredere solicitându-le codul de contact Volla Messages, pe care îl poți găsi în profilul personal al acestora din aplicația Volla Messages.",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Conversație",
-  "page_title": "Creați",
+  "create": "Creați",
   "profile_error": "Eroare la încărcarea profilului",
   "request_contact_code": "Solicitați codul unic de contact Volla Messages al persoanei dvs. de contact, pe care îl puteți găsi în profilul personal al acesteia din aplicația Volla Messages.",
   "save": "Salvați",

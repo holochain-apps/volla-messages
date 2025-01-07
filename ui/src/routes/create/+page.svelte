@@ -54,7 +54,7 @@
   }
 </script>
 
-<Header backUrl="/welcome" title={$t("common.page_title")} />
+<Header backUrl="/welcome" title={$t("common.create")} />
 
 <div class="flex w-full flex-col items-center p-5">
   <InputSearch bind:value={searchQuery} />

@@ -40,7 +40,7 @@
   "no_contacts_text": "Es gibt noch niemanden, mit dem Sie chatten können! Fügen Sie Ihre vertrauenswürdigen Freunde und Familienmitglieder hinzu, indem Sie ihren Volla Messages-Kontaktcode anfordern, den Sie in ihrem persönlichen Profil in der Volla Messages-App finden.",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Konversation",
-  "page_title": "Erstellen",
+  "create": "Erstellen",
   "profile_error": "Fehler beim Laden des Profils",
   "request_contact_code": "Fordern Sie den eindeutigen Volla Messages-Kontakt-Code Ihres Kontakts an, den Sie in seinem persönlichen Profil in der Volla Messages-App finden.",
   "save": "Speichern",

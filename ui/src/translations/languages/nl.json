@@ -47,7 +47,7 @@
   "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
   "open_app_settings": "App-instellingen openen",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} gesprek",
-  "page_title": "Creëer",
+  "create": "Creëer",
   "pending_connection_description": "{{naam}} moet je uitnodigingscode invoeren om een verbinding tot stand te brengen.",
   "pending_connection_header": "De contactpersoon moet bevestigen",
   "profile_error": "Fout bij laden profiel",

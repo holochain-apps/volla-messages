@@ -59,7 +59,7 @@
   "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
   "open_app_settings": "Open App Settings",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} conversation",
-  "page_title": "Create",
+  "create": "Create",
   "pending_connection_description": "{{name}} needs to enter your invite code to establish a connection.",
   "pending_connection_header": "Contact needs to confirm",
   "permission_error": "Failed to request camera permissions. Please try again or grant permissions manually in settings.",

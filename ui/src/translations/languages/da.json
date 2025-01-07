@@ -44,7 +44,7 @@
   "no_contacts_text": "Der er ingen at konversere med endnu! Invitér kollegaer, venner og familie med deres kode, som du finder i deres personlige profil i appen.",
   "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} konversation",
-  "page_title": "Opræt",
+  "create": "Opræt",
   "pending_connection_description": "{{name}} skal indtaste din kode for at skabe en forbindelse.",
   "pending_connection_header": "Kontakt skal bekræfte",
   "profile_error": "Fejl ved indlæsning af profil",
