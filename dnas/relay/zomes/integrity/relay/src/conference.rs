@@ -16,7 +16,7 @@ pub struct SignalPayload {
     pub room_id: String,
     pub from: AgentPubKey,
     pub to: AgentPubKey,
-    pub payload_type: SignalType,
+    pub payload_type: CallSignalType,
     // JSON stringified sdp or ice candidate
     pub data: String,
 }
@@ -38,7 +38,7 @@ pub enum ConferenceSignalType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum SignalType {
+pub enum CallSignalType {
     Offer,
     Answer,
     IceCandidate,

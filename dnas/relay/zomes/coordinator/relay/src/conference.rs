@@ -17,7 +17,7 @@ pub struct JoinConferenceInput {
 pub struct SignalInput {
     pub room_id: String,
     pub target: AgentPubKey,
-    pub payload_type: SignalType,
+    pub payload_type: CallSignalType,
     pub data: String,
 }
 
