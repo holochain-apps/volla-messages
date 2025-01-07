@@ -191,7 +191,11 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 }
 
 export function deriveCellProfileStore(profileStore: ProfileStore, cellIdB64: CellIdB64) {
-  const store = derived(profileStore, ($profileStore) => $profileStore[cellIdB64]);
+  const store = derived(profileStore, ($profileStore) => {
+    if ($profileStore[cellIdB64] === undefined) return {};
+
+    return $profileStore[cellIdB64];
+  });
 
   return {
     ...store,

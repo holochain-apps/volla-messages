@@ -25,6 +25,7 @@
 
   $: messagesByAgentsWithProfiles = messages.filter(
     ([, messageExtended]) =>
+      $mergedProfileContact !== undefined &&
       $mergedProfileContact[messageExtended.authorAgentPubKeyB64] !== undefined,
   );
 

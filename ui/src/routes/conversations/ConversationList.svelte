@@ -4,9 +4,13 @@
   import InputSearch from "$lib/InputSearch.svelte";
   import { deriveConversationListStore, type ConversationStore } from "$store/ConversationStore";
   import type { CellIdB64 } from "$lib/types";
+  import type { ConversationTitleStore } from "$store/ConversationTitleStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
+  ).getStore();
+  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
+    "conversationTitleStore",
   ).getStore();
 
   export let enabled: boolean;
@@ -19,7 +23,7 @@
     .filter(
       (c) =>
         enabled === c[1].cellInfo.enabled &&
-        c[1].title.toLocaleLowerCase().includes(searchQueryNormalized),
+        $conversationTitleStore[c[0]].toLocaleLowerCase().includes(searchQueryNormalized),
     )
     .map((c) => c[0]);
 </script>

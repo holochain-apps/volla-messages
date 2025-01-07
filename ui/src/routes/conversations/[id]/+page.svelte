@@ -23,6 +23,10 @@
     deriveCellMergedProfileContactListStore,
     type MergedProfileContactStore,
   } from "$store/MergedProfileContactStore";
+  import {
+    type ConversationTitleStore,
+    deriveCellConversationTitleStore,
+  } from "$store/ConversationTitleStore";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -37,6 +41,9 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
+  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
+    "conversationTitleStore",
+  ).getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let messagesList = deriveCellConversationMessagesListStore(conversation);
@@ -46,6 +53,7 @@
     $page.params.id,
     myPubKeyB64,
   );
+  let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
 
   let configTimeout: NodeJS.Timeout;
   let agentTimeout: NodeJS.Timeout;
@@ -186,7 +194,7 @@
 
 <Header backUrl="/conversations">
   <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
-    {$conversation.conversation.title}
+    {$conversationTitle}
   </h1>
 
   <div class="flex items-center justify-center" slot="right">
@@ -221,7 +229,7 @@
       />
     {/if}
 
-    <h1 class="b-1 break-all text-3xl">{$conversation.conversation.title}</h1>
+    <h1 class="b-1 break-all text-3xl">{$conversationTitle}</h1>
 
     <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
     <div class="text-left text-sm">

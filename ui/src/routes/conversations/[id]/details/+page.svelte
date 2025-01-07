@@ -20,6 +20,10 @@
   import MemberListItem from "./MemberListItem.svelte";
   import PrivateConversationImage from "../PrivateConversationImage.svelte";
   import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
+  import {
+    type ConversationTitleStore,
+    deriveCellConversationTitleStore,
+  } from "$store/ConversationTitleStore";
 
   // Silly hack to get around issues with typescript in sveltekit-i18n
   const tAny = t as any;
@@ -37,8 +41,12 @@
   const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
     "provisionedRelayCellId",
   ).getCellIdB64();
+  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
+    "conversationTitleStore",
+  ).getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
+  let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
   let mergedProfileContact = deriveCellMergedProfileContactStore(
     mergedProfileContactStore,
     $page.params.id,
@@ -58,7 +66,7 @@
 
   // used for editing Group conversation details
   let image = $conversation.conversation.config?.image || "";
-  let title = $conversation.conversation.title || "";
+  let title = $conversationTitle || "";
   let editingTitle = false;
 
   $: iAmProgenitor = myPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
@@ -74,7 +82,7 @@
 
   const saveImage = async (newImage: string) => {
     conversation.updateConfig({
-      title: $conversation.conversation.config?.title || "",
+      title: $conversationTitle || "",
       image: newImage,
     });
     image = newImage;
@@ -83,7 +91,7 @@
 
 <Header backUrl={`/conversations/${$page.params.id}`}>
   <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
-    {$conversation.conversation.title}
+    {$conversationTitle}
   </h1>
 
   <div slot="right">

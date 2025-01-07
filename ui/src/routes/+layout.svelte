@@ -22,6 +22,10 @@
     type MergedProfileContactStore,
   } from "$store/MergedProfileContactStore";
   import { createConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import {
+    createConversationTitleStore,
+    type ConversationTitleStore,
+  } from "$store/ConversationTitleStore";
   import "../app.postcss";
 
   let client: AppClient;
@@ -29,6 +33,7 @@
   let contactStore: ContactStore;
   let mergedProfileContactStore: MergedProfileContactStore;
   let conversationStore: ConversationStore;
+  let conversationTitleStore: ConversationTitleStore;
   let provisionedRelayCellId: CellId;
   let connected = false;
   let readyToCreateProfile = false;
@@ -103,6 +108,11 @@
       profileStore = createProfileStore(relayClient);
       mergedProfileContactStore = createMergedProfileContactStore(profileStore, contactStore);
       conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
+      conversationTitleStore = createConversationTitleStore(
+        conversationStore,
+        mergedProfileContactStore,
+        encodeHashToBase64(client.myPubKey),
+      );
 
       // Initialize store data
       await contactStore.initialize();
@@ -153,6 +163,10 @@
 
   setContext("conversationStore", {
     getStore: () => conversationStore,
+  });
+
+  setContext("conversationTitleStore", {
+    getStore: () => conversationTitleStore,
   });
 
   setContext("provisionedRelayCellId", {

@@ -5,6 +5,7 @@ import type { ContactStore } from "./ContactStore";
 import type { GenericKeyKeyValueStoreData } from "./GenericKeyKeyValueStore";
 import type { AgentPubKeyB64 } from "@holochain/client";
 import { sortBy } from "lodash-es";
+import type { GenericKeyValueStoreData } from "./GenericKeyValueStore";
 
 export interface MergedProfileContactStore {
   subscribe: (
@@ -57,14 +58,47 @@ export function createMergedProfileContactStore(
   };
 }
 
+export interface MergedProfileContactListStore {
+  subscribe: (
+    this: void,
+    run: Subscriber<GenericKeyValueStoreData<[string, ProfileExtended][]>>,
+    invalidate?: Invalidator<GenericKeyValueStoreData<[string, ProfileExtended][]>> | undefined,
+  ) => Unsubscriber;
+}
+
+export function deriveMergedProfileContactListStore(
+  mergedProfileContactStore: MergedProfileContactStore,
+  myAgentPubKeyB64: AgentPubKeyB64,
+): MergedProfileContactListStore {
+  const { subscribe } = derived(mergedProfileContactStore, ($mergedProfileContactStore) => {
+    return Object.fromEntries(
+      Object.entries($mergedProfileContactStore).map(([cellIdB64, cellProfiles]) => [
+        cellIdB64,
+        sortBy(Object.entries(cellProfiles), [
+          // Sort by my agent first
+          ([agentPubKeyB64]) => agentPubKeyB64 !== myAgentPubKeyB64,
+
+          // Then by nickname alphabetically
+          ([, profileExtended]) => profileExtended.profile.nickname,
+        ]),
+      ]),
+    );
+  });
+
+  return {
+    subscribe,
+  };
+}
+
 export function deriveCellMergedProfileContactStore(
   mergedProfileContactStore: MergedProfileContactStore,
   cellIdB64: CellIdB64,
 ) {
-  return derived(
-    mergedProfileContactStore,
-    ($mergedProfileContactStore) => $mergedProfileContactStore[cellIdB64],
-  );
+  return derived(mergedProfileContactStore, ($mergedProfileContactStore) => {
+    if ($mergedProfileContactStore[cellIdB64] === undefined) return {};
+
+    return $mergedProfileContactStore[cellIdB64];
+  });
 }
 
 export function deriveCellMergedProfileContactListStore(

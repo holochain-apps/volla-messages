@@ -102,8 +102,11 @@ export function createConversationStore(
     {},
   );
 
-  // Conversation title is persisted to localstorage to ensure it remains available when the cell is disabled.
-  const title = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
+  // Invitation I used to join conversation is persisted to localstorage to ensure it remains available when the cell is disabled.
+  const invitation = persisted<{ [cellIdB64: CellIdB64]: Invitation | undefined }>(
+    "CONVERSATION.INVITATION",
+    {},
+  );
 
   const { subscribe } = derived([conversations, messages], ([$conversations, $messages]) => ({
     conversations: $conversations,
@@ -208,9 +211,9 @@ export function createConversationStore(
       ...c,
       [cellIdB64]: {},
     }));
-    title.update((c) => ({
+    invitation.update((c) => ({
       ...c,
-      [cellIdB64]: input.title,
+      [cellIdB64]: input,
     }));
 
     return cellIdB64;
@@ -218,11 +221,6 @@ export function createConversationStore(
 
   async function updateConfig(key: CellIdB64, val: Config): Promise<void> {
     await client.setConfig(decodeCellIdFromBase64(key), val);
-
-    title.update((c) => ({
-      ...c,
-      [key]: val.title,
-    }));
     conversations.update((c) => ({
       ...c,
       [key]: {
@@ -234,16 +232,7 @@ export function createConversationStore(
 
   async function enable(key: CellIdB64): Promise<void> {
     await client.enableConversationCell(decodeCellIdFromBase64(key));
-    conversations.update((c) => ({
-      ...c,
-      [key]: {
-        ...c[key],
-        cellInfo: {
-          ...c[key].cellInfo,
-          enabled: true,
-        },
-      },
-    }));
+    await initialize();
   }
 
   async function disable(key: CellIdB64): Promise<void> {
@@ -467,28 +456,15 @@ export function createConversationStore(
       messageExtended.message.content.length > 125
         ? messageExtended.message.content.slice(0, 50) + "..."
         : messageExtended.message.content;
-    const title = fromProfile ? `Message From ${fromProfile.profile.nickname}` : `New Message`;
+    const header = fromProfile ? `Message From ${fromProfile.profile.nickname}` : `New Message`;
 
-    enqueueNotification(title, content);
+    await enqueueNotification(header, content);
   }
 
   async function _makeConversationExtended(cellInfo: ClonedCell): Promise<ConversationExtended> {
+    const key = encodeCellIdToBase64(cellInfo.cell_id);
     const dnaProperties = decode(cellInfo.dna_modifiers.properties) as RelayDnaProperties;
     const config = cellInfo.enabled ? await client.getConfig(cellInfo.cell_id) : undefined;
-
-    // Generate a title
-    // Get title from config,
-    // Else get title from peristed store,
-    // Else use placeholder value "..."
-    const key = encodeCellIdToBase64(cellInfo.cell_id);
-    let titleVal;
-    if (config) {
-      titleVal = config.title;
-    } else if (get(title)[key]) {
-      titleVal = get(title)[key];
-    } else {
-      titleVal = "...";
-    }
 
     // Generate a public invite code
     // If the conversation is Private, this is undefined
@@ -499,7 +475,7 @@ export function createConversationStore(
         networkSeed: cellInfo.dna_modifiers.network_seed,
         privacy: dnaProperties.privacy,
         progenitor: decodeHashFromBase64(dnaProperties.progenitor),
-        title: titleVal,
+        title: config ? config.title : "...",
       };
       publicInviteCode = Base64.fromUint8Array(encode(invitation));
     }
@@ -513,7 +489,6 @@ export function createConversationStore(
       // persisted fields
       unread: get(unread)[key] || false,
       invited: get(invited)[key] || [],
-      title: titleVal,
     };
   }
 
@@ -708,7 +683,6 @@ export const deriveConversationListStore = (conversationStore: ConversationStore
         const m = $conversationStore.latestMessage[c[0]];
         return m === undefined ? Number.MAX_SAFE_INTEGER : -m.timestamp;
       },
-      (c) => c[1].title,
       (c) => c[1].dnaProperties.created,
     ]);
   });

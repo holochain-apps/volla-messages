@@ -15,11 +15,16 @@
   import UnreadIndicator from "./UnreadIndicator.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import PrivateConversationImageThumbnail from "./[id]/PrivateConversationImageThumbnail.svelte";
-
-  const tAny = t as any;
+  import {
+    type ConversationTitleStore,
+    deriveCellConversationTitleStore,
+  } from "$store/ConversationTitleStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
+  ).getStore();
+  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
+    "conversationTitleStore",
   ).getStore();
   const mergedProfileContactStore = getContext<{ getStore: () => ProfileStore }>(
     "mergedProfileContactStore",
@@ -36,6 +41,7 @@
     cellIdB64,
     myPubKeyB64,
   );
+  let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
 
   let isHovering = false;
   let menuOpen = 0;
@@ -186,7 +192,7 @@
         </span>
       {/if}
       <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <span class="text-base">{$conversation.conversation.title}</span>
+        <span class="text-base">{$conversationTitle}</span>
         <span class="flex min-w-0 items-center overflow-hidden text-ellipsis text-nowrap text-xs">
           {#if $conversation.conversation.unread}
             <UnreadIndicator />
