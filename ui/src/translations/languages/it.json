@@ -3,7 +3,6 @@
   "add_people": "Aggiungi persone {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Aggiungi alla conversazione",
   "admin": "Admin",
-  "already_invited": "Già invitato",
   "already_member": "Già membro",
   "cancel": "Annullare",
   "cant_add_yourself": "Non è possibile aggiungere se stessi come contatto",
