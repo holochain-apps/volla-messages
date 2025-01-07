@@ -1,6 +1,6 @@
 import { decode } from "@msgpack/msgpack";
 import { camelCase, mapKeys } from "lodash-es";
-import { derived, get } from "svelte/store";
+import { derived, get, writable } from "svelte/store";
 import {
   type AgentPubKey,
   type AgentPubKeyB64,
@@ -21,20 +21,26 @@ import {
   type Message,
   type DnaProperties,
   type RelaySignal,
-  type FileStatus,
+  FileStatus,
   Privacy,
   type UpdateContactInput,
 } from "$lib/types";
 import { enqueueNotification, isMobile, makeFullName } from "$lib/utils";
+import { createConferenceStore, type ConferenceStore } from "./ConferenceStore";
 
 export class RelayStore {
   public contacts: ContactStore[] = [];
   public conversations: ConversationStore[] = [];
+  public conferences = writable<ConferenceStore[]>([]);
   public archivedConversations = derived(this.conversations, ($conversations) =>
     $conversations.filter((c) => c.archived),
   );
   public activeConversations = derived(this.conversations, ($conversations) =>
     $conversations.filter((c) => !c.archived),
+  );
+
+  public activeConferences = derived(this.conferences, ($conferences) =>
+    $conferences.filter((c) => !c.end)
   );
 
   constructor(public client: RelayClient) {}
@@ -52,50 +58,68 @@ export class RelayStore {
 
       const payload: RelaySignal = signal[SignalType.App].payload as RelaySignal;
 
-      if (payload.type == "Message") {
-        const conversation = this.getConversation(
-          encodeHashToBase64(signal[SignalType.App].cell_id[0]),
-        );
-
-        const from: AgentPubKey = payload.from;
-        const message: Message = {
-          hash: encodeHashToBase64(payload.action.hashed.hash),
-          authorKey: encodeHashToBase64(from),
-          content: payload.message.content,
-          bucket: payload.message.bucket,
-          images: payload.message.images.map(
-            (i: any) =>
-              ({
-                ...(mapKeys(i, (v, k) => camelCase(k)) as Image),
-                status: FileStatus.Loading,
-              }) as Image,
-          ), // convert snake_case to camelCase
-          status: "confirmed",
-          timestamp: new Date(payload.action.hashed.content.timestamp / 1000),
-        };
-
-        if (conversation && message.authorKey !== myPubKeyB64) {
-          const sender = conversation
-            .getAllMembers()
-            .find((m) => m.publicKeyB64 == message.authorKey);
-          conversation.addMessage(message);
-          if (!get(conversation).archived) {
-            const msgShort =
-              message.content.length > 125 ? message.content.slice(0, 50) + "..." : message.content;
-            if (isMobile()) {
-              enqueueNotification(
-                `${sender ? sender.profile.nickname : message.authorKey}: ${msgShort}`,
-                message.content,
-              );
-            } else {
-              enqueueNotification(
-                `Message from ${sender ? sender.profile.nickname : message.authorKey}`,
-                message.content,
-              );
+      switch (payload.type) {
+        case "Message":
+          const conversation = this.getConversation(
+            encodeHashToBase64(signal[SignalType.App].cell_id[0]),
+          );
+  
+          const from: AgentPubKey = payload.from;
+          const message: Message = {
+            hash: encodeHashToBase64(payload.action.hashed.hash),
+            authorKey: encodeHashToBase64(from),
+            content: payload.message.content,
+            bucket: payload.message.bucket,
+            images: payload.message.images.map(
+              (i: any) =>
+                ({
+                  ...(mapKeys(i, (v, k) => camelCase(k)) as Image),
+                  status: FileStatus.Loading,
+                }) as Image,
+            ), // convert snake_case to camelCase
+            status: "confirmed",
+            timestamp: new Date(payload.action.hashed.content.timestamp / 1000),
+          };
+  
+          if (conversation && message.authorKey !== myPubKeyB64) {
+            const sender = conversation
+              .getAllMembers()
+              .find((m) => m.publicKeyB64 == message.authorKey);
+            conversation.addMessage(message);
+            if (!get(conversation).archived) {
+              const msgShort =
+                message.content.length > 125 ? message.content.slice(0, 50) + "..." : message.content;
+              if (isMobile()) {
+                enqueueNotification(
+                  `${sender ? sender.profile.nickname : message.authorKey}: ${msgShort}`,
+                  message.content,
+                );
+              } else {
+                enqueueNotification(
+                  `Message from ${sender ? sender.profile.nickname : message.authorKey}`,
+                  message.content,
+                );
+              }
+              conversation.loadImagesForMessage(message); // async load images
             }
-            conversation.loadImagesForMessage(message); // async load images
           }
-        }
+          break;
+          
+        case "ConferenceInvite":
+          await this.handleConferenceInvite(payload);
+          break;
+          
+        case "ConferenceJoined":
+          await this.handleConferenceJoined(payload);
+          break;
+          
+        case "ConferenceLeft":
+          await this.handleConferenceLeft(payload);
+          break;
+          
+        case "WebRTCSignal":
+          await this.handleWebRTCSignal(payload);
+          break;
       }
     });
   }
@@ -119,6 +143,59 @@ export class RelayStore {
 
     return newConversation;
   }
+
+  // private async handleMessageSignal(payload: Extract<RelaySignal, { type: "Message" }>, myPubKeyB64: string) {
+  //   const conversation = this.getConversation(
+  //     encodeHashToBase64(payload.action.hashed.hash)
+  //   );
+
+  //   const message: Message = {
+  //     hash: encodeHashToBase64(payload.action.hashed.hash),
+  //     authorKey: encodeHashToBase64(payload.from),
+  //     content: payload.message.content,
+  //     bucket: payload.message.bucket,
+  //     images: payload.message.images.map(
+  //       (i: any) => ({
+  //         ...(mapKeys(i, (v, k) => camelCase(k)) as Image),
+  //         status: FileStatus.Loading,
+  //       }) as Image,
+  //     ),
+  //     status: "confirmed",
+  //     timestamp: new Date(payload.action.hashed.content.timestamp / 1000),
+  //   };
+
+  //   if (conversation && message.authorKey !== myPubKeyB64) {
+  //     const sender = conversation
+  //       .getAllMembers()
+  //       .find((m) => m.publicKeyB64 == message.authorKey);
+  //     conversation.addMessage(message);
+      
+  //     if (!get(conversation).archived) {
+  //       this.sendMessageNotification(message, sender);
+  //       conversation.loadImagesForMessage(message);
+  //     }
+  //   }
+  // }
+
+  // private sendMessageNotification(message: Message, sender: any) {
+  //   const msgShort = message.content.length > 125 
+  //     ? message.content.slice(0, 50) + "..." 
+  //     : message.content;
+      
+  //   if (isMobile()) {
+  //     console.log("enqueueNotification", sender, message);
+  //     enqueueNotification(
+  //       `${sender ? sender.profile.nickname : message.authorKey}: ${msgShort}`,
+  //       message.content
+  //     );
+  //   } else {
+  //     console.log("enqueueNotification", sender, message);
+  //     enqueueNotification(
+  //       `Message from ${sender ? sender.profile.nickname : message.authorKey}`,
+  //       message.content
+  //     );
+  //   }
+  // }
 
   async createConversation(
     title: string,
@@ -211,4 +288,55 @@ export class RelayStore {
   getContact(publicKey: AgentPubKeyB64): ContactStore | undefined {
     return this.contacts.find((c) => get(c).publicKeyB64 === publicKey);
   }
+
+  /**** Conference ****/
+
+  private async handleConferenceInvite(payload: Extract<RelaySignal, { type: "ConferenceInvite" }>) {
+    const conferenceStore = createConferenceStore(
+      this,
+      payload.room,
+      payload.agent
+    );
+    this.conferences.update(conferences => [...conferences, conferenceStore]);
+    
+    // Notify user of conference invitation
+    const sender = this.getContact(encodeHashToBase64(payload.agent));
+    const senderProfile = sender?.getAsProfile;
+    const senderName = senderProfile?.name || 'Someone';
+    enqueueNotification(
+      `Conference Invitation`,
+      `${senderName} invited you to join a conference`
+    );
+  }
+
+  private async handleConferenceJoined(payload: Extract<RelaySignal, { type: "ConferenceJoined" }>) {
+    const conference = this.getConference(payload.room_id);
+    if (conference) {
+      conference.addParticipant(payload.agent);
+    }
+  }
+
+  private async handleConferenceLeft(payload: Extract<RelaySignal, { type: "ConferenceLeft" }>) {
+    const conference = this.getConference(payload.room_id);
+    if (conference) {
+      conference.removeParticipant(payload.agent);
+    }
+  }
+
+  private async handleWebRTCSignal(payload: Extract<RelaySignal, { type: "WebRTCSignal" }>) {
+    const conference = this.getConference(payload.signal.room_id);
+    if (conference) {
+      conference.handleWebRTCSignal(payload.signal);
+    }
+  }
+
+  getConference(roomId: string): ConferenceStore | undefined {
+    const conferences = get(this.conferences);
+    
+    return conferences.find((conference) => {
+      const conferenceState = get(conference.store);
+      return conferenceState.room.room_id === roomId;
+    });
+  }
+
 }
