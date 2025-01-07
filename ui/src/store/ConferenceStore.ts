@@ -1,7 +1,7 @@
 import { writable, derived, type Writable, get } from "svelte/store";
 import { type AgentPubKey, type AgentPubKeyB64, type ActionHash, decodeHashFromBase64, encodeHashToBase64 } from "@holochain/client";
 import type { RelayStore } from "./RelayStore";
-import { type ConferenceRoom, type SignalPayload, CallSignalType } from "$lib/types";
+import { type ConferenceRoom, type ConferenceState, type SignalPayload, CallSignalType } from "$lib/types";
 
 // TODO: Changing it as per requirement of project
 const RTCConfiguration = {
@@ -10,21 +10,6 @@ const RTCConfiguration = {
     { urls: "stun:stun1.l.google.com:19302" }
   ]
 };
-
-interface ConferenceParticipant {
-  publicKey: AgentPubKeyB64;
-  peerConnection?: RTCPeerConnection;
-  stream?: MediaStream;
-  isConnected: boolean;
-}
-
-interface ConferenceState {
-  room: ConferenceRoom;
-  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
-  localStream?: MediaStream;
-  isInitiator: boolean;
-  ended: boolean;
-}
 
 export class ConferenceStore {
   private cleanup: (() => void)[] = [];
