@@ -3,7 +3,6 @@
   "add_people": "Добавяне на хора {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Добавяне към разговор",
   "admin": "Администратор",
-  "already_member": "Вече сте член",
   "cancel": "Отмяна на",
   "cant_add_yourself": "Не можете да добавите себе си като контакт",
   "connecting_to_holochain": "Свържете се с Holochain...",

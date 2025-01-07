@@ -3,7 +3,7 @@
   "add_people": "Ajouter des personnes {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Ajouter à la conversation",
   "admin": "Admin",
-  "already_member": "Déjà membre",
+  
   "cancel": "Interrompre",
   "cant_add_yourself": "Vous ne pouvez pas vous ajouter vous-même comme contact",
   "connecting_to_holochain": "Connecter avec Holochain...",

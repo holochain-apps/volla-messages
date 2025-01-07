@@ -3,7 +3,7 @@
   "add_people": "Mensen toevoegen aan {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Toevoegen aan gesprek",
   "admin": "Beheerder",
-  "already_member": "Al lid",
+  
   "app_name": "Volla Messages",
   "archive": "Archief",
   "cancel": "Annuleren",

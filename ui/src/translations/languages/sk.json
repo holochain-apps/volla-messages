@@ -3,7 +3,7 @@
   "add_people": "Pridať ľudí {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Pridať do konverzácie",
   "admin": "Administrátor",
-  "already_member": "Už ste členom",
+  
   "cancel": "Zrušiť",
   "cant_add_yourself": "Nemôžete sa pridať ako kontakt",
   "connecting_to_holochain": "Spojenie so spoločnosťou Holochain...",

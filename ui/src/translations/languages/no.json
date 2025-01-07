@@ -3,7 +3,7 @@
   "add_people": "Tilføy medlemmer til {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Tilføy til konversasjon",
   "admin": "Admin",
-  "already_member": "Allerede medlem",
+  
   "app_name": "Volla Messages",
   "archive": "Lagr",
   "cancel": "Avbryt",

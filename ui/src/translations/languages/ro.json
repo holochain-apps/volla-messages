@@ -3,7 +3,7 @@
   "add_people": "Adaugați persoane {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Adaugă la conversație",
   "admin": "Administrator",
-  "already_member": "Deja membru",
+  
   "cancel": "Anulează",
   "cant_add_yourself": "Nu vă puteți adăuga ca persoană de contact",
   "connecting_to_holochain": "Conectați-vă cu Holochain...",

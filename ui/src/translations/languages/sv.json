@@ -3,7 +3,7 @@
   "add_people": "Lägg till personer i {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Lägg till i konversation",
   "admin": "Admin",
-  "already_member": "Redan medlem",
+  
   "app_name": "Volla Messages",
   "archive": "Arkivera",
   "cancel": "Afbryt",

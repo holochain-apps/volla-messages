@@ -3,7 +3,6 @@
   "add_people": "Tilføj personer til {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Invitér til konversation",
   "admin": "Admin",
-  "already_member": "Allerede medlem",
   "app_name": "Volla Messages",
   "archive": "Gem",
   "cancel": "Afbryd",
