@@ -1,44 +1,65 @@
 <script lang="ts">
-  import type { AppClient } from "@holochain/client";
-  import { AppWebsocket, encodeHashToBase64 } from "@holochain/client";
-  import { ProfilesClient, ProfilesStore } from "@holochain-open-dev/profiles";
+  import type { AppClient, CellId } from "@holochain/client";
+  import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
   import { onMount, setContext } from "svelte";
   import { t } from "$translations";
-  import { RelayStore } from "$store/RelayStore";
+  import { createSignalHandler } from "$store/SignalHandler";
   import toast, { Toaster } from "svelte-french-toast";
   import { handleLinkClick, initLightDarkModeSwitcher } from "$lib/utils";
   import { RelayClient } from "$store/RelayClient";
   import AppLanding from "$lib/AppLanding.svelte";
   import { MIN_FIRST_NAME_LENGTH, ROLE_NAME, ZOME_NAME } from "$config";
-  import "../app.postcss";
   import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import ProfileSetupName from "./ProfileSetupName.svelte";
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
   import { ProfileCreateStore } from "$store/ProfileCreateStore";
+  import { createContactStore, type ContactStore } from "$store/ContactStore";
+  import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
+  import { encodeCellIdToBase64 } from "$lib/utils";
+  import {
+    createMergedProfileContactStore,
+    type MergedProfileContactStore,
+  } from "$store/MergedProfileContactStore";
+  import { createConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import {
+    createConversationTitleStore,
+    type ConversationTitleStore,
+  } from "$store/ConversationTitleStore";
+  import "../app.postcss";
 
   let client: AppClient;
-  let relayStore: RelayStore;
-  let profilesStore: ProfilesStore | undefined = undefined;
+  let profileStore: ProfileStore;
+  let contactStore: ContactStore;
+  let mergedProfileContactStore: MergedProfileContactStore;
+  let conversationStore: ConversationStore;
+  let conversationTitleStore: ConversationTitleStore;
+  let provisionedRelayCellId: CellId;
   let connected = false;
   let readyToCreateProfile = false;
 
-  $: myProfile = profilesStore ? profilesStore.myProfile : undefined;
-  $: myProfileExists =
-    $myProfile && $myProfile.status == "complete" && $myProfile.value !== undefined;
+  $: myProfile =
+    profileStore &&
+    provisionedRelayCellId &&
+    $profileStore[encodeCellIdToBase64(provisionedRelayCellId)]
+      ? $profileStore[encodeCellIdToBase64(provisionedRelayCellId)][
+          encodeHashToBase64(client.myPubKey)
+        ]
+      : undefined;
+  $: myProfileExists = myProfile !== undefined;
 
-  $: if (myProfileExists && relayStore) {
+  $: if (myProfileExists && conversationStore) {
     gotoAppPage();
   }
 
   async function gotoAppPage() {
-    if (relayStore.conversations.length > 0) {
+    if (Object.keys($conversationStore).length > 0) {
       await goto("/conversations");
     }
     await goto("/welcome");
   }
 
-  async function initHolochain() {
+  async function initHolochainClient() {
     try {
       console.log("__HC_LAUNCHER_ENV__ is", window.__HC_LAUNCHER_ENV__);
 
@@ -61,27 +82,62 @@
         5 * 60 * 1000,
       );
       const appInfo = await client.appInfo();
+      if (appInfo === null) throw new Error("Failed to get appInfo");
       console.log("Relay cell ready. App Info is ", appInfo);
 
-      // Setup stores
-      profilesStore = new ProfilesStore(new ProfilesClient(client, ROLE_NAME));
+      // Get provisioned relay CellId
+      const provisionedRelayCellInfo = appInfo.cell_info[ROLE_NAME].find(
+        (c) => CellType.Provisioned in c,
+      );
+      if (provisionedRelayCellInfo === undefined)
+        throw new Error("Failed to get CellInfo for cell 'relay'");
+      provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
 
-      const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
-      relayStore = new RelayStore(relayClient);
-      await relayStore.initialize();
-
-      connected = true;
       console.log("Connected");
     } catch (e) {
       console.error("Failed to init holochain", e);
-      toast.error(`${$t("common.holochain_connect_error")}: ${e.message}`);
+      toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
     }
   }
 
-  onMount(() => {
-    initLightDarkModeSwitcher();
-    initHolochain();
+  async function initStores() {
+    try {
+      // Setup stores
+      const relayClient = new RelayClient(client, provisionedRelayCellId);
+      contactStore = createContactStore(relayClient);
+      profileStore = createProfileStore(relayClient);
+      mergedProfileContactStore = createMergedProfileContactStore(profileStore, contactStore);
+      conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
+      conversationTitleStore = createConversationTitleStore(
+        conversationStore,
+        mergedProfileContactStore,
+        encodeHashToBase64(client.myPubKey),
+      );
 
+      // Initialize store data
+      await contactStore.initialize();
+      await profileStore.initialize();
+      await conversationStore.initialize();
+
+      // Initialize signal handler
+      createSignalHandler(relayClient, conversationStore);
+    } catch (e) {
+      console.error("Failed to init stores", e);
+      toast.error(`${$t("common.stores_setup_error")}: ${e}`);
+    }
+  }
+
+  async function setupApp() {
+    await initHolochainClient();
+    await initStores();
+
+    connected = true;
+  }
+
+  onMount(() => {
+    setupApp();
+
+    initLightDarkModeSwitcher();
     document.addEventListener("click", handleLinkClick);
     return () => {
       document.removeEventListener("click", handleLinkClick);
@@ -93,12 +149,29 @@
     getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
   });
 
-  setContext("profiles", {
-    getStore: () => profilesStore,
+  setContext("profileStore", {
+    getStore: () => profileStore,
   });
 
-  setContext("relayStore", {
-    getStore: () => relayStore,
+  setContext("contactStore", {
+    getStore: () => contactStore,
+  });
+
+  setContext("mergedProfileContactStore", {
+    getStore: () => mergedProfileContactStore,
+  });
+
+  setContext("conversationStore", {
+    getStore: () => conversationStore,
+  });
+
+  setContext("conversationTitleStore", {
+    getStore: () => conversationTitleStore,
+  });
+
+  setContext("provisionedRelayCellId", {
+    getCellId: () => provisionedRelayCellId,
+    getCellIdB64: () => encodeCellIdToBase64(provisionedRelayCellId),
   });
 </script>
 

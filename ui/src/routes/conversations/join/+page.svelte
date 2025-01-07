@@ -6,11 +6,13 @@
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
-  import { RelayStore } from "$store/RelayStore";
   import type { Invitation } from "$lib/types";
-  import { get } from "svelte/store";
+  import type { ConversationStore } from "$store/ConversationStore";
+  import { encodeHashToBase64 } from "@holochain/client";
 
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
 
   let inviteCode = "";
   let joining = false;
@@ -21,9 +23,9 @@
     try {
       const msgpack = Base64.toUint8Array(inviteCode);
       const invitation: Invitation = decode(msgpack) as Invitation;
-      const conversationStore = await relayStore.joinConversation(invitation);
+      const cellIdB64 = await conversationStore.join(invitation);
 
-      goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
+      goto(`/conversations/${cellIdB64}`);
     } catch (e) {
       error = true;
       console.error("Error joining conversation", e);

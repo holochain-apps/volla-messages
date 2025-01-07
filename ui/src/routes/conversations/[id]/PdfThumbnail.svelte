@@ -8,17 +8,15 @@
     import.meta.url,
   ).toString();
 
-  export let dataUrl: string | undefined;
+  export let url: string;
   export let width: number;
   export let height: number;
 
   let renderedDataUrl: string | undefined = undefined;
 
   onMount(async () => {
-    if (!dataUrl) return;
-
     try {
-      const pdf = await pdfjs.getDocument(dataUrl).promise;
+      const pdf = await pdfjs.getDocument(url).promise;
       const page = await pdf.getPage(1);
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");

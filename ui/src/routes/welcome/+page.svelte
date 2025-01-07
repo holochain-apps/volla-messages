@@ -5,22 +5,26 @@
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { RelayStore } from "$store/RelayStore";
-  import type { AgentPubKey } from "@holochain/client";
+  import type { AgentPubKeyB64 } from "@holochain/client";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import ButtonSquare from "$lib/ButtonSquare.svelte";
+  import type { ConversationStore } from "$store/ConversationStore";
 
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
-  const myPubKey = getContext<{ getMyPubKey: () => AgentPubKey }>("myPubKey").getMyPubKey();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
-  $: if (relayStore.conversations.length > 0) {
+  $: if (Object.keys($conversationStore.conversations).length > 0) {
     goto("/conversations");
   }
 </script>
 
 <Header>
   <button slot="left" on:click={() => goto("/account")}>
-    <Avatar size={24} agentPubKey={myPubKey} />
+    <Avatar size={24} agentPubKeyB64={myPubKeyB64} />
   </button>
 
   <ButtonIconBare
