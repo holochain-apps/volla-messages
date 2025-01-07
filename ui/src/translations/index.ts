@@ -8,7 +8,7 @@ function makeLoaders(locales: string[]) {
     {
       locale,
       key: "common",
-      loader: async () => (await import(`./${locale}.json`)).default,
+      loader: async () => (await import(`./locales/${locale}.json`)).default,
     },
   ]);
 
