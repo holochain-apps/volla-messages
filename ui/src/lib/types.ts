@@ -284,3 +284,18 @@ export interface SignalInput {
   payload_type: CallSignalType;
   data: string;
 }
+
+export interface ConferenceState {
+  room: ConferenceRoom;
+  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
+  localStream?: MediaStream;
+  isInitiator: boolean;
+  ended: boolean;
+}
+
+export interface ConferenceParticipant {
+  publicKey: AgentPubKeyB64;
+  peerConnection?: RTCPeerConnection;
+  stream?: MediaStream;
+  isConnected: boolean;
+}
