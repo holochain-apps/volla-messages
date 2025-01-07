@@ -49,7 +49,7 @@
       await conversation.invite(selectedContacts);
       await goto(`/conversations/${$page.params.id}/details`);
     } catch (e) {
-      toast.error(`${$t("common.add_contact_to_conversation_error")}: ${e}`);
+      toast.error(`${$t("common.add_to_conversation_error")}: ${e}`);
     }
     saving = false;
   }
@@ -69,7 +69,7 @@
     excludedAgentPubKeyB64s={conversationMemberAgentPubKeyB64s}
     loading={saving}
     disabled={saving}
-    buttonLabel={$t("common.add_contact_to_conversation")}
+    buttonLabel={$t("common.add_to_conversation")}
     on:clickAction={(e) => invite(e.detail.selectedAgentPubKeyB64s)}
   />
 </div>

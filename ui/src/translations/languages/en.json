@@ -1,9 +1,8 @@
 {
-  "add_contact_to_conversation": "Add contact to conversation",
-  "add_contact_to_conversation_error": "Failed to add contact to conversation",
   "add_members": "Add Members",
   "add_people": "Add people to {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Add to conversation",
+  "add_to_conversation_error": "Failed to add contact to conversation",
   "admin": "Admin",
   "already_invited": "Already invited",
   "already_member": "Already a member",
