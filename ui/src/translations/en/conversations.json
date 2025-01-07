@@ -35,5 +35,8 @@
   "you": "You",
   "download": "Download",
   "add_contact_to_conversation": "Add contact to conversation",
-  "large_file_error": "Attached files are limited to {{maxSize}}"
+  "large_file_error": "Attached files are limited to {{maxSize}}",
+  "error_sending_message": "Failed to send message",
+  "error_loading_file": "Failed to load file"
+
 }

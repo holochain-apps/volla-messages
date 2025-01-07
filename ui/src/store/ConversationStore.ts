@@ -1,467 +1,537 @@
-import { uniq } from "lodash-es";
-import { encode } from "@msgpack/msgpack";
-import { Base64 } from "js-base64";
+import { decode, encode } from "@msgpack/msgpack";
 import {
-  type AgentPubKey,
-  type CellId,
   decodeHashFromBase64,
   encodeHashToBase64,
-  type ActionHashB64,
-  type ActionHash,
   type AgentPubKeyB64,
+  type CellId,
+  type ClonedCell,
 } from "@holochain/client";
-import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import {
-  derived,
-  get,
-  writable,
-  type Invalidator,
-  type Subscriber,
-  type Unsubscriber,
-} from "svelte/store";
-import { v4 as uuidv4 } from "uuid";
-import { RelayStore } from "$store/RelayStore";
-import {
-  type Config,
-  type ContactExtended,
-  type Conversation,
   FileStatus,
-  type Image,
-  type Invitation,
-  type LocalConversationData,
-  type Message,
-  type MessageRecord,
   Privacy,
-  type Profile,
+  type CellIdB64,
+  type Config,
+  type ConversationExtended,
+  type CreateConversationInput,
+  type Invitation,
+  type LocalFile,
+  type Message,
+  type MessageExtended,
+  type MessageFile,
+  type MessageFileExtended,
+  type MessageRecord,
+  type MessageSignal,
   type ProfileExtended,
+  type RelayDnaProperties,
 } from "$lib/types";
-import { createMessageHistoryStore } from "./MessageHistoryStore";
+import {
+  decodeCellIdFromBase64,
+  encodeCellIdToBase64,
+  enqueueNotification,
+  fileToDataUrl,
+} from "$lib/utils";
+import type { RelayClient } from "./RelayClient";
+import { createGenericKeyValueStore, type GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import type { Subscriber, Invalidator, Unsubscriber } from "svelte/motion";
+import { derived, get } from "svelte/store";
+import { persisted } from "./GenericPersistedStore";
+import { Base64 } from "js-base64";
+import {
+  createGenericKeyKeyValueStore,
+  type GenericKeyKeyValueStoreData,
+} from "./GenericKeyKeyValueStore";
+import { FileStorageClient } from "@holochain-open-dev/file-storage";
+import { EntryRecord } from "@holochain-open-dev/utils";
 import pRetry from "p-retry";
-import { fileToDataUrl } from "$lib/utils";
-import { BUCKET_RANGE_MS, TARGET_MESSAGES_COUNT } from "$config";
-import { page } from "$app/stores";
-import { persisted } from "svelte-persisted-store";
-
-export interface ConversationStoreData {
-  conversation: Conversation;
-  localData: LocalConversationData;
-  lastMessage: Message | null;
-  lastActivityAt: number;
-  lastBucketLoaded: number;
-  publicInviteCode: string;
-  invitedContactKeys: AgentPubKeyB64[];
-  archived: boolean;
-  open: boolean;
-  unread: boolean | undefined;
-  created: number;
-  processedMessages: Message[];
-}
+import { BUCKET_RANGE_MS } from "$config";
+import { difference, sortBy } from "lodash-es";
+import {
+  deriveCellMergedProfileContactStore,
+  type MergedProfileContactStore,
+} from "./MergedProfileContactStore";
 
 export interface ConversationStore {
   initialize: () => Promise<void>;
-  loadMessagesSet: () => Promise<Array<ActionHashB64>>;
-  loadMessageSetFromCurrentBucket: () => Promise<[number, ActionHashB64[]]>;
-  loadImagesForMessage: (message: Message) => Promise<void>;
-  fetchAgents: () => Promise<{
-    [key: AgentPubKeyB64]: Profile;
-  }>;
-  fetchConfig: () => Promise<Config | undefined>;
-  sendMessage: (authorKey: string, content: string, images: Image[]) => Promise<void>;
-  addMessage: (message: Message) => void;
-  setConfig: (config: Config) => Promise<void>;
-  addContacts: (agentPubKeyB64s: AgentPubKeyB64[]) => void;
-  toggleArchived: () => void;
-  setUnread: (unread: boolean) => void;
-  makeInviteCodeForAgent: (publicKeyB64: string) => Promise<string>;
-  getAllMembers: () => ProfileExtended[];
-  getJoinedMembers: () => ProfileExtended[];
-  getInvitedUnjoinedContacts: () => ContactExtended[];
-  getTitle: () => string;
+  loadConfig: (key: CellIdB64) => Promise<void>;
+  create: (input: CreateConversationInput) => Promise<CellIdB64>;
+  join(input: Invitation): Promise<CellIdB64>;
+  updateConfig: (key: CellIdB64, val: Config) => Promise<void>;
+  enable: (key: CellIdB64) => Promise<void>;
+  disable: (key: CellIdB64) => Promise<void>;
+  updateUnread: (key: CellIdB64, val: boolean) => Promise<void>;
+  invite: (key: CellIdB64, agents: AgentPubKeyB64[]) => Promise<void>;
+  makePrivateInviteCode: (
+    key: CellIdB64,
+    agentPubKeyB64: AgentPubKeyB64,
+    title: string,
+  ) => Promise<string>;
+  sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
+  loadMessagesInBucket: (key1: CellIdB64, bucket: number) => Promise<void>;
+  getBucket: (key1: CellIdB64, timestamp: number) => number;
+  handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
   subscribe: (
     this: void,
-    run: Subscriber<ConversationStoreData>,
-    invalidate?: Invalidator<ConversationStoreData> | undefined,
+    run: Subscriber<{
+      conversations: GenericKeyValueStoreData<ConversationExtended>;
+      messages: GenericKeyKeyValueStoreData<MessageExtended>;
+      latestMessage: GenericKeyValueStoreData<MessageExtended | undefined>;
+    }>,
+    invalidate?:
+      | Invalidator<{
+          conversations: GenericKeyValueStoreData<ConversationExtended>;
+          messages: GenericKeyKeyValueStoreData<MessageExtended>;
+          latestMessage: GenericKeyValueStoreData<MessageExtended | undefined>;
+        }>
+      | undefined,
   ) => Unsubscriber;
 }
 
 export function createConversationStore(
-  relayStore: RelayStore,
-  networkSeed: string,
-  cellId: CellId,
-  created: number,
-  privacy: Privacy,
-  progenitor: AgentPubKey,
-  invitationTitle: string | undefined = undefined,
+  client: RelayClient,
+  mergedProfileContactStore: MergedProfileContactStore,
 ): ConversationStore {
-  const client = relayStore.client;
-  const fileStorageClient = new FileStorageClient(
-    relayStore.client.client,
-    "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
-    "file_storage",
-    cellId,
+  const conversations = createGenericKeyValueStore<ConversationExtended>();
+  const messages = createGenericKeyKeyValueStore<MessageExtended>();
+
+  // Unread is persisted to localstorage as it is never stored via holochain
+  const unread = persisted<{ [cellIdB64: CellIdB64]: boolean }>("CONVERSATION.UNREAD", {});
+
+  // List of invited agents is persisted to localstorage as it is not stored via holochain
+  const invited = persisted<{ [cellIdB64: CellIdB64]: AgentPubKeyB64[] }>(
+    "CONVERSATION.INVITED",
+    {},
   );
 
-  const dnaHashB64 = encodeHashToBase64(cellId[0]);
-  const conversation = writable<Conversation>({
-    networkSeed,
-    dnaHashB64,
-    cellId,
-    config: undefined,
-    privacy,
-    progenitor,
-    agentProfiles: {},
-    messages: {},
-  });
-  const history = createMessageHistoryStore(dnaHashB64, currentBucket());
-  const lastBucketLoaded = writable<number>(-1);
-  const localData = persisted<LocalConversationData>(`CONVERSATION.${dnaHashB64}.LOCAL_DATA`, {
-    archived: false,
-    invitedContactKeys: [],
-    unread: false,
-    invitationTitle,
-  });
-  const lastMessage = writable<Message | null>(null);
-  const publicInviteCode = derived(conversation, ($conversation) => {
+  // Invitation I used to join conversation is persisted to localstorage to ensure it remains available when the cell is disabled.
+  const invitation = persisted<{ [cellIdB64: CellIdB64]: Invitation | undefined }>(
+    "CONVERSATION.INVITATION",
+    {},
+  );
+
+  const { subscribe } = derived([conversations, messages], ([$conversations, $messages]) => ({
+    conversations: $conversations,
+    messages: $messages,
+    latestMessage: Object.fromEntries(
+      Object.entries($messages).map(([cellIdB64, cellMessages]) => [
+        cellIdB64,
+        sortBy(cellMessages, [(m) => -m.timestamp])[0],
+      ]),
+    ),
+  }));
+
+  async function initialize(): Promise<void> {
+    const cellInfos = await client.getRelayClonedCellInfos();
+
+    // Initialize conversations
+    const conversationsData = Object.fromEntries(
+      (
+        await Promise.allSettled(
+          cellInfos.map(async (cellInfo) => {
+            // Return [cellIdB64, ConversationExtended]
+            return [
+              encodeCellIdToBase64(cellInfo.cell_id),
+              await _makeConversationExtended(cellInfo),
+            ];
+          }),
+        )
+      )
+        .filter((p) => p.status === "fulfilled")
+        .map((p) => p.value),
+    );
+    conversations.set(conversationsData);
+
+    // Initialize messages
+    const messagesData = Object.fromEntries(
+      (
+        await Promise.allSettled(
+          cellInfos.map(async (cellInfo) => {
+            // Return [cellIdB64, {}]
+            return [encodeCellIdToBase64(cellInfo.cell_id), {}];
+          }),
+        )
+      )
+        .filter((p) => p.status === "fulfilled")
+        .map((p) => p.value),
+    );
+    messages.set(messagesData);
+
+    // Load first bucket of messages
+    await Promise.allSettled(
+      cellInfos.map(async (cellInfo) =>
+        loadMessagesInBucket(
+          encodeCellIdToBase64(cellInfo.cell_id),
+          getBucket(encodeCellIdToBase64(cellInfo.cell_id), new Date().getTime()),
+        ),
+      ),
+    );
+  }
+
+  async function loadConfig(key: CellIdB64): Promise<void> {
+    const cellInfos = await client.getRelayClonedCellInfos();
+    const cellInfo = cellInfos.find((c) => encodeCellIdToBase64(c.cell_id) === key);
+    if (cellInfo === undefined) throw new Error(`Failed to get cellInfo for cellIdB64 ${key}`);
+
+    const conversationExtended = await _makeConversationExtended(cellInfo);
+    conversations.update((c) => ({
+      ...c,
+      [key]: conversationExtended,
+    }));
+  }
+
+  async function create(input: CreateConversationInput): Promise<CellIdB64> {
+    const cellInfo = await client.createConversation(input);
+    await client.setConfig(cellInfo.cell_id, input.config);
+    await client.setMyProfileForConversation(cellInfo.cell_id);
+
+    const conversationExtended = await _makeConversationExtended(cellInfo);
+    const cellIdB64 = encodeCellIdToBase64(cellInfo.cell_id);
+    conversations.update((c) => ({
+      ...c,
+      [cellIdB64]: conversationExtended,
+    }));
+    messages.update((c) => ({
+      ...c,
+      [cellIdB64]: {},
+    }));
+
+    return cellIdB64;
+  }
+
+  async function join(input: Invitation): Promise<CellIdB64> {
+    const cellInfo = await client.joinConversation(input);
+    await client.setMyProfileForConversation(cellInfo.cell_id);
+
+    const conversationExtended = await _makeConversationExtended(cellInfo);
+    const cellIdB64 = encodeCellIdToBase64(cellInfo.cell_id);
+    conversations.update((c) => ({
+      ...c,
+      [cellIdB64]: conversationExtended,
+    }));
+    messages.update((c) => ({
+      ...c,
+      [cellIdB64]: {},
+    }));
+    invitation.update((c) => ({
+      ...c,
+      [cellIdB64]: input,
+    }));
+
+    return cellIdB64;
+  }
+
+  async function updateConfig(key: CellIdB64, val: Config): Promise<void> {
+    await client.setConfig(decodeCellIdFromBase64(key), val);
+    conversations.update((c) => ({
+      ...c,
+      [key]: {
+        ...c[key],
+        config: val,
+      },
+    }));
+  }
+
+  async function enable(key: CellIdB64): Promise<void> {
+    await client.enableConversationCell(decodeCellIdFromBase64(key));
+    await initialize();
+  }
+
+  async function disable(key: CellIdB64): Promise<void> {
+    await client.disableConversationCell(decodeCellIdFromBase64(key));
+    conversations.update((c) => ({
+      ...c,
+      [key]: {
+        ...c[key],
+        cellInfo: {
+          ...c[key].cellInfo,
+          enabled: false,
+        },
+      },
+    }));
+  }
+
+  async function updateUnread(key: CellIdB64, val: boolean): Promise<void> {
+    unread.update((c) => ({
+      ...c,
+      [key]: val,
+    }));
+    conversations.update((c) => ({
+      ...c,
+      [key]: {
+        ...c[key],
+        unread: val,
+      },
+    }));
+  }
+
+  async function invite(key: CellIdB64, agentPubKeyB64s: AgentPubKeyB64[]): Promise<void> {
+    invited.update((c) => ({
+      ...c,
+      [key]: [...(c[key] || []), ...agentPubKeyB64s],
+    }));
+    conversations.update((c) => ({
+      ...c,
+      [key]: {
+        ...c[key],
+        invited: get(invited)[key],
+      },
+    }));
+  }
+
+  async function makePrivateInviteCode(
+    key: CellIdB64,
+    agentPubKeyB64: AgentPubKeyB64,
+    title: string,
+  ) {
+    const c = get(conversations)[key];
+    if (c.dnaProperties.privacy === Privacy.Public)
+      throw new Error("Private invitation codes are only for private conversations");
+
+    const membraneProof = await client.generateMembraneProof(
+      decodeCellIdFromBase64(key),
+      decodeHashFromBase64(agentPubKeyB64),
+    );
+
+    // TODO The name of the conversation we are inviting to should be our name + # of other people invited
     const invitation: Invitation = {
-      created: created,
-      networkSeed: $conversation.networkSeed,
-      privacy: $conversation.privacy,
-      progenitor: $conversation.progenitor,
-      title: getTitle(),
+      created: c.dnaProperties.created,
+      progenitor: decodeHashFromBase64(c.dnaProperties.progenitor),
+      privacy: c.dnaProperties.privacy,
+      proof: membraneProof,
+      networkSeed: c.cellInfo.dna_modifiers.network_seed,
+      title,
     };
     return Base64.fromUint8Array(encode(invitation));
-  });
-  const isOpen = derived(
-    page,
-    ($page) => $page.route.id === "/conversations/[id]" && $page.params.id === dnaHashB64,
-  );
-  const processedMessages = derived(conversation, ($conversation) => {
-    const messages = Object.values(($conversation as Conversation).messages).sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
-    const result: Message[] = [];
-
-    let newLastMessage: Message | null = null;
-
-    messages.forEach((message) => {
-      // Don't display message if we don't have a profile from the author yet.
-      if (!$conversation.agentProfiles[message.authorKey]) {
-        return;
-      }
-
-      const contact = relayStore.contacts.find((c) => get(c).publicKeyB64 === message.authorKey);
-
-      const displayMessage = {
-        ...message,
-        author: contact
-          ? get(contact).contact.first_name
-          : $conversation.agentProfiles[message.authorKey].fields.firstName,
-        avatar: contact
-          ? get(contact).contact.avatar
-          : $conversation.agentProfiles[message.authorKey].fields.avatar,
-      };
-
-      if (
-        !newLastMessage ||
-        message.timestamp.toDateString() !== newLastMessage.timestamp.toDateString()
-      ) {
-        displayMessage.header = message.timestamp.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        });
-      }
-
-      // If same person is posting a bunch of messages in a row, hide their name and avatar
-      if (
-        newLastMessage?.authorKey === message.authorKey &&
-        message.timestamp.getTime() - newLastMessage.timestamp.getTime() < 1000 * 60 * 5
-      ) {
-        displayMessage.hideDetails = true;
-      }
-
-      result.push(displayMessage);
-      newLastMessage = message;
-    });
-
-    lastMessage.set(newLastMessage);
-
-    return result;
-  });
-
-  const { subscribe } = derived(
-    [
-      conversation,
-      localData,
-      lastMessage,
-      lastBucketLoaded,
-      publicInviteCode,
-      isOpen,
-      processedMessages,
-    ],
-    ([
-      $conversation,
-      $localData,
-      $lastMessage,
-      $lastBucketLoaded,
-      $publicInviteCode,
-      $isOpen,
-      $processedMessages,
-    ]) => ({
-      conversation: $conversation,
-      localData: $localData,
-      lastMessage: $lastMessage,
-      lastActivityAt: $lastMessage ? $lastMessage.timestamp.getTime() : created,
-      lastBucketLoaded: $lastBucketLoaded,
-      publicInviteCode: $publicInviteCode,
-      invitedContactKeys: $localData.invitedContactKeys,
-      archived: $localData.archived,
-      open: $isOpen,
-      unread: $localData.unread,
-      created,
-      processedMessages: $processedMessages,
-    }),
-  );
-
-  function bucketFromTimestamp(timestamp: number): number {
-    const diff = timestamp - created;
-    return Math.round(diff / BUCKET_RANGE_MS);
   }
 
-  function bucketFromDate(date: Date): number {
-    return bucketFromTimestamp(date.getTime());
-  }
-
-  function currentBucket(): number {
-    return bucketFromDate(new Date());
-  }
-
-  async function initialize() {
-    await fetchConfig();
-    await fetchAgents();
-    await loadMessagesSet();
-  }
-
-  // 1. looks in the history, starting at a current bucket, for hashes, and retrieves all
-  // the actual messages in that bucket as well as any earlier buckets necessary
-  // such that at least TARGET_MESSAGES_COUNT messages.
-  // 2. then updates the "lateBucketLoaded" state variable so the next time earlier buckets
-  // will be loaded.
-  async function loadMessagesSet(): Promise<Array<ActionHashB64>> {
-    const lastBucket = get(lastBucketLoaded);
-    if (lastBucket === 0) return [];
-
-    let bucket = lastBucket < 0 ? currentBucket() : lastBucket - 1;
-    let [bucketLoaded, messageHashes] = await _loadMessageSetFrom(bucket);
-    lastBucketLoaded.set(bucketLoaded);
-
-    return messageHashes;
-  }
-
-  async function loadMessageSetFromCurrentBucket(): Promise<[number, ActionHashB64[]]> {
-    return _loadMessageSetFrom(currentBucket());
-  }
-
-  // looks in the history starting at a bucket number for hashes, and retrieves all
-  // the actual messages in that bucket as well as any earlier buckets necessary
-  // such that at least TARGET_MESSAGES_COUNT messages.
-  async function _loadMessageSetFrom(bucket: number): Promise<[number, ActionHashB64[]]> {
-    const buckets = history.bucketsForSet(TARGET_MESSAGES_COUNT, bucket);
-    const messageHashes: ActionHashB64[] = [];
-    for (const b of buckets) {
-      messageHashes.push(...(await _getMessagesForBucket(b)));
-    }
-    return [bucket - buckets.length + 1, messageHashes];
-  }
-
-  async function _getMessagesForBucket(b: number) {
-    try {
-      const newMessages: { [key: string]: Message } = get(conversation).messages;
-      let bucket = history.getBucket(b);
-      const messageHashes = await client.getMessageHashes(cellId, b, get(bucket).count);
-
-      const messageHashesB64 = messageHashes.map((h) => encodeHashToBase64(h));
-      const missingHashes = bucket.missingHashes(messageHashesB64);
-      if (missingHashes.length > 0) {
-        if (get(isOpen) == false) {
-          setUnread(true);
-        }
-        bucket.add(missingHashes);
-      }
-
-      const hashesToLoad: Array<ActionHash> = [];
-      get(bucket).hashes.forEach((h) => {
-        if (!newMessages[h]) hashesToLoad.push(decodeHashFromBase64(h));
-      });
-
-      if (hashesToLoad.length > 0) {
-        const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
-          cellId,
-          hashesToLoad,
-        );
-        if (hashesToLoad.length != messageRecords.length) {
-          console.log("Warning: not all requested hashes were loaded");
-        }
-        let l = get(lastMessage);
-        for (const messageRecord of messageRecords) {
-          try {
-            const message = messageRecord.message;
-            if (message) {
-              message.hash = encodeHashToBase64(messageRecord.signed_action.hashed.hash);
-              message.timestamp = new Date(
-                messageRecord.signed_action.hashed.content.timestamp / 1000,
-              );
-              if (!l || message.timestamp > l.timestamp) {
-                lastMessage.set(message);
-              }
-              message.authorKey = encodeHashToBase64(
-                messageRecord.signed_action.hashed.content.author,
-              );
-              message.images = ((message.images as any[]) || []).map((i) => ({
-                id: i.id,
-                fileType: i.file_type,
-                lastModified: i.last_modified,
-                name: i.name,
-                size: i.size,
-                storageEntryHash: i.storage_entry_hash,
-                status: FileStatus.Loading,
-              }));
-              message.status = "confirmed";
-
-              // Async load the images
-              loadImagesForMessage(message);
-
-              if (!newMessages[message.hash]) {
-                const matchesPending = Object.values(get(conversation).messages).find(
-                  (m) =>
-                    m.status === "pending" &&
-                    m.authorKey === message.authorKey &&
-                    m.content === message.content,
-                );
-                if (matchesPending) {
-                  delete newMessages[matchesPending.hash];
-                }
-                newMessages[message.hash] = message;
-              }
-            }
-          } catch (e) {
-            console.error("Unable to parse message, ignoring", messageRecord, e);
-          }
-        }
-        conversation.update((c) => ({
-          ...c,
-          messages: newMessages,
-        }));
-        lastMessage.set(l);
-        return Object.keys(newMessages);
-      }
-    } catch (e) {
-      //@ts-ignore
-      console.error("Error getting messages", e);
-    }
-    return [];
-  }
-
-  /***** Setters & actions ******/
-
-  async function sendMessage(authorKey: string, content: string, images: Image[]) {
-    // Use temporary uuid as the hash until we get the real one back from the network
-    const now = new Date();
-    const bucket = bucketFromDate(now);
-    const id = uuidv4();
-    const oldMessage: Message = {
-      authorKey,
-      content,
-      hash: id,
-      status: "pending",
-      timestamp: now,
-      bucket,
-      images,
-    };
-    addMessage(oldMessage);
-    const imageStructs = await Promise.all(
-      images
-        .filter((i) => !!i.file)
-        .map(async (image) => {
-          const hash = await fileStorageClient.uploadFile(image.file!);
-          return {
-            last_modified: image.file!.lastModified,
-            name: image.file!.name,
-            size: image.file!.size,
-            storage_entry_hash: hash,
-            file_type: image.file!.type,
-          };
-        }),
-    );
-    const newMessageEntry = await client.sendMessage(
+  async function sendMessage(key1: CellIdB64, content: string, files: LocalFile[]) {
+    const cellId = decodeCellIdFromBase64(key1);
+    const fileStorageClient = new FileStorageClient(
+      client.client,
+      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
+      "file_storage",
       cellId,
-      content,
-      bucket,
-      imageStructs,
-      Object.keys(get(conversation).agentProfiles).map((k) => decodeHashFromBase64(k)),
     );
-    const newMessage: Message = {
-      ...oldMessage,
-      hash: encodeHashToBase64(newMessageEntry.actionHash),
-      status: "confirmed",
-      images: images.map((i) => ({ ...i, status: FileStatus.Loaded })),
-    };
-    _updateMessage(oldMessage, newMessage);
+    const messageFiles = await Promise.all(
+      files.map(async (file) => {
+        const entryHash = await fileStorageClient.uploadFile(file.file);
+
+        const messageFile: MessageFile = {
+          last_modified: file.file.lastModified,
+          name: file.file.name,
+          size: file.file.size,
+          storage_entry_hash: entryHash,
+          file_type: file.file.type,
+        };
+        return messageFile;
+      }),
+    );
+
+    // Get all AgentPubKeys in the conversation.
+    // We know about them only because they have published a Profile.
+    const mergedProfileContact = deriveCellMergedProfileContactStore(
+      mergedProfileContactStore,
+      key1,
+    );
+    const agentPubKeys = Object.keys(get(mergedProfileContact)).map((a) => decodeHashFromBase64(a));
+
+    // Create Message entry
+    const record = await client.createMessage(cellId, {
+      message: {
+        content,
+        bucket: _makeBucket(key1, new Date()),
+        images: messageFiles,
+      },
+      agents: agentPubKeys,
+    });
+
+    const message = new EntryRecord<Message>(record).entry;
+    if (message === undefined) throw new Error("Failed to decode Message entry from record");
+
+    const messageExtended = await _makeMessageExtended(cellId, {
+      message,
+      original_action: record.signed_action.hashed.hash,
+      signed_action: record.signed_action,
+    });
+    messages.update((m) => ({
+      ...m,
+      [key1]: {
+        ...(m[key1] || {}),
+        [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
+      },
+    }));
   }
 
-  function _updateMessage(oldMessage: Message, newMessage: Message): void {
-    conversation.update((c) => {
-      const messages = { ...c.messages };
-      delete messages[oldMessage.hash];
-      return { ...c, messages: { ...messages, [newMessage.hash]: newMessage } };
-    });
-    history.add(newMessage);
+  async function loadMessagesInBucket(key1: CellIdB64, bucket: number) {
+    const m = get(messages)[key1];
+
+    // Fetch message hashes from bucket
+    const cellId = decodeCellIdFromBase64(key1);
+    const actionHashB64s = (
+      await client.getMessageHashes(cellId, {
+        bucket,
+        count: 0,
+      })
+    ).map((h) => encodeHashToBase64(h));
+
+    // Determine which messages we are currently missing
+    const storedActionHashB64s = Object.keys(m);
+    const missingActionHashs = difference(actionHashB64s, storedActionHashB64s).map((h) =>
+      decodeHashFromBase64(h),
+    );
+
+    // Fetch missing messages
+    const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
+      cellId,
+      missingActionHashs,
+    );
+
+    // Transform Messages into MessageExtendeds
+    const data = Object.fromEntries(
+      (
+        await Promise.allSettled(
+          messageRecords.map(async (m) => [
+            encodeHashToBase64(m.original_action),
+            await _makeMessageExtended(cellId, m),
+          ]),
+        )
+      )
+        .filter((p) => p.status === "fulfilled")
+        .map((p) => p.value),
+    );
+    if (Object.keys(data).length === 0) return;
+
+    // Update writable
+    messages.update((c) => ({
+      ...c,
+      [key1]: {
+        ...(c[key1] || {}),
+        ...data,
+      },
+    }));
   }
 
-  function addMessage(message: Message): void {
-    conversation.update((c) => {
-      message.images = message.images || [];
-      const l = get(lastMessage);
-      if (!l || message.timestamp > l.timestamp) {
-        lastMessage.set(message);
-      }
-      return { ...c, messages: { ...c.messages, [message.hash]: message } };
+  function getBucket(key1: CellIdB64, timestamp: number): number {
+    const c = get(conversations)[key1];
+    if (!c) throw new Error(`Failed to get conversation with CellIdB64 ${key1}`);
+
+    return Math.round((timestamp - c.dnaProperties.created) / BUCKET_RANGE_MS);
+  }
+
+  async function handleMessageSignalReceived(key1: CellIdB64, signal: MessageSignal) {
+    // Make MessageExtended
+    const messageExtended = await _makeMessageExtended(decodeCellIdFromBase64(key1), {
+      message: signal.message,
+      original_action: signal.action.hashed.hash,
+      signed_action: signal.action,
     });
 
-    if (message.hash.startsWith("uhCkk")) {
-      // don't add placeholder to bucket yet.
-      history.add(message);
-      if (!get(isOpen) && message.authorKey !== encodeHashToBase64(client.client.myPubKey)) {
-        setUnread(true);
-      }
+    // Add to writable
+    messages.update((m) => ({
+      ...m,
+      [key1]: {
+        ...(m[key1] || {}),
+        [encodeHashToBase64(signal.action.hashed.hash)]: messageExtended,
+      },
+    }));
+
+    // Get Profile of Message author
+    const mergedProfileContact = deriveCellMergedProfileContactStore(
+      mergedProfileContactStore,
+      key1,
+    );
+    const fromProfile = get(mergedProfileContact)[encodeHashToBase64(signal.from)];
+
+    // Trigger a system notification
+    _triggerMessageNotification(messageExtended, fromProfile);
+
+    // Mark conversation as unread
+    updateUnread(key1, true);
+  }
+
+  async function _triggerMessageNotification(
+    messageExtended: MessageExtended,
+    fromProfile?: ProfileExtended,
+  ) {
+    const content =
+      messageExtended.message.content.length > 125
+        ? messageExtended.message.content.slice(0, 50) + "..."
+        : messageExtended.message.content;
+    const header = fromProfile ? `Message From ${fromProfile.profile.nickname}` : `New Message`;
+
+    await enqueueNotification(header, content);
+  }
+
+  async function _makeConversationExtended(cellInfo: ClonedCell): Promise<ConversationExtended> {
+    const key = encodeCellIdToBase64(cellInfo.cell_id);
+    const dnaProperties = decode(cellInfo.dna_modifiers.properties) as RelayDnaProperties;
+    const config = cellInfo.enabled ? await client.getConfig(cellInfo.cell_id) : undefined;
+
+    // Generate a public invite code
+    // If the conversation is Private, this is undefined
+    let publicInviteCode;
+    if (dnaProperties.privacy === Privacy.Public) {
+      const invitation: Invitation = {
+        created: dnaProperties.created,
+        networkSeed: cellInfo.dna_modifiers.network_seed,
+        privacy: dnaProperties.privacy,
+        progenitor: decodeHashFromBase64(dnaProperties.progenitor),
+        title: config ? config.title : "...",
+      };
+      publicInviteCode = Base64.fromUint8Array(encode(invitation));
     }
+
+    return {
+      cellInfo,
+      dnaProperties,
+      config,
+      publicInviteCode,
+
+      // persisted fields
+      unread: get(unread)[key] || false,
+      invited: get(invited)[key] || [],
+    };
   }
 
-  async function loadImagesForMessage(message: Message) {
-    if (message.images?.length === 0) return;
+  async function _makeMessageExtended(
+    cellId: CellId,
+    messageRecord: MessageRecord,
+  ): Promise<MessageExtended> {
+    if (messageRecord.message === undefined)
+      throw new Error("MessageRecord does not include message entry");
 
-    const images = await Promise.all(message.images.map((image) => _loadImage(image)));
-    conversation.update((c) => {
-      c.messages[message.hash].images = images;
-      return c;
-    });
+    const fileStorageClient = new FileStorageClient(
+      client.client,
+      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
+      "file_storage",
+      cellId,
+    );
+    const messageFileExtendeds = await Promise.all(
+      messageRecord.message.images.map(async (i) => _loadMessageFile(fileStorageClient, i)),
+    );
+
+    return {
+      message: messageRecord.message,
+      messageFileExtendeds,
+      authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
+      timestamp: messageRecord.signed_action.hashed.content.timestamp,
+    };
   }
 
-  async function _loadImage(image: Image): Promise<Image> {
+  async function _loadMessageFile(
+    fileStorageClient: FileStorageClient,
+    messageFile: MessageFile,
+  ): Promise<MessageFileExtended> {
     try {
-      if (image.status === FileStatus.Loaded) return image;
-      if (image.storageEntryHash === undefined) return image;
-
       // Download image file, retrying up to 10 times if download fails
       const file = await pRetry(
-        () => fileStorageClient.downloadFile(image.storageEntryHash as Uint8Array),
+        () => fileStorageClient.downloadFile(messageFile.storage_entry_hash),
         {
           retries: 10,
           minTimeout: 1000,
           factor: 2,
           onFailedAttempt: (e) => {
             console.error(
-              `Failed to download file from hash ${encodeHashToBase64(image.storageEntryHash as Uint8Array)}`,
+              `Failed to download file from hash ${encodeHashToBase64(messageFile.storage_entry_hash)}`,
               e,
             );
           },
@@ -471,204 +541,148 @@ export function createConversationStore(
       // Convert image blob to data url
       const dataURL = await fileToDataUrl(file);
 
-      return { ...image, status: FileStatus.Loaded, dataURL } as Image;
+      return { messageFile, status: FileStatus.Loaded, dataURL };
     } catch (e) {
-      console.error("Error loading image after 10 retries:", e);
-      return { ...image, status: FileStatus.Error, dataURL: "" } as Image;
+      return { messageFile, status: FileStatus.Error, dataURL: undefined };
     }
   }
 
-  async function setConfig(config: Config) {
-    const c = get(conversation);
-    await relayStore.client.setConfig(cellId, config);
-    conversation.update((c) => ({ ...c, config }));
-  }
+  function _makeBucket(key1: CellIdB64, date: Date) {
+    const c = get(conversations)[key1];
+    if (!c) throw new Error(`Conversation not found with CellIdB64 ${key1}`);
 
-  function addContacts(agentPubKeyB64s: AgentPubKeyB64[]) {
-    localData.update((d) => ({
-      ...d,
-      invitedContactKeys: [...d.invitedContactKeys, ...agentPubKeyB64s],
-    }));
-  }
-
-  function toggleArchived() {
-    localData.update((d) => ({ ...d, archived: !d.archived }));
-  }
-
-  function setUnread(unread: boolean) {
-    localData.update((d) => ({ ...d, unread }));
-  }
-
-  async function fetchConfig() {
-    const config = await client.getConfig(cellId);
-    conversation.update((c) => ({
-      ...c,
-      config,
-    }));
-    return config;
-  }
-
-  async function fetchAgents() {
-    const agentProfiles = await client.getAllAgents(cellId);
-    conversation.update((c) => ({
-      ...c,
-      agentProfiles,
-    }));
-    return agentProfiles;
-  }
-
-  async function makeInviteCodeForAgent(publicKeyB64: string) {
-    const c = get(conversation);
-    if (c.privacy === Privacy.Public) {
-      const publicCode = get(publicInviteCode);
-      if (!publicCode) throw new Error("Failed to get public invite code");
-      return publicCode;
-    }
-
-    const proof = await client.inviteAgentToConversation(
-      cellId,
-      decodeHashFromBase64(publicKeyB64),
-    );
-
-    // The name of the conversation we are inviting to should be our name + # of other people invited
-    let myProfile = get(client.profilesStore.myProfile);
-    const profileData = myProfile.status === "complete" ? myProfile.value?.entry : undefined;
-    let title = (profileData?.fields.firstName || "") + " " + profileData?.fields.lastName;
-    if (get(localData).invitedContactKeys.length > 1) {
-      title = `${title} + ${get(localData).invitedContactKeys.length - 1}`;
-    }
-
-    const invitation: Invitation = {
-      created,
-      progenitor: c.progenitor,
-      privacy: c.privacy,
-      proof,
-      networkSeed: c.networkSeed,
-      title,
-    };
-    const msgpck = encode(invitation);
-    return Base64.fromUint8Array(msgpck);
-  }
-
-  function getInvitedUnjoinedContacts(): ContactExtended[] {
-    const joinedAgents = get(conversation).agentProfiles;
-    return get(localData)
-      .invitedContactKeys.filter((contactKey) => !joinedAgents[contactKey]) // filter out already joined agents
-      .map((contactKey) => {
-        const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === contactKey);
-        if (!contactProfile) return;
-
-        return get(contactProfile);
-      })
-      .filter((c) => c !== undefined);
-  }
-
-  function getAllMembers(): ProfileExtended[] {
-    return _getMembers(true);
-  }
-
-  function getJoinedMembers(): ProfileExtended[] {
-    return _getMembers(false);
-  }
-
-  function _getMembers(includeInvited: boolean): ProfileExtended[] {
-    // return the list of agents that have joined the conversation, checking the relayStore for contacts and using the contact info first and if that doesn't exist using the agent profile
-    const joinedAgents = get(conversation).agentProfiles;
-
-    const keys = uniq(
-      Object.keys(joinedAgents).concat(includeInvited ? get(localData).invitedContactKeys : []),
-    );
-
-    // Filter out progenitor, as they are always in the list,
-    // use contact data for each agent if it exists locally, otherwise use their profile
-    // sort by first name (for now)
-    const myPubKeyB64 = encodeHashToBase64(client.client.myPubKey);
-    return keys
-      .filter((k) => k !== myPubKeyB64)
-      .map((agentKey) => {
-        const contactProfile = relayStore.contacts.find((c) => get(c).publicKeyB64 === agentKey);
-
-        if (contactProfile) {
-          return contactProfile.getAsProfile();
-        } else if (joinedAgents[agentKey]) {
-          return {
-            profile: joinedAgents[agentKey],
-            publicKeyB64: agentKey,
-          };
-        } else {
-          return undefined;
-        }
-      })
-      .filter((u) => u !== undefined)
-      .sort((a, b) => a.profile.nickname.localeCompare(b.profile.nickname));
-  }
-
-  function getTitle() {
-    const allMembers = getAllMembers();
-    const c = get(conversation);
-    const { invitationTitle } = get(localData);
-
-    let title;
-    if (c.config) {
-      title = c.config.title;
-    } else if (invitationTitle) {
-      title = invitationTitle;
-    } else {
-      title = "...";
-    }
-
-    if (c.privacy === Privacy.Public) {
-      return title;
-    }
-
-    if (allMembers.length === 0) {
-      // When joining a private converstion that has not synced yet
-      return title;
-    } else if (allMembers.length === 1) {
-      // Use full name of the one other person in the chat
-      return allMembers[0].profile.nickname;
-    } else if (allMembers.length === 2) {
-      return allMembers.map((m) => m.profile.fields.firstName).join(" & ");
-    } else {
-      return allMembers.map((m) => m.profile.fields.firstName).join(", ");
-    }
+    const diff = date.getTime() - c.dnaProperties.created;
+    return Math.round(diff / BUCKET_RANGE_MS);
   }
 
   return {
     initialize,
+    loadConfig,
 
-    // load messages
-    loadMessagesSet,
-    loadMessageSetFromCurrentBucket,
-    loadImagesForMessage,
+    create,
+    join,
+    updateConfig,
+    enable,
+    disable,
+    updateUnread,
+    invite,
+    makePrivateInviteCode,
 
-    // load agents
-    fetchAgents,
-
-    // load config
-    fetchConfig,
-
-    // send message
     sendMessage,
-    addMessage,
-
-    // update config
-    setConfig,
-
-    // update local data
-    addContacts,
-    toggleArchived,
-    setUnread,
-
-    // invite agents
-    makeInviteCodeForAgent,
-
-    // get filtered data
-    getAllMembers,
-    getJoinedMembers,
-    getInvitedUnjoinedContacts,
-    getTitle,
+    loadMessagesInBucket,
+    getBucket,
+    handleMessageSignalReceived,
 
     subscribe,
   };
 }
+
+export interface CellConversationStore {
+  loadConfig: () => Promise<void>;
+  updateConfig: (val: Config) => Promise<void>;
+  enable: () => Promise<void>;
+  disable: () => Promise<void>;
+  updateUnread: (val: boolean) => Promise<void>;
+  invite: (a: AgentPubKeyB64[]) => Promise<void>;
+  makePrivateInviteCode: (a: AgentPubKeyB64, title: string) => Promise<string>;
+  sendMessage: (content: string, files: LocalFile[]) => Promise<void>;
+  loadMessagesInBucket: (bucket: number) => Promise<void>;
+  getBucket: (timestamp: number) => number;
+  handleMessageSignalReceived: (signal: MessageSignal) => Promise<void>;
+  subscribe: (
+    this: void,
+    run: Subscriber<{
+      conversation: ConversationExtended;
+      messages: GenericKeyValueStoreData<MessageExtended>;
+      latestMessage?: MessageExtended;
+    }>,
+    invalidate?:
+      | Invalidator<{
+          conversation: ConversationExtended;
+          messages: GenericKeyValueStoreData<MessageExtended>;
+          latestMessage?: MessageExtended;
+        }>
+      | undefined,
+  ) => Unsubscriber;
+}
+
+export function deriveCellConversationStore(
+  conversationStore: ConversationStore,
+  key: CellIdB64,
+): CellConversationStore {
+  const { subscribe } = derived(conversationStore, ($conversationStore) => ({
+    conversation: $conversationStore.conversations[key],
+    messages: $conversationStore.messages[key],
+    latestMessage: $conversationStore.latestMessage[key],
+  }));
+
+  return {
+    loadConfig: () => conversationStore.loadConfig(key),
+    updateConfig: (val: Config) => conversationStore.updateConfig(key, val),
+    enable: () => conversationStore.enable(key),
+    disable: () => conversationStore.disable(key),
+    updateUnread: (val: boolean) => conversationStore.updateUnread(key, val),
+    invite: (a: AgentPubKeyB64[]) => conversationStore.invite(key, a),
+    makePrivateInviteCode: (a: AgentPubKeyB64, title: string) =>
+      conversationStore.makePrivateInviteCode(key, a, title),
+    sendMessage: (content: string, files: LocalFile[]) =>
+      conversationStore.sendMessage(key, content, files),
+    loadMessagesInBucket: (bucket: number) => conversationStore.loadMessagesInBucket(key, bucket),
+    getBucket: (timestamp: number) => conversationStore.getBucket(key, timestamp),
+    handleMessageSignalReceived: (signal: MessageSignal) =>
+      conversationStore.handleMessageSignalReceived(key, signal),
+    subscribe,
+  };
+}
+
+export interface CellConversationMessagesListStore {
+  loadCurrentBucket: () => void;
+  loadPreviousBucket: () => void;
+  subscribe: (
+    this: void,
+    run: Subscriber<[string, MessageExtended][]>,
+    invalidate?: Invalidator<[string, MessageExtended][]> | undefined,
+  ) => Unsubscriber;
+}
+
+export function deriveCellConversationMessagesListStore(
+  cellConversationStore: CellConversationStore,
+): CellConversationMessagesListStore {
+  const data = derived(cellConversationStore, ($cellConversationStore) => {
+    if ($cellConversationStore.messages === undefined) return [];
+
+    return sortBy(Object.entries($cellConversationStore.messages), [(c) => c[1].timestamp]);
+  });
+
+  return {
+    loadCurrentBucket: () => {
+      return cellConversationStore.loadMessagesInBucket(
+        cellConversationStore.getBucket(new Date().getTime()),
+      );
+    },
+    loadPreviousBucket: () => {
+      // Get bucket before oldest stored message timestamp
+      const d = get(data);
+      const oldestBucketLoaded = d[d.length - 1];
+      if (oldestBucketLoaded === undefined) return;
+
+      return cellConversationStore.loadMessagesInBucket(
+        cellConversationStore.getBucket(oldestBucketLoaded[1].timestamp) - 1,
+      );
+    },
+    subscribe: data.subscribe,
+  };
+}
+
+export const deriveConversationListStore = (conversationStore: ConversationStore) =>
+  derived(conversationStore, ($conversationStore) => {
+    if ($conversationStore.conversations === undefined) return [];
+
+    return sortBy(Object.entries($conversationStore.conversations), [
+      (c) => {
+        const m = $conversationStore.latestMessage[c[0]];
+        return m === undefined ? Number.MAX_SAFE_INTEGER : -m.timestamp;
+      },
+      (c) => c[1].dnaProperties.created,
+    ]);
+  });
