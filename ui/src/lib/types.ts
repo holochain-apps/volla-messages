@@ -47,7 +47,26 @@ export type RelaySignal =
       type: "LinkDeleted";
       action: SignedActionHashed<DeleteLink>;
       link_type: string;
-    };
+    }
+  | {
+      type: "ConferenceInvite";
+      room: ConferenceRoom;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceJoined";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceLeft";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "WebRTCSignal";
+      signal: SignalPayload;
+    }
 
 export enum Privacy {
   Private,
@@ -223,4 +242,45 @@ export enum Alignment {
 export enum Size {
   Small,
   Large,
+}
+
+
+/* Conference */
+
+export interface ConferenceRoom {
+  initiator: AgentPubKey;
+  participants: AgentPubKey[];
+  created_at: number;
+  title: string;
+  room_id: string;
+}
+
+export interface SignalPayload {
+  room_id: string;
+  from: AgentPubKey;
+  to: AgentPubKey;
+  payload_type: CallSignalType;
+  data: string;
+}
+
+export enum CallSignalType {
+  Offer = "Offer",
+  Answer = "Answer",
+  IceCandidate = "IceCandidate"
+}
+
+export interface CreateConferenceInput {
+  participants: AgentPubKey[];
+  title: string;
+}
+
+export interface JoinConferenceInput {
+  room_id: ActionHash;
+}
+
+export interface SignalInput {
+  room_id: string;
+  target: AgentPubKey;
+  payload_type: CallSignalType;
+  data: string;
 }
