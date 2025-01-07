@@ -1,8 +1,8 @@
 <script lang="ts">
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import type { Image } from "$lib/types";
+  import { find } from "lodash-es";
 
-  export let file: Image;
+  export let extension: string | undefined;
   export let style: string = "";
 
   const commonFileTypes: { [key: string]: string[] } = {
@@ -15,21 +15,16 @@
     pdf: ["pdf"],
   };
 
-  function getIconName(file: Image): string {
-    if (file.name) {
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      if (extension) {
-        for (const [type, extensions] of Object.entries(commonFileTypes)) {
-          if (extensions.includes(extension)) {
-            return type;
-          }
-        }
-      }
-    }
-    return "file";
+  function getIconName(ext: string): string {
+    const fileType = find(Object.entries(commonFileTypes), ([, extensions]) =>
+      extensions.includes(ext),
+    );
+    if (fileType === undefined) return "file";
+
+    return fileType[0];
   }
 
-  $: iconName = getIconName(file);
+  $: iconName = extension === undefined ? "file" : getIconName(extension);
 </script>
 
 <SvgIcon icon={iconName} {style} />
