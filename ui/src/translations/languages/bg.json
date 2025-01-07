@@ -16,7 +16,6 @@
   "create_group": "Създаване на група",
   "create_new_contact": "Създаване на нов контакт",
   "created": "Създаден: {{date:date;}}",
-  
   "edit_contact": "Редактиране на контакт",
   "enter_contact_code": "Въвеждане на код за контакт",
   "enter_first_name": "Въведете първото име",
@@ -26,7 +25,6 @@
   "error_saving": "Грешка {{updating; true:updating; false:creating;}} контакт",
   "first": "First",
   "first_name": "Първо име",
-  
   "group_name": "Име на групата",
   "invalid_contact_code": "Невалиден код за контакт",
   "join_conversation": "Участвайте в разговора",
@@ -42,7 +40,6 @@
   "no_contacts_text": "Все още няма с кого да разговаряте! Добавете доверени приятели и членове на семейството си, като поискате техния код за контакт в Volla Messages, който можете да намерите в личния им профил в приложението Volla Messages..",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Разговор",
-  "open_invite_code": "Код за отворена покана",
   "page_title": "Създаване на",
   "profile_error": "Грешка при зареждането на профила",
   "request_contact_code": "Поискайте уникалния код за контакт на вашия контакт, който можете да намерите в личния му профил в приложението Volla Messages.",

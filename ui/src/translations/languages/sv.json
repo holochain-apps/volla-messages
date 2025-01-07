@@ -3,7 +3,6 @@
   "add_people": "Lägg till personer i {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Lägg till i konversation",
   "admin": "Admin",
-  
   "app_name": "Volla Messages",
   "archive": "Arkivera",
   "cancel": "Afbryt",
@@ -19,7 +18,6 @@
   "create_group": "Skapa grupp",
   "create_new_contact": "Skapa ny kontakt",
   "created": "Skapad: {{date:date;}}",
-  
   "edit_contact": "Redigera kontakt",
   "enter_contact_code": "Ange kode",
   "enter_first_name": "Skriv förnamn",
@@ -30,7 +28,6 @@
   "error_saving": "Fel {{updating; true:updating; false:creating;}} kontakt",
   "first": "Förnamn",
   "first_name": "Förnamn, tack",
-  
   "group_name": "Gruppens namn",
   "images": "{{count}} {{count; 1:image; default:images;}}",
   "invalid_contact_code": "Ogiltig kod",
@@ -47,7 +44,6 @@
   "no_contacts_text": "Det finns ingen att kommunicera med än! Bjud in kollegor, vänner och familj med deras kod som finns i deras personliga profil i appen.",
   "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} konversation",
-  "open_invite_code": "Läs kod",
   "page_title": "Skapa",
   "pending_connection_description": "{{name}} behöver ange din inbjudningskod för att upprätta en anslutning.",
   "pending_connection_header": "Kontakten behöver bekräfta",

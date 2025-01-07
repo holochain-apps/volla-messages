@@ -3,7 +3,6 @@
   "add_people": "Mensen toevoegen aan {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Toevoegen aan gesprek",
   "admin": "Beheerder",
-  
   "app_name": "Volla Messages",
   "archive": "Archief",
   "cancel": "Annuleren",
@@ -19,7 +18,6 @@
   "create_group": "Groep maken",
   "create_new_contact": "Nieuw contact maken",
   "created": "Gemaakt: {{date:date;}}",
-  
   "edit_contact": "Contact bewerken",
   "enter_contact_code": "Contactcode invoeren",
   "enter_first_name": "Voer voornaam in",
@@ -30,7 +28,6 @@
   "error_saving": "Fout bij het {{updating; true:updating; false:creating;}} contact",
   "first": "Eerste",
   "first_name": "Voornaam",
-  
   "group_name": "Groepsnaam",
   "holochain_connect_error": "Fout bij verbinding met Holochain",
   "images": "{{count}} {{count; 1:image; default:images;}}",
@@ -50,7 +47,6 @@
   "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
   "open_app_settings": "App-instellingen openen",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} gesprek",
-  "open_invite_code": "Open uitnodiging code",
   "page_title": "Creëer",
   "pending_connection_description": "{{naam}} moet je uitnodigingscode invoeren om een verbinding tot stand te brengen.",
   "pending_connection_header": "De contactpersoon moet bevestigen",

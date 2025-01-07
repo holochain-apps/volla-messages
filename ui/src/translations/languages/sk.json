@@ -3,7 +3,6 @@
   "add_people": "Pridať ľudí {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Pridať do konverzácie",
   "admin": "Administrátor",
-  
   "cancel": "Zrušiť",
   "cant_add_yourself": "Nemôžete sa pridať ako kontakt",
   "connecting_to_holochain": "Spojenie so spoločnosťou Holochain...",
@@ -17,7 +16,6 @@
   "create_group": "Vytvorenie skupiny",
   "create_new_contact": "Vytvorenie nového kontaktu",
   "created": "Vytvorené: {{date:date;}}",
-  
   "edit_contact": "Upraviť kontakt",
   "enter_contact_code": "Zadajte kód kontaktu",
   "enter_first_name": "Zadajte krstné meno",
@@ -27,7 +25,6 @@
   "error_saving": "Chyba {{updating; true:updating; false:creating;}} Kontaktujte nás",
   "first": "First",
   "first_name": "Krstné meno",
-  
   "group_name": "Názov skupiny",
   "invalid_contact_code": "Neplatný kód kontaktu",
   "join_conversation": "Zapojte sa do konverzácie",
@@ -43,7 +40,6 @@
   "no_contacts_text": "Zatiaľ sa nemáme s kým rozprávať! Pridajte svojich dôveryhodných priateľov a členov rodiny tak, že si vyžiadate ich kontaktný kód Volla Messages, ktorý nájdete v ich osobnom profile v aplikácii Volla Messages..",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Konverzácia",
-  "open_invite_code": "Kód otvorenej pozvánky",
   "page_title": "Vytvoriť stránku",
   "profile_error": "Chyba pri načítaní profilu",
   "request_contact_code": "Vyžiadajte si jedinečný kód kontaktu Volla Messages, ktorý nájdete v jeho osobnom profile v aplikácii Volla Messages.",

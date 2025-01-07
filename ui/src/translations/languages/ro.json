@@ -3,7 +3,6 @@
   "add_people": "Adaugați persoane {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Adaugă la conversație",
   "admin": "Administrator",
-  
   "cancel": "Anulează",
   "cant_add_yourself": "Nu vă puteți adăuga ca persoană de contact",
   "connecting_to_holochain": "Conectați-vă cu Holochain...",
@@ -17,7 +16,6 @@
   "create_group": "Crearea grupului",
   "create_new_contact": "Crearea unui nou contact",
   "created": "Creat: {{date:date;}}",
-  
   "edit_contact": "Editare contact",
   "enter_contact_code": "Introduceți un cod de contact",
   "enter_first_name": "Introduceți prenumele",
@@ -27,7 +25,6 @@
   "error_saving": "Eroare {{updating; true:updating; false:creating;}} Contactați-ne",
   "first": "În primul rând",
   "first_name": "Numele și prenumele",
-  
   "group_name": "Numele grupului",
   "invalid_contact_code": "Cod de contact invalid",
   "join_conversation": "Participați la conversație",
@@ -43,7 +40,6 @@
   "no_contacts_text": "Nu există încă nimeni cu care să discutați! Adaugă-ți prietenii și membrii de familie de încredere solicitându-le codul de contact Volla Messages, pe care îl poți găsi în profilul personal al acestora din aplicația Volla Messages.",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Conversație",
-  "open_invite_code": "Cod de invitație deschis",
   "page_title": "Creați",
   "profile_error": "Eroare la încărcarea profilului",
   "request_contact_code": "Solicitați codul unic de contact Volla Messages al persoanei dvs. de contact, pe care îl puteți găsi în profilul personal al acesteia din aplicația Volla Messages.",

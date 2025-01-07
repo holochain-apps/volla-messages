@@ -3,7 +3,6 @@
   "add_people": "Aggiungi persone {{public; true:group; false:conversation;}}",
   "add_to_conversation": "Aggiungi alla conversazione",
   "admin": "Admin",
-  
   "cancel": "Annullare",
   "cant_add_yourself": "Non è possibile aggiungere se stessi come contatto",
   "connecting_to_holochain": "Collegatevi con Holochain...",
@@ -17,7 +16,6 @@
   "create_group": "Creare un gruppo",
   "create_new_contact": "Creare un nuovo contatto",
   "created": "Creato: {{date:date;}}",
-  
   "edit_contact": "Modifica contatto",
   "enter_contact_code": "Inserire un codice di contatto",
   "enter_first_name": "Inserire il nome",
@@ -27,7 +25,6 @@
   "error_saving": "Errore {{updating; true:updating; false:creating;}} contatto",
   "first": "First",
   "first_name": "Nome",
-  
   "group_name": "Nome del gruppo",
   "invalid_contact_code": "Codice di contatto non valido",
   "join_conversation": "Partecipare alla conversazione",
@@ -43,7 +40,6 @@
   "no_contacts_text": "Non c'è ancora nessuno con cui chattare! Aggiungete i vostri amici e familiari fidati richiedendo il loro codice di contatto Volla Messages, che potete trovare nel loro profilo personale nell'app Volla Messages..",
   "num_members": "{{count}} {{count; 1:Member default:Members}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Conversazione",
-  "open_invite_code": "Codice di invito aperto",
   "page_title": "Creare",
   "profile_error": "Errore nel caricamento del profilo",
   "request_contact_code": "Richiedete il codice di contatto unico di Volla Messages del vostro contatto, che potete trovare nel suo profilo personale nell'app Volla Messages.",
