@@ -9,7 +9,6 @@
   import { RelayClient } from "$store/RelayClient";
   import AppLanding from "$lib/AppLanding.svelte";
   import { MIN_FIRST_NAME_LENGTH, ROLE_NAME, ZOME_NAME } from "$config";
-  import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import ProfileSetupName from "./ProfileSetupName.svelte";
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
