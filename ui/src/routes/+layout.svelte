@@ -55,17 +55,6 @@
       : undefined;
   $: myProfileExists = myProfile !== undefined;
 
-  $: if (myProfileExists && conversationStore) {
-    gotoAppPage();
-  }
-
-  async function gotoAppPage() {
-    if (Object.keys($conversationStore).length > 0) {
-      await goto("/conversations");
-    }
-    await goto("/welcome");
-  }
-
   async function initHolochainClient() {
     try {
       console.log("__HC_LAUNCHER_ENV__ is", window.__HC_LAUNCHER_ENV__);
