@@ -193,20 +193,22 @@
 </script>
 
 <Header backUrl="/conversations">
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center p-4">
     {$conversationTitle}
   </h1>
 
   <div class="flex items-center justify-center" slot="right">
     <ButtonIconBare
-      moreClasses="ml-2 !w-[18px] !h-auto"
+      moreClasses="!w-[18px] !h-auto"
+      moreClassesButton="p-4"
       icon="gear"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     />
 
     {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
       <ButtonIconBare
-        moreClasses="ml-5 h-[24px] w-[24px]"
+        moreClasses="h-[24px] w-[24px]"
+        moreClassesButton="p-4"
         icon="addPerson"
         on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
       />

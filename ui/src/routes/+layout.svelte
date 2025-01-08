@@ -12,7 +12,6 @@
   import Button from "$lib/Button.svelte";
   import ProfileSetupName from "./ProfileSetupName.svelte";
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
-  import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { createContactStore, type ContactStore } from "$store/ContactStore";
   import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
@@ -26,8 +25,12 @@
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
   import "../app.postcss";
+  import type { CreateProfileInputUI } from "$lib/types";
 
+  // Holochain client
   let client: AppClient;
+
+  // Frontend store singletons
   let profileStore: ProfileStore;
   let contactStore: ContactStore;
   let mergedProfileContactStore: MergedProfileContactStore;
@@ -43,6 +46,13 @@
 
   // Has the user clicked the "create account" button?
   let isUserCreatingProfile = false;
+
+  // Profile create data
+  let profileCreateInput: CreateProfileInputUI = {
+    firstName: "",
+    lastName: "",
+    avatar: "",
+  };
 
   $: myProfile =
     profileStore &&
@@ -183,10 +193,10 @@
         {$t("common.create_an_account")}
       </Button>
     </AppLanding>
-  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && $ProfileCreateStore.firstName === ""}
-    <ProfileSetupName />
-  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && $ProfileCreateStore.firstName.length >= MIN_FIRST_NAME_LENGTH}
-    <ProfileSetupAvatar />
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && profileCreateInput.firstName === ""}
+    <ProfileSetupName bind:value={profileCreateInput} />
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && profileCreateInput.firstName.length >= MIN_FIRST_NAME_LENGTH}
+    <ProfileSetupAvatar bind:value={profileCreateInput} />
   {:else if isClientConnected && !isStoresSetup}
     <AppLanding>
       {$t("common.stores_setup")}
