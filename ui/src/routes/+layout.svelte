@@ -35,8 +35,15 @@
   let conversationStore: ConversationStore;
   let conversationTitleStore: ConversationTitleStore;
   let provisionedRelayCellId: CellId;
-  let connected = false;
-  let readyToCreateProfile = false;
+
+  // Is the holochain client connected?
+  let isClientConnected = false;
+
+  // Are the frontend stores initialized?
+  let isStoresSetup = false;
+
+  // Has the user clicked the "create account" button?
+  let isUserCreatingProfile = false;
 
   $: myProfile =
     profileStore &&
@@ -93,6 +100,7 @@
         throw new Error("Failed to get CellInfo for cell 'relay'");
       provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
 
+      isClientConnected = true;
       console.log("Connected");
     } catch (e) {
       console.error("Failed to init holochain", e);
@@ -121,6 +129,8 @@
 
       // Initialize signal handler
       createSignalHandler(relayClient, conversationStore);
+
+      isStoresSetup = true;
     } catch (e) {
       console.error("Failed to init stores", e);
       toast.error(`${$t("common.stores_setup_error")}: ${e}`);
@@ -176,18 +186,26 @@
 </script>
 
 <div class="mx-auto flex h-screen w-full max-w-screen-lg flex-col items-center">
-  {#if connected && myProfileExists}
+  {#if isClientConnected && isStoresSetup && myProfileExists}
     <slot />
-  {:else if connected && !myProfileExists && !readyToCreateProfile}
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && !isUserCreatingProfile}
     <AppLanding>
-      <Button icon="lock" on:click={() => (readyToCreateProfile = true)} moreClasses="!font-normal">
+      <Button
+        icon="lock"
+        on:click={() => (isUserCreatingProfile = true)}
+        moreClasses="!font-normal"
+      >
         {$t("common.create_an_account")}
       </Button>
     </AppLanding>
-  {:else if connected && !myProfileExists && readyToCreateProfile && $ProfileCreateStore.firstName === ""}
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && $ProfileCreateStore.firstName === ""}
     <ProfileSetupName />
-  {:else if connected && !myProfileExists && readyToCreateProfile && $ProfileCreateStore.firstName.length >= MIN_FIRST_NAME_LENGTH}
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && $ProfileCreateStore.firstName.length >= MIN_FIRST_NAME_LENGTH}
     <ProfileSetupAvatar />
+  {:else if isClientConnected && !isStoresSetup}
+    <AppLanding>
+      {$t("common.stores_setup")}
+    </AppLanding>
   {:else}
     <AppLanding>
       {$t("common.connecting_to_holochain")}
