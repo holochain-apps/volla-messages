@@ -11,42 +11,42 @@
   import InputContactsSelect from "$lib/InputContactsSelect.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
-    deriveCellMergedProfileContactListStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { uniq } from "lodash-es";
+  import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
-  let profiles = deriveCellMergedProfileContactListStore(
+  let profiles = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
   );
+  let invite = deriveCellInviteStore(inviteStore, $page.params.id);
 
   let searchQuery = "";
   let saving = false;
 
-  $: conversationMemberAgentPubKeyB64s = uniq([
-    ...$conversation.conversation.invited,
-    ...$profiles.map(([a]) => a),
-  ]);
+  $: conversationMemberAgentPubKeyB64s = uniq([...$invite, ...$profiles.map(([a]) => a)]);
 
-  async function invite(selectedContacts: AgentPubKeyB64[]) {
+  async function inviteContacts(selectedContacts: AgentPubKeyB64[]) {
     if (selectedContacts.length === 0) return;
 
     saving = true;
     try {
-      await conversation.invite(selectedContacts);
+      await invite.invite(selectedContacts);
       await goto(`/conversations/${$page.params.id}/details`);
     } catch (e) {
       toast.error(`${$t("common.add_to_conversation_error")}: ${e}`);
@@ -70,6 +70,6 @@
     loading={saving}
     disabled={saving}
     buttonLabel={$t("common.add_to_conversation")}
-    on:clickAction={(e) => invite(e.detail.selectedAgentPubKeyB64s)}
+    on:clickAction={(e) => inviteContacts(e.detail.selectedAgentPubKeyB64s)}
   />
 </div>
