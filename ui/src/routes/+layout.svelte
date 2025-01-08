@@ -24,11 +24,13 @@
     createConversationTitleStore,
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
-  import "../app.postcss";
   import type { CreateProfileInputUI } from "$lib/types";
+  import { createInviteStore, type InviteStore } from "$store/InviteStore";
+  import "../app.postcss";
 
   // Holochain client
   let client: AppClient;
+  let provisionedRelayCellId: CellId;
 
   // Frontend store singletons
   let profileStore: ProfileStore;
@@ -36,7 +38,7 @@
   let mergedProfileContactStore: MergedProfileContactStore;
   let conversationStore: ConversationStore;
   let conversationTitleStore: ConversationTitleStore;
-  let provisionedRelayCellId: CellId;
+  let inviteStore: InviteStore;
 
   // Is the holochain client connected?
   let isClientConnected = false;
@@ -114,6 +116,7 @@
       profileStore = createProfileStore(relayClient);
       mergedProfileContactStore = createMergedProfileContactStore(profileStore, contactStore);
       conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
+      inviteStore = createInviteStore();
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactStore,
@@ -177,6 +180,10 @@
 
   setContext("conversationTitleStore", {
     getStore: () => conversationTitleStore,
+  });
+
+  setContext("inviteStore", {
+    getStore: () => inviteStore,
   });
 </script>
 

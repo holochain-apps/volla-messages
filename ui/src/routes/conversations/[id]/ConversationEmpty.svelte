@@ -16,6 +16,7 @@
     deriveCellConversationTitleStore,
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
+  import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -38,12 +39,14 @@
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
+  let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
   $: invitationTitle =
     $mergedProfileContactList.length === 1
@@ -70,7 +73,7 @@
         })}
       </p>
 
-      {#await conversation.makePrivateInviteCode($conversation.conversation.invited[0], invitationTitle) then text}
+      {#await conversation.makePrivateInviteCode($invite[0], invitationTitle) then text}
         <div class="flex justify-center">
           <ButtonsCopyShare
             moreClasses="bg-tertiary-600 dark:bg-secondary-700"

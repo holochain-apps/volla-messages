@@ -24,6 +24,7 @@
     type ConversationTitleStore,
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
+  import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -41,6 +42,7 @@
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
@@ -54,6 +56,7 @@
     myPubKeyB64,
   );
   let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
+  let invite = deriveCellInviteStore(inviteStore, $page.params.id);
 
   $: myProfile = $profiles[myPubKeyB64];
   $: invitationTitle =
@@ -67,9 +70,7 @@
   let editingTitle = false;
 
   $: iAmProgenitor = myPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
-  $: invitedUnjoinedAgentPubKeyB64s = $conversation.conversation.invited.filter(
-    (a) => !(a in $mergedProfileContact),
-  );
+  $: invitedUnjoinedAgentPubKeyB64s = $invite.filter((a) => !(a in $mergedProfileContact));
 
   const saveTitle = async (newTitle: string) => {
     conversation.updateConfig({ title: newTitle.trim(), image });
@@ -87,7 +88,7 @@
 </script>
 
 <Header backUrl={`/conversations/${$page.params.id}`}>
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center p-4">
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
     {$conversationTitle}
   </h1>
 

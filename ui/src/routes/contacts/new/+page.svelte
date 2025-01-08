@@ -12,11 +12,13 @@
   import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import toast from "svelte-french-toast";
   import type { ConversationStore } from "$store/ConversationStore";
+  import type { InviteStore } from "$store/InviteStore";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let saving = false;
   let contact: Contact = {
@@ -38,7 +40,7 @@
         privacy: Privacy.Private,
       });
       // Invite agent to conversation
-      await conversationStore.invite(cellIdB64, [encodeHashToBase64(contact.public_key)]);
+      await inviteStore.invite(cellIdB64, [encodeHashToBase64(contact.public_key)]);
 
       // Create contact
       await contactStore.create(contact, cellIdB64);
