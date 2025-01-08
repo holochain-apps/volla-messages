@@ -320,7 +320,7 @@ export class RelayClient {
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "create_contact",
-      payload,
+      payload, 
     });
   }
 
@@ -330,6 +330,15 @@ export class RelayClient {
       zome_name: ZOME_NAME,
       fn_name: "update_contact",
       payload,
+    });
+  }
+
+  public async deleteContact(originalContactHash: ActionHash): Promise<ActionHash> {
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "delete_contact",
+      payload: originalContactHash,
     });
   }
 }
