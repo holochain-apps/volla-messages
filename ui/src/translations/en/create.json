@@ -1,9 +1,0 @@
-{
-  "no_contacts_header": "You haven't added any contacts",
-  "no_contacts_text": "There's nobody to chat with yet! Add your trusted friends and family by requesting their Volla Messages contact code, found in their personal profile inside the Volla Messages app.",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} conversation",
-  "page_title": "Create",
-  "search_placeholder": "Search name or contact code",
-  "view": "View",
-  "unconfirmed": "Not confirmed"
-}

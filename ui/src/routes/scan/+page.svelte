@@ -12,6 +12,7 @@
   import { scanStore } from "$store/ScanStore";
   import { onDestroy } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import toast from "svelte-french-toast";
 
   let needsPermission = false;
 
@@ -24,6 +25,7 @@
       if (permissionsState === "granted") return;
     } catch (e) {
       console.error("requestPermissions error", e);
+      toast.error($t("common.camera_permission_error"));
     }
 
     needsPermission = true;
@@ -35,6 +37,7 @@
       scanStore.complete(res.content);
     } catch (e) {
       console.error("executeScan error", e);
+      toast.error($t("common.scan_error"));
     }
   }
 

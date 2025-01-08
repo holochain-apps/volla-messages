@@ -1,9 +1,0 @@
-{
-  "no_contacts_header": "Inga kontakter tillagda",
-  "no_contacts_text": "Det finns ingen att kommunicera med än! Bjud in kollegor, vänner och familj med deras kod som finns i deras personliga profil i appen.",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} konversation",
-  "page_title": "Skapa",
-  "search_placeholder": "Sök efter namn eller kod",
-  "unconfirmed": "Ej bekräftad",
-  "view": "Visa"
-}

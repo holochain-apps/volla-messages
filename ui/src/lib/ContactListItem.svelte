@@ -33,7 +33,7 @@
   >
     {$contact.fullName}
     {#if hasAgentJoinedDht}
-      <span class="text-secondary-400 ml-1 text-xs">{$t("create.unconfirmed")}</span>
+      <span class="text-secondary-400 ml-1 text-xs">{$t("common.unconfirmed")}</span>
     {/if}
   </p>
   {#if selected}
@@ -41,7 +41,7 @@
       on:click={() => goto("/contacts/" + $contact.publicKeyB64)}
       moreClasses="dark:bg-secondary-700 "
     >
-      {$t("create.view")}
+      {$t("common.view")}
     </ButtonInline>
   {:else}
     <span class="text-primary-500 text-lg font-extrabold">+</span>
