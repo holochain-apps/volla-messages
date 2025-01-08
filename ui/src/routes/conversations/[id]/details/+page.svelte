@@ -14,7 +14,6 @@
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
     deriveCellMergedProfileContactInviteListStore,
-    deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import MemberListItem from "./MemberListItem.svelte";
@@ -46,16 +45,12 @@
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
-  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
-    $page.params.id,
-  );
   let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
   );
-  let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
+  let profiles = deriveCellProfileStore(profileStore, $page.params.id);
   let invite = deriveCellInviteStore(inviteStore, $page.params.id);
 
   $: myProfile = $profiles[myPubKeyB64];
@@ -70,7 +65,10 @@
   let editingTitle = false;
 
   $: iAmProgenitor = myPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
-  $: invitedUnjoinedAgentPubKeyB64s = $invite.filter((a) => !(a in $mergedProfileContact));
+  $: invitedUnjoinedAgentPubKeyB64s = $invite.filter((a) => !(a in Object.keys($profiles)));
+  $: mergedProfileContactListJoined = $mergedProfileContactList.filter(
+    ([agentPubKeyB64]) => !invitedUnjoinedAgentPubKeyB64s.includes(agentPubKeyB64),
+  );
 
   const saveTitle = async (newTitle: string) => {
     conversation.updateConfig({ title: newTitle.trim(), image });
@@ -137,7 +135,7 @@
     {$t("common.created", { date: $conversation.conversation.dnaProperties.created })}
   </p>
   <p class="text-sm">
-    {$t("common.num_members", { count: $mergedProfileContactList.length })}
+    {$t("common.num_members", { count: mergedProfileContactListJoined.length })}
   </p>
 
   <div class="mx-auto flex w-full flex-col overflow-y-auto px-4">
@@ -181,7 +179,7 @@
         </h3>
       {/if}
 
-      {#each $mergedProfileContactList as [publicKeyB64] (publicKeyB64)}
+      {#each mergedProfileContactListJoined as [publicKeyB64] (publicKeyB64)}
         <MemberListItem cellIdB64={$page.params.id} agentPubKeyB64={publicKeyB64} />
       {/each}
     </ul>
