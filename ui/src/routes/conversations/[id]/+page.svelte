@@ -154,6 +154,9 @@
   async function sendMessage(text: string, files: LocalFile[]) {
     if (sending) return;
 
+    // Focus on input field to ensure the keyboard remains open after sending message on android
+    conversationMessageInputRef.focus();
+
     sending = true;
     try {
       await conversation.sendMessage(text, files);
