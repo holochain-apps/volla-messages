@@ -29,7 +29,7 @@
 </script>
 
 <Header>
-  <div slot="left" class="bg-appLogo h-[16px] w-[16px] bg-contain bg-center bg-no-repeat" />
+  <div slot="left" class="bg-appLogo h-[16px] w-[16px] bg-contain bg-center bg-no-repeat p-4" />
 </Header>
 
 <form on:submit|preventDefault={saveName} class="contents">

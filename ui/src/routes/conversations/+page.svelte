@@ -22,7 +22,7 @@
 </script>
 
 <Header>
-  <button slot="left" on:click={() => goto("/account")}>
+  <button slot="left" on:click={() => goto("/account")} class="p-4">
     <Avatar size={24} agentPubKeyB64={myPubKeyB64} />
   </button>
 
@@ -31,6 +31,7 @@
     on:click={() => goto("/create")}
     icon="plusCircle"
     moreClasses="text-primary-600"
+    moreClassesButton="p-4"
   />
 </Header>
 

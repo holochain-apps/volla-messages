@@ -47,7 +47,7 @@
 <Header back title={$t("common.edit_contact")}>
   <div slot="right">
     {#if isMobile()}
-      <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" />
+      <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" moreClassesButton="p-4" />
     {/if}
   </div>
 </Header>

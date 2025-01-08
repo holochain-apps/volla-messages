@@ -87,7 +87,7 @@
 </script>
 
 <Header backUrl={`/conversations/${$page.params.id}`}>
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center p-4">
     {$conversationTitle}
   </h1>
 
@@ -95,6 +95,7 @@
     {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
       <ButtonIconBare
         moreClasses="h-[24px] w-[24px]"
+        moreClassesButton="p-4"
         icon="addPerson"
         on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
       />
