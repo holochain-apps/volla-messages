@@ -43,7 +43,7 @@
   "next_avatar": "Neste:&nbsp;<strong>Avatar</strong>",
   "no_contacts_header": "Ingen kontakter tilføyd",
   "no_contacts_text": "Fortsatt ingen å konversere med! Invitér kollegaer, venner og familie med deres kode, som du kan finne i deres personlige profil i appen.",
-  "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
+  "num_members": "{{count}} {{count; 1:Member; default:Medlemmer;}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} konversasjon",
   "pending_connection_description": "{{name}} må skrive inn invitasjonskoden din for å etablere forbindelse.",
   "pending_connection_header": "Din kontakt må bekrefte",

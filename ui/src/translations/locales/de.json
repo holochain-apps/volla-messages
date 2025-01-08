@@ -39,7 +39,7 @@
   "next_avatar": "Nächster:&nbsp;<strong>Avatar</strong>",
   "no_contacts_header": "Sie haben noch keine Kontakte hinzugefügt.",
   "no_contacts_text": "Es gibt noch niemanden, mit dem Sie chatten können! Fügen Sie Ihre vertrauenswürdigen Freunde und Familienmitglieder hinzu, indem Sie ihren Volla Messages-Kontaktcode anfordern, den Sie in ihrem persönlichen Profil in der Volla Messages-App finden.",
-  "num_members": "{{count}} {{count; 1:Member default:Members}}",
+  "num_members": "{{count}} {{count; 1:Member; default:Mitglieder;}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Konversation",
   "profile_error": "Fehler beim Laden des Profils",
   "request_contact_code": "Fordern Sie den eindeutigen Volla Messages-Kontakt-Code Ihres Kontakts an, den Sie in seinem persönlichen Profil in der Volla Messages-App finden.",

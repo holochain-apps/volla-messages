@@ -39,7 +39,7 @@
   "next_avatar": "Next:&nbsp;<strong>Avatar</strong>",
   "no_contacts_header": "Aún no has añadido ningún contacto.",
   "no_contacts_text": "¡Aún no hay nadie con quien chatear! Añade a tus amigos y familiares de confianza solicitándoles su código de contacto de Volla Messages, que encontrarás en su perfil personal en la aplicación Volla Messages..",
-  "num_members": "{{count}} {{count; 1:Member default:Members}}",
+  "num_members": "{{count}} {{count; 1:Member; default:Miembros;}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} Conversación",
   "profile_error": "Error al cargar el perfil",
   "request_contact_code": "Solicita el código de contacto único de Volla Messages de tu contacto, que puedes encontrar en su perfil personal en la aplicación Volla Messages.",
