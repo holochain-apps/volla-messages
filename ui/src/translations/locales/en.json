@@ -76,6 +76,7 @@
   "share_invitation_code_msg": "Nobody else is here! Share your invite code to start the conversation.",
   "share_invite_code": "Share invite code",
   "share_your_contact_code": "Share your contact code",
+  "stores_setup": "Loading initial data...",
   "stores_setup_error": "Error setting up data stores",
   "tagline": "Peer-to-peer. Encrypted. Secure.",
   "unconfirmed": "Not confirmed",

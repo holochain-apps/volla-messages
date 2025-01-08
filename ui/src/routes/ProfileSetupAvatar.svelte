@@ -18,7 +18,6 @@
     loading = true;
     try {
       await profileStore.create(profileInput);
-      await goto("/welcome");
     } catch (e) {
       toast.error(`${$t("common.create_account_error")}: ${e}`);
     }
