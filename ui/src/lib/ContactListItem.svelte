@@ -21,9 +21,11 @@
   });
 
   async function handleDelete(event: MouseEvent) {
-    // Prevents the click from triggering the parent button
-    event.stopPropagation();
-    await contact.delete();
+    try {
+      await contact.delete();
+    } catch (err) {
+      console.error(err);
+    }
   }
 </script>
 
