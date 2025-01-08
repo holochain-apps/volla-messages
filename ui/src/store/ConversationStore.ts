@@ -49,9 +49,9 @@ import pRetry from "p-retry";
 import { BUCKET_RANGE_MS } from "$config";
 import { difference, sortBy } from "lodash-es";
 import {
-  deriveCellMergedProfileContactStore,
-  type MergedProfileContactStore,
-} from "./MergedProfileContactStore";
+  deriveCellMergedProfileContactInviteStore,
+  type MergedProfileContactInviteStore,
+} from "./MergedProfileContactInviteStore";
 
 export interface ConversationStore {
   initialize: () => Promise<void>;
@@ -62,7 +62,6 @@ export interface ConversationStore {
   enable: (key: CellIdB64) => Promise<void>;
   disable: (key: CellIdB64) => Promise<void>;
   updateUnread: (key: CellIdB64, val: boolean) => Promise<void>;
-  invite: (key: CellIdB64, agents: AgentPubKeyB64[]) => Promise<void>;
   makePrivateInviteCode: (
     key: CellIdB64,
     agentPubKeyB64: AgentPubKeyB64,
@@ -98,7 +97,7 @@ export interface ConversationStore {
 
 export function createConversationStore(
   client: RelayClient,
-  mergedProfileContactStore: MergedProfileContactStore
+  mergedProfileContactStore: MergedProfileContactInviteStore
 ): ConversationStore {
   const conversations = createGenericKeyValueStore<ConversationExtended>();
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
@@ -106,12 +105,6 @@ export function createConversationStore(
   // Unread is persisted to localstorage as it is never stored via holochain
   const unread = persisted<{ [cellIdB64: CellIdB64]: boolean }>(
     "CONVERSATION.UNREAD",
-    {}
-  );
-
-  // List of invited agents is persisted to localstorage as it is not stored via holochain
-  const invited = persisted<{ [cellIdB64: CellIdB64]: AgentPubKeyB64[] }>(
-    "CONVERSATION.INVITED",
     {}
   );
 
@@ -284,23 +277,6 @@ export function createConversationStore(
     }));
   }
 
-  async function invite(
-    key: CellIdB64,
-    agentPubKeyB64s: AgentPubKeyB64[]
-  ): Promise<void> {
-    invited.update((c) => ({
-      ...c,
-      [key]: [...(c[key] || []), ...agentPubKeyB64s],
-    }));
-    conversations.update((c) => ({
-      ...c,
-      [key]: {
-        ...c[key],
-        invited: get(invited)[key],
-      },
-    }));
-  }
-
   async function makePrivateInviteCode(
     key: CellIdB64,
     agentPubKeyB64: AgentPubKeyB64,
@@ -317,7 +293,6 @@ export function createConversationStore(
       decodeHashFromBase64(agentPubKeyB64)
     );
 
-    // TODO The name of the conversation we are inviting to should be our name + # of other people invited
     const invitation: Invitation = {
       created: c.dnaProperties.created,
       progenitor: decodeHashFromBase64(c.dnaProperties.progenitor),
@@ -358,7 +333,7 @@ export function createConversationStore(
 
     // Get all AgentPubKeys in the conversation.
     // We know about them only because they have published a Profile.
-    const mergedProfileContact = deriveCellMergedProfileContactStore(
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactStore,
       key1
     );
@@ -476,7 +451,7 @@ export function createConversationStore(
     }));
 
     // Get Profile of Message author
-    const mergedProfileContact = deriveCellMergedProfileContactStore(
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactStore,
       key1
     );
@@ -538,7 +513,6 @@ export function createConversationStore(
 
       // persisted fields
       unread: get(unread)[key] || false,
-      invited: get(invited)[key] || [],
     };
   }
 
@@ -619,7 +593,6 @@ export function createConversationStore(
     enable,
     disable,
     updateUnread,
-    invite,
     makePrivateInviteCode,
 
     sendMessage,
@@ -637,7 +610,6 @@ export interface CellConversationStore {
   enable: () => Promise<void>;
   disable: () => Promise<void>;
   updateUnread: (val: boolean) => Promise<void>;
-  invite: (a: AgentPubKeyB64[]) => Promise<void>;
   makePrivateInviteCode: (a: AgentPubKeyB64, title: string) => Promise<string>;
   sendMessage: (content: string, files: LocalFile[]) => Promise<void>;
   loadMessagesInBucket: (bucket: number) => Promise<void>;
@@ -676,7 +648,6 @@ export function deriveCellConversationStore(
     enable: () => conversationStore.enable(key),
     disable: () => conversationStore.disable(key),
     updateUnread: (val: boolean) => conversationStore.updateUnread(key, val),
-    invite: (a: AgentPubKeyB64[]) => conversationStore.invite(key, a),
     makePrivateInviteCode: (a: AgentPubKeyB64, title: string) =>
       conversationStore.makePrivateInviteCode(key, a, title),
     sendMessage: (content: string, files: LocalFile[]) =>

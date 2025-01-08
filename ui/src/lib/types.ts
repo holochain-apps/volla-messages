@@ -125,7 +125,6 @@ export interface ConversationExtended {
 
   // Locally persisted data
   unread: boolean;
-  invited: AgentPubKeyB64[];
 }
 
 export type BucketInput = {

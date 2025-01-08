@@ -16,27 +16,29 @@
   import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
   import {
-    createMergedProfileContactStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    createMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { createConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
     createConversationTitleStore,
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
-  import "../app.postcss";
   import type { CreateProfileInputUI } from "$lib/types";
+  import { createInviteStore, type InviteStore } from "$store/InviteStore";
+  import "../app.postcss";
 
   // Holochain client
   let client: AppClient;
+  let provisionedRelayCellId: CellId;
 
   // Frontend store singletons
   let profileStore: ProfileStore;
   let contactStore: ContactStore;
-  let mergedProfileContactStore: MergedProfileContactStore;
+  let mergedProfileContactStore: MergedProfileContactInviteStore;
   let conversationStore: ConversationStore;
   let conversationTitleStore: ConversationTitleStore;
-  let provisionedRelayCellId: CellId;
+  let inviteStore: InviteStore;
 
   // Is the holochain client connected?
   let isClientConnected = false;
@@ -112,7 +114,12 @@
       const relayClient = new RelayClient(client, provisionedRelayCellId);
       contactStore = createContactStore(relayClient);
       profileStore = createProfileStore(relayClient);
-      mergedProfileContactStore = createMergedProfileContactStore(profileStore, contactStore);
+      inviteStore = createInviteStore();
+      mergedProfileContactStore = createMergedProfileContactInviteStore(
+        profileStore,
+        contactStore,
+        inviteStore,
+      );
       conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
@@ -177,6 +184,10 @@
 
   setContext("conversationTitleStore", {
     getStore: () => conversationTitleStore,
+  });
+
+  setContext("inviteStore", {
+    getStore: () => inviteStore,
   });
 </script>
 

@@ -4,12 +4,12 @@
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
   import { encodeCellIdToBase64 } from "$lib/utils";
   import {
-    deriveCellMergedProfileContactStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { type CellIdB64 } from "./types";
 
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
@@ -23,7 +23,7 @@
   export let namePosition = "row";
   export let moreClasses = "";
 
-  $: profiles = deriveCellMergedProfileContactStore(mergedProfileContactStore, cellIdB64);
+  $: profiles = deriveCellMergedProfileContactInviteStore(mergedProfileContactStore, cellIdB64);
   $: profileExtended = $profiles ? $profiles[agentPubKeyB64] : undefined;
   $: title = profileExtended ? profileExtended.profile.nickname : "";
 </script>

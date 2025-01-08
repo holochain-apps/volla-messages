@@ -10,7 +10,7 @@
   import { goto } from "$app/navigation";
   import { getContext } from "svelte";
   import { type ProfileStore } from "$store/ProfileStore";
-  import { deriveCellMergedProfileContactListStore } from "$store/MergedProfileContactStore";
+  import { deriveCellMergedProfileContactInviteListStore } from "$store/MergedProfileContactInviteStore";
   import MessagePreview from "./MessagePreview.svelte";
   import UnreadIndicator from "./UnreadIndicator.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
@@ -19,6 +19,7 @@
     type ConversationTitleStore,
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
+  import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -29,6 +30,7 @@
   const mergedProfileContactStore = getContext<{ getStore: () => ProfileStore }>(
     "mergedProfileContactStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -36,12 +38,13 @@
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     cellIdB64,
     myPubKeyB64,
   );
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
+  let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
   let isHovering = false;
   let menuOpen = 0;
@@ -198,7 +201,7 @@
             <UnreadIndicator />
           {/if}
 
-          {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContactList.length === 1 && $conversation.conversation.invited.length > 0}
+          {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContactList.length === 1 && $invite.length > 0}
             <span class="text-secondary-400">{$t("common.unconfirmed")}</span>
           {:else if $conversation.latestMessage}
             <MessagePreview {cellIdB64} messageExtended={$conversation.latestMessage} />

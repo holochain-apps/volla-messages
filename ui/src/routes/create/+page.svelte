@@ -17,6 +17,7 @@
     "conversationStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let searchQuery = "";
   let creating = false;
@@ -45,7 +46,7 @@
         },
         privacy: Privacy.Private,
       });
-      await conversationStore.invite(cellIdB64, selectedAgentPubKeyB64s);
+      await inviteStore.invite(cellIdB64, selectedAgentPubKeyB64s);
       await goto(`/conversations/${cellIdB64}/details`);
     } catch (e) {
       toast.error(`${$t("common.create_conversation_error")}: ${e}`);
