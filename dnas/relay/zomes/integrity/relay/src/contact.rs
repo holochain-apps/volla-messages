@@ -24,19 +24,27 @@ pub fn validate_create_contact(
 }
 
 pub fn validate_update_contact(
-    _action: Update,
+    action: Update,
     _contact: Contact,
-    _original_action: EntryCreationAction,
+    original_action: EntryCreationAction,
     _original_contact: Contact,
 ) -> ExternResult<ValidateCallbackResult> {
+    if &action.author != original_action.author() {
+        return Ok(ValidateCallbackResult::Invalid("Only the contact author can update their contact".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 
 pub fn validate_delete_contact(
-    _action: Delete,
-    _original_action: EntryCreationAction,
+    action: Delete,
+    original_action: EntryCreationAction,
     _original_contact: Contact,
 ) -> ExternResult<ValidateCallbackResult> {
+    if &action.author != original_action.author() {
+        return Ok(ValidateCallbackResult::Invalid("Only the contact author can delete their contact".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 
@@ -60,7 +68,7 @@ pub fn validate_create_link_contact_to_contacts(
         .map_err(|e| wasm_error!(e))?
         .ok_or(
             wasm_error!(
-                WasmErrorInner::Guest("Linked action must reference an entry"
+                WasmErrorInner::Guest("Linked action must reference a Contact entry"
                 .to_string())
             ),
         )?;
@@ -68,12 +76,16 @@ pub fn validate_create_link_contact_to_contacts(
 }
 
 pub fn validate_delete_link_contact_to_contacts(
-    _action: DeleteLink,
-    _original_action: CreateLink,
+    action: DeleteLink,
+    original_action: CreateLink,
     _base: AnyLinkableHash,
     _target: AnyLinkableHash,
     _tag: LinkTag,
 ) -> ExternResult<ValidateCallbackResult> {
+    if action.author != original_action.author {
+        return Ok(ValidateCallbackResult::Invalid("Only the contact author can delete their contact".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 
@@ -97,7 +109,7 @@ pub fn validate_create_link_contact_updates(
         .map_err(|e| wasm_error!(e))?
         .ok_or(
             wasm_error!(
-                WasmErrorInner::Guest("Linked action must reference an entry"
+                WasmErrorInner::Guest("Linked action must reference a Contact entry"
                 .to_string())
             ),
         )?;
@@ -137,8 +149,8 @@ pub fn validate_delete_link_contact_updates(
 }
 
 pub fn validate_create_link_all_contacts(
-    _action: CreateLink,
-    _base_address: AnyLinkableHash,
+    action: CreateLink,
+    base_address: AnyLinkableHash,
     target_address: AnyLinkableHash,
     _tag: LinkTag,
 ) -> ExternResult<ValidateCallbackResult> {
@@ -161,15 +173,32 @@ pub fn validate_create_link_all_contacts(
                 .to_string())
             ),
         )?;
+    
+    // base_address is hash of 'all_contacts'
+    let base_path = Path::from("all_contacts");
+    let base_path_hash = base_path.path_entry_hash()?;
+    if base_address != base_path_hash.into() {
+        return Ok(ValidateCallbackResult::Invalid("Base address must be hash of 'all_contacts'".to_string()));
+    }
+
+    // action author must be contact author
+    if &action.author != record.signed_action.hashed.author() {
+        return Ok(ValidateCallbackResult::Invalid("Only the contact author can create an AllContacts link to their contact".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 
 pub fn validate_delete_link_all_contacts(
-    _action: DeleteLink,
-    _original_action: CreateLink,
+    action: DeleteLink,
+    original_action: CreateLink,
     _base: AnyLinkableHash,
     _target: AnyLinkableHash,
     _tag: LinkTag,
 ) -> ExternResult<ValidateCallbackResult> {
+    if action.author != original_action.author {
+        return Ok(ValidateCallbackResult::Invalid("Only the orignal author can delete their contacts".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }

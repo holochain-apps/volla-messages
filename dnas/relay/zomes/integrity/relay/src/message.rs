@@ -1,4 +1,5 @@
 use hdi::prelude::*;
+use crate::messages_path;
 
 #[derive(Serialize, Deserialize, Debug, SerializedBytes, Clone, PartialEq)]
 pub struct File {
@@ -30,16 +31,30 @@ pub fn validate_create_message(
     Ok(ValidateCallbackResult::Valid)
 }
 pub fn validate_update_message(
-    _action: Update,
-    _message: Message,
+    action: Update,
+    message: Message,
+    original_action: EntryCreationAction,
+    original_message: Message,
 ) -> ExternResult<ValidateCallbackResult> {
+    if &action.author != original_action.author() {
+        return Ok(ValidateCallbackResult::Invalid("Only the message author can update their message".to_string()));
+    }
+
+    if message.bucket != original_message.bucket {
+        return Ok(ValidateCallbackResult::Invalid("Message bucket cannot be updated".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 pub fn validate_delete_message(
-    _action: Delete,
-    _original_action: EntryCreationAction,
+    action: Delete,
+    original_action: EntryCreationAction,
     _original_message: Message,
 ) -> ExternResult<ValidateCallbackResult> {
+    if &action.author != original_action.author() {
+        return Ok(ValidateCallbackResult::Invalid("Only the message author can delete the link to their message".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 pub fn validate_create_link_message_updates(
@@ -62,7 +77,7 @@ pub fn validate_create_link_message_updates(
         .map_err(|e| wasm_error!(e))?
         .ok_or(
             wasm_error!(
-                WasmErrorInner::Guest("Linked action must reference an entry"
+                WasmErrorInner::Guest("Linked action must reference a Message entry"
                 .to_string())
             ),
         )?;
@@ -80,7 +95,7 @@ pub fn validate_create_link_message_updates(
         .map_err(|e| wasm_error!(e))?
         .ok_or(
             wasm_error!(
-                WasmErrorInner::Guest("Linked action must reference an entry"
+                WasmErrorInner::Guest("Linked action must reference a Message entry"
                 .to_string())
             ),
         )?;
@@ -100,8 +115,8 @@ pub fn validate_delete_link_message_updates(
     )
 }
 pub fn validate_create_link_all_messages(
-    _action: CreateLink,
-    _base_address: AnyLinkableHash,
+    action: CreateLink,
+    base_address: AnyLinkableHash,
     target_address: AnyLinkableHash,
     _tag: LinkTag,
 ) -> ExternResult<ValidateCallbackResult> {
@@ -114,7 +129,7 @@ pub fn validate_create_link_all_messages(
             ),
         )?;
     let record = must_get_valid_record(action_hash)?;
-    let _message: crate::Message = record
+    let message: crate::Message = record
         .entry()
         .to_app_option()
         .map_err(|e| wasm_error!(e))?
@@ -124,14 +139,31 @@ pub fn validate_create_link_all_messages(
                 .to_string())
             ),
         )?;
+    
+    // base_address is message_path for this message's bucket
+    let path = messages_path(message.bucket);
+    let path_hash = path.path_entry_hash()?;
+    if base_address != path_hash.into() {
+        return Ok(ValidateCallbackResult::Invalid("Base address must follow path structure for this message's bucket".to_string()));
+    }
+
+    // action author must be message author
+    if &action.author != record.signed_action.hashed.author() {
+        return Ok(ValidateCallbackResult::Invalid("Only the message author can create an AllMessages link to their message".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }
 pub fn validate_delete_link_all_messages(
-    _action: DeleteLink,
-    _original_action: CreateLink,
+    action: DeleteLink,
+    original_action: CreateLink,
     _base: AnyLinkableHash,
     _target: AnyLinkableHash,
     _tag: LinkTag,
 ) -> ExternResult<ValidateCallbackResult> {
+    if action.author != original_action.author {
+        return Ok(ValidateCallbackResult::Invalid("Only the message author can delete the link to their message".to_string()));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }

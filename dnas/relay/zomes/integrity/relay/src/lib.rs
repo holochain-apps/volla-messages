@@ -225,7 +225,27 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             )
                         }
                         EntryTypes::Message(message) => {
-                            validate_update_message(action, message)
+                            let original_app_entry = must_get_valid_record(
+                                action.clone().original_action_address,
+                            )?;
+                            let original_message = match Message::try_from(
+                                original_app_entry,
+                            ) {
+                                Ok(entry) => entry,
+                                Err(e) => {
+                                    return Ok(
+                                        ValidateCallbackResult::Invalid(
+                                            format!("Expected to get Message from Record: {e:?}"),
+                                        ),
+                                    );
+                                }
+                            };
+                            validate_update_message(
+                                action,
+                                message,
+                                original_create_action,
+                                original_message
+                            )
                         }
                         EntryTypes::Config(config) => {
                             validate_update_config(action, config)
@@ -521,7 +541,7 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                     .entry()
                                     .to_app_option()
                                     .map_err(|e| wasm_error!(e))?;
-                                let _original_message = match original_message {
+                                let original_message = match original_message {
                                     Some(message) => message,
                                     None => {
                                         return Ok(
@@ -532,7 +552,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                         );
                                     }
                                 };
-                                validate_update_message(action, message)
+                                validate_update_message(
+                                    action,
+                                    message,
+                                    original_action,
+                                    original_message
+                                )
                             } else {
                                 Ok(result)
                             }
