@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AppClient, CellId } from "@holochain/client";
   import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
-  import { onMount, setContext } from "svelte";
+  import { onDestroy, onMount, setContext } from "svelte";
   import { t } from "$translations";
   import { createSignalHandler } from "$store/SignalHandler";
   import toast, { Toaster } from "svelte-french-toast";
@@ -138,20 +138,17 @@
   }
 
   async function setupApp() {
-    await initHolochainClient();
-    await initStores();
-
-    connected = true;
-  }
-
-  onMount(() => {
-    setupApp();
-
     initLightDarkModeSwitcher();
     document.addEventListener("click", handleLinkClick);
-    return () => {
-      document.removeEventListener("click", handleLinkClick);
-    };
+
+    await initHolochainClient();
+    await initStores();
+  }
+
+  onMount(setupApp);
+
+  onDestroy(() => {
+    document.removeEventListener("click", handleLinkClick);
   });
 
   setContext("myPubKey", {
