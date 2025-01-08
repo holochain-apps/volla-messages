@@ -144,6 +144,11 @@
     getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
   });
 
+  setContext("provisionedRelayCellId", {
+    getCellId: () => provisionedRelayCellId,
+    getCellIdB64: () => encodeCellIdToBase64(provisionedRelayCellId),
+  });
+
   setContext("profileStore", {
     getStore: () => profileStore,
   });
@@ -162,11 +167,6 @@
 
   setContext("conversationTitleStore", {
     getStore: () => conversationTitleStore,
-  });
-
-  setContext("provisionedRelayCellId", {
-    getCellId: () => provisionedRelayCellId,
-    getCellIdB64: () => encodeCellIdToBase64(provisionedRelayCellId),
   });
 </script>
 
