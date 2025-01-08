@@ -74,7 +74,7 @@
       autofocus
       class="bg-surface-900 border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
       type="text"
-      placeholder={$t("contacts.enter_first_name")}
+      placeholder={$t("common.enter_first_name")}
       name="name"
       bind:value={contact.first_name}
       minlength={1}
@@ -84,32 +84,32 @@
     <input
       class="bg-surface-900 border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
       type="text"
-      placeholder={$t("contacts.enter_last_name")}
+      placeholder={$t("common.enter_last_name")}
       name="name"
       bind:value={contact.last_name}
     />
 
-    <h3 class="h3 mt-4">{$t("contacts.contact_code")} *</h3>
+    <h3 class="h3 mt-4">{$t("common.contact_code")} *</h3>
     <input
       class="bg-surface-900 border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
       type="text"
-      placeholder={$t("contacts.enter_contact_code")}
+      placeholder={$t("common.enter_contact_code")}
       name="publicKey"
       bind:value={agentPubKeyB64}
       minlength={1}
     />
 
     {#if !isAgentPubKeyB64Valid && agentPubKeyB64.length > 0}
-      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("contacts.invalid_contact_code")}</p>
+      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.invalid_contact_code")}</p>
     {:else if !isContactNewAgent && !editMode}
-      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("contacts.contact_already_exist")}</p>
+      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.contact_already_exist")}</p>
     {:else if !isContactOtherAgent}
-      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("contacts.cant_add_yourself")}</p>
+      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.cant_add_yourself")}</p>
     {/if}
 
     {#if !agentPubKeyB64}
       <p class="text-secondary-600 dark:text-tertiary-700 mb-4 mt-4 text-xs">
-        {$t("contacts.request_contact_code")}
+        {$t("common.request_contact_code")}
       </p>
     {/if}
   </div>

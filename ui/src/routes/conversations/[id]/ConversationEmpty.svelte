@@ -17,9 +17,6 @@
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
-
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
@@ -65,10 +62,10 @@
     >
       <SvgIcon icon="handshake" moreClasses="w-[36px] h-[36px]" />
       <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
-        {$t("contacts.pending_connection_header")}
+        {$t("common.pending_connection_header")}
       </h1>
       <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-        {$tAny("contacts.pending_connection_description", {
+        {$t("common.pending_connection_description", {
           name: $conversationTitle,
         })}
       </p>
@@ -78,22 +75,22 @@
           <ButtonsCopyShare
             moreClasses="bg-tertiary-600 dark:bg-secondary-700"
             {text}
-            copyLabel={$t("contacts.copy_invite_code")}
-            shareLabel={$t("contacts.share_invite_code")}
+            copyLabel={$t("common.copy_invite_code")}
+            shareLabel={$t("common.share_invite_code")}
           />
         </div>
       {/await}
     </div>
   {:else if $conversation.conversation.dnaProperties.privacy === Privacy.Public && $conversation.conversation.publicInviteCode}
     <p class="text-secondary-500 dark:text-tertiary-700 mx-10 mb-8 text-center text-xs">
-      {$t("conversations.share_invitation_code_msg")}
+      {$t("common.share_invitation_code_msg")}
     </p>
 
     <div class="mb-8">
       <ButtonsCopyShare
         text={$conversation.conversation.publicInviteCode}
-        copyLabel={$t("conversations.copy_invite_code")}
-        shareLabel={$t("conversations.share_invite_code")}
+        copyLabel={$t("common.copy_invite_code")}
+        shareLabel={$t("common.share_invite_code")}
       />
     </div>
   {/if}

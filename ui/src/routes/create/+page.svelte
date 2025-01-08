@@ -1,21 +1,17 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import { get } from "svelte/store";
   import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { Privacy } from "$lib/types";
-  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+  import { type AgentPubKeyB64 } from "@holochain/client";
   import toast from "svelte-french-toast";
   import ButtonSquare from "$lib/ButtonSquare.svelte";
   import InputSearch from "$lib/InputSearch.svelte";
   import InputContactsSelect from "$lib/InputContactsSelect.svelte";
   import type { ConversationStore } from "$store/ConversationStore";
-  import { encodeCellIdToBase64 } from "$lib/utils";
   import type { ProfileStore } from "$store/ProfileStore";
   import { every } from "lodash-es";
-
-  const tAny = t as any;
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -58,7 +54,7 @@
   }
 </script>
 
-<Header backUrl="/welcome" title={$t("create.page_title")} />
+<Header backUrl="/welcome" title={$t("common.create")} />
 
 <div class="flex w-full flex-col items-center p-5">
   <InputSearch bind:value={searchQuery} />
@@ -88,7 +84,7 @@
     {searchQuery}
     loading={creating}
     disabled={creating}
-    buttonLabel={$tAny("create.open_conversation", {
+    buttonLabel={$t("common.open_conversation", {
       existingConversation: !!conversationWithAllSelectedAgents,
     })}
     on:clickAction={(e) => {

@@ -42,7 +42,7 @@
         class="mx-4 flex w-full items-center justify-start space-x-6"
       >
         <SvgIcon icon="archive" />
-        <div>{$t("conversations.archive")}</div>
+        <div>{$t("common.archive")}</div>
       </button>
     </li>
   {/if}

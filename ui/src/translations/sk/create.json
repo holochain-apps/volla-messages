@@ -1,8 +1,0 @@
-{
-  "no_contacts_header": "Zatiaľ ste nepridali žiadne kontakty.",
-  "no_contacts_text": "Zatiaľ sa nemáme s kým rozprávať! Pridajte svojich dôveryhodných priateľov a členov rodiny tak, že si vyžiadate ich kontaktný kód Volla Messages, ktorý nájdete v ich osobnom profile v aplikácii Volla Messages..",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} Konverzácia",
-  "page_title": "Vytvoriť stránku",
-  "search_placeholder": "Vyhľadávanie mena alebo kontaktného kódu",
-  "view": "Zobraziť"
-}

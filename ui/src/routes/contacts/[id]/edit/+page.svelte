@@ -14,9 +14,6 @@
   import toast from "svelte-french-toast";
   import { page } from "$app/stores";
 
-  // Silly thing to get around typescript issues with sveltekit-i18n
-  const tAny = t as any;
-
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
 
   let contact = deriveOneContactStore(contactStore, $page.params.id);
@@ -33,7 +30,7 @@
       await goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
     } catch (e) {
       console.error(e);
-      toast.error($tAny("contacts.error_saving", { updating: true }));
+      toast.error($t("common.error_saving", { updating: true }));
     }
     saving = false;
   }
@@ -47,7 +44,7 @@
   loadScanResult();
 </script>
 
-<Header back title={$t("contacts.edit_contact")}>
+<Header back title={$t("common.edit_contact")}>
   <div slot="right">
     {#if isMobile()}
       <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" />

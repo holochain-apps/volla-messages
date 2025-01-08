@@ -1,8 +1,0 @@
-{
-  "no_contacts_header": "Все още не сте добавили контакти.",
-  "no_contacts_text": "Все още няма с кого да разговаряте! Добавете доверени приятели и членове на семейството си, като поискате техния код за контакт в Volla Messages, който можете да намерите в личния им профил в приложението Volla Messages..",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} Разговор",
-  "page_title": "Създаване на",
-  "search_placeholder": "Търсене на име или код за контакт",
-  "view": "Вижте"
-}

@@ -18,7 +18,7 @@
     autofocus
     class="bg-surface-900 grow border-none pl-0.5 pt-0 text-center text-3xl outline-none focus:outline-none focus:ring-0"
     type="text"
-    placeholder={$t("conversations.enter_name_here")}
+    placeholder={$t("common.enter_name_here")}
     name="title"
     bind:value
     minlength={MIN_TITLE_LENGTH}

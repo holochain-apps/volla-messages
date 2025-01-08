@@ -16,7 +16,6 @@
   } from "$store/MergedProfileContactStore";
   import { uniq } from "lodash-es";
 
-  const tAny = t as any;
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
@@ -50,7 +49,7 @@
       await conversation.invite(selectedContacts);
       await goto(`/conversations/${$page.params.id}/details`);
     } catch (e) {
-      toast.error(`${$t("common.add_contact_to_conversation_error")}: ${e}`);
+      toast.error(`${$t("common.add_to_conversation_error")}: ${e}`);
     }
     saving = false;
   }
@@ -58,7 +57,7 @@
 
 <Header
   back
-  title={$tAny("conversations.add_people", {
+  title={$t("common.add_people", {
     public: $conversation.conversation.dnaProperties.privacy === Privacy.Public,
   })}
 />
@@ -70,7 +69,7 @@
     excludedAgentPubKeyB64s={conversationMemberAgentPubKeyB64s}
     loading={saving}
     disabled={saving}
-    buttonLabel={$t("conversations.add_contact_to_conversation")}
+    buttonLabel={$t("common.add_to_conversation")}
     on:clickAction={(e) => invite(e.detail.selectedAgentPubKeyB64s)}
   />
 </div>

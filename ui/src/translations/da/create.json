@@ -1,9 +1,0 @@
-{
-  "no_contacts_header": "Ingen kontakter tilføjet",
-  "no_contacts_text": "Der er ingen at konversere med endnu! Invitér kollegaer, venner og familie med deres kode, som du finder i deres personlige profil i appen.",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} konversation",
-  "page_title": "Opræt",
-  "search_placeholder": "Søg på navn eller kode",
-  "view": "Se",
-  "unconfirmed": "Ubekræftet"
-}
