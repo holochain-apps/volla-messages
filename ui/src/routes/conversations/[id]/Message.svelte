@@ -11,15 +11,15 @@
   import MessageFilePreview from "./MessageFilePreview.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import {
-    deriveCellMergedProfileContactStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { decodeCellIdFromBase64 } from "$lib/utils";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
 
@@ -29,7 +29,7 @@
   export let showAuthor: boolean = false;
   export let showDate: boolean = false;
 
-  let mergedProfileContact = deriveCellMergedProfileContactStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
   );

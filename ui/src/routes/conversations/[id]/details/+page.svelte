@@ -13,10 +13,10 @@
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
-    deriveCellMergedProfileContactListStore,
-    deriveCellMergedProfileContactStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    deriveCellMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import MemberListItem from "./MemberListItem.svelte";
   import PrivateConversationImage from "../PrivateConversationImage.svelte";
   import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
@@ -29,7 +29,7 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -46,11 +46,11 @@
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
-  let mergedProfileContact = deriveCellMergedProfileContactStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     $page.params.id,
   );
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,

@@ -8,9 +8,9 @@
   import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import {
-    deriveCellMergedProfileContactListStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { page } from "$app/stores";
   import {
     deriveCellConversationTitleStore,
@@ -21,7 +21,7 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
@@ -31,7 +31,7 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,

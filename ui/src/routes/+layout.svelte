@@ -16,9 +16,9 @@
   import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
   import {
-    createMergedProfileContactStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    createMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { createConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
     createConversationTitleStore,
@@ -35,7 +35,7 @@
   // Frontend store singletons
   let profileStore: ProfileStore;
   let contactStore: ContactStore;
-  let mergedProfileContactStore: MergedProfileContactStore;
+  let mergedProfileContactStore: MergedProfileContactInviteStore;
   let conversationStore: ConversationStore;
   let conversationTitleStore: ConversationTitleStore;
   let inviteStore: InviteStore;
@@ -114,9 +114,13 @@
       const relayClient = new RelayClient(client, provisionedRelayCellId);
       contactStore = createContactStore(relayClient);
       profileStore = createProfileStore(relayClient);
-      mergedProfileContactStore = createMergedProfileContactStore(profileStore, contactStore);
-      conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
       inviteStore = createInviteStore();
+      mergedProfileContactStore = createMergedProfileContactInviteStore(
+        profileStore,
+        contactStore,
+        inviteStore,
+      );
+      conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactStore,

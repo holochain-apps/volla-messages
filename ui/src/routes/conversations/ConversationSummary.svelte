@@ -10,7 +10,7 @@
   import { goto } from "$app/navigation";
   import { getContext } from "svelte";
   import { type ProfileStore } from "$store/ProfileStore";
-  import { deriveCellMergedProfileContactListStore } from "$store/MergedProfileContactStore";
+  import { deriveCellMergedProfileContactInviteListStore } from "$store/MergedProfileContactInviteStore";
   import MessagePreview from "./MessagePreview.svelte";
   import UnreadIndicator from "./UnreadIndicator.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
@@ -38,7 +38,7 @@
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     cellIdB64,
     myPubKeyB64,

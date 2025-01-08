@@ -46,9 +46,9 @@ import pRetry from "p-retry";
 import { BUCKET_RANGE_MS } from "$config";
 import { difference, sortBy } from "lodash-es";
 import {
-  deriveCellMergedProfileContactStore,
-  type MergedProfileContactStore,
-} from "./MergedProfileContactStore";
+  deriveCellMergedProfileContactInviteStore,
+  type MergedProfileContactInviteStore,
+} from "./MergedProfileContactInviteStore";
 
 export interface ConversationStore {
   initialize: () => Promise<void>;
@@ -87,7 +87,7 @@ export interface ConversationStore {
 
 export function createConversationStore(
   client: RelayClient,
-  mergedProfileContactStore: MergedProfileContactStore,
+  mergedProfileContactStore: MergedProfileContactInviteStore,
 ): ConversationStore {
   const conversations = createGenericKeyValueStore<ConversationExtended>();
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
@@ -306,7 +306,7 @@ export function createConversationStore(
 
     // Get all AgentPubKeys in the conversation.
     // We know about them only because they have published a Profile.
-    const mergedProfileContact = deriveCellMergedProfileContactStore(
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactStore,
       key1,
     );
@@ -413,7 +413,7 @@ export function createConversationStore(
     }));
 
     // Get Profile of Message author
-    const mergedProfileContact = deriveCellMergedProfileContactStore(
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactStore,
       key1,
     );

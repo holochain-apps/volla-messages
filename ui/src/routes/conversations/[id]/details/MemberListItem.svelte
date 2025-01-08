@@ -4,9 +4,9 @@
   import type { ContactStore } from "$store/ContactStore";
   import { type ConversationStore, deriveCellConversationStore } from "$store/ConversationStore";
   import {
-    type MergedProfileContactStore,
-    deriveCellMergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    type MergedProfileContactInviteStore,
+    deriveCellMergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { t } from "$translations";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { getContext } from "svelte";
@@ -14,7 +14,7 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
@@ -26,7 +26,7 @@
   export let agentPubKeyB64: AgentPubKeyB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
-  let mergedProfileContact = deriveCellMergedProfileContactStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
   );
