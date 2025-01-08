@@ -8,19 +8,20 @@
   import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import {
-    deriveCellMergedProfileContactListStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { page } from "$app/stores";
   import {
     deriveCellConversationTitleStore,
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
+  import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
@@ -30,7 +31,7 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -38,12 +39,14 @@
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
+  let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
   $: invitationTitle =
     $mergedProfileContactList.length === 1
@@ -70,7 +73,7 @@
         })}
       </p>
 
-      {#await conversation.makePrivateInviteCode($conversation.conversation.invited[0], invitationTitle) then text}
+      {#await conversation.makePrivateInviteCode($invite[0], invitationTitle) then text}
         <div class="flex justify-center">
           <ButtonsCopyShare
             moreClasses="bg-tertiary-600 dark:bg-secondary-700"

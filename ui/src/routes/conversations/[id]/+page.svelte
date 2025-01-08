@@ -20,9 +20,9 @@
   import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
   import { toast } from "svelte-french-toast";
   import {
-    deriveCellMergedProfileContactListStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import {
     type ConversationTitleStore,
     deriveCellConversationTitleStore,
@@ -32,7 +32,7 @@
     "conversationStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -45,7 +45,7 @@
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let messagesList = deriveCellConversationMessagesListStore(conversation);
   let profiles = deriveCellProfileStore(profileStore, $page.params.id);
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -193,7 +193,7 @@
 </script>
 
 <Header backUrl="/conversations">
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center p-4">
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
     {$conversationTitle}
   </h1>
 
