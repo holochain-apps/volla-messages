@@ -22,6 +22,7 @@ export interface ContactStore {
   initialize: () => Promise<void>;
   create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
   update: (val: Contact) => Promise<void>;
+  delete: (agentPubKeyB64: AgentPubKeyB64) => Promise<void>;
   getHasAgentJoinedDht: (agentPubKeyB64: AgentPubKeyB64) => Promise<boolean>;
   getAsProfileExtended: (agentPubKeyB64: AgentPubKeyB64) => ProfileExtended;
   subscribe: (
@@ -78,6 +79,24 @@ export function createContactStore(client: RelayClient): ContactStore {
       encodeHashToBase64(val.public_key),
       _makeContactExtendedFromRecord(record, prevContact.cellId, prevContact.originalActionHash),
     );
+  }
+
+  /**
+   * Delete a contact
+   */
+  async function deleteContact(agentPubKeyB64: AgentPubKeyB64) {
+    const contact = contacts.getKeyValue(agentPubKeyB64);
+    if (!contact) {
+      throw new Error(`Contact not found for agent ${agentPubKeyB64}`);
+    }
+    await client.deleteContact(contact.originalActionHash);
+    // Updates the local stores
+    contacts.removeKeyValue(agentPubKeyB64);
+    cellIds.update((d) => {
+      const updated = { ...d };
+      delete updated[agentPubKeyB64];
+      return updated;
+    });
   }
 
   /**
@@ -195,6 +214,7 @@ export function createContactStore(client: RelayClient): ContactStore {
 
     create,
     update,
+    delete: deleteContact,
 
     getHasAgentJoinedDht,
     getAsProfileExtended,
@@ -218,6 +238,7 @@ export function deriveOneContactStore(contactStore: ContactStore, agentPubKeyB64
 
   return {
     update: contactStore.update,
+    delete: () => contactStore.delete(agentPubKeyB64),
     getHasAgentJoinedDht,
     getAsProfileExtended,
     subscribe,
