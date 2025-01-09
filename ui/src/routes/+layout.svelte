@@ -1,44 +1,72 @@
 <script lang="ts">
-  import type { AppClient } from "@holochain/client";
-  import { AppWebsocket, encodeHashToBase64 } from "@holochain/client";
-  import { ProfilesClient, ProfilesStore } from "@holochain-open-dev/profiles";
-  import { onMount, setContext } from "svelte";
+  import type { AppClient, CellId } from "@holochain/client";
+  import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
+  import { onDestroy, onMount, setContext } from "svelte";
   import { t } from "$translations";
-  import { RelayStore } from "$store/RelayStore";
+  import { createSignalHandler } from "$store/SignalHandler";
   import toast, { Toaster } from "svelte-french-toast";
   import { handleLinkClick, initLightDarkModeSwitcher } from "$lib/utils";
   import { RelayClient } from "$store/RelayClient";
   import AppLanding from "$lib/AppLanding.svelte";
   import { MIN_FIRST_NAME_LENGTH, ROLE_NAME, ZOME_NAME } from "$config";
-  import "../app.postcss";
-  import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import ProfileSetupName from "./ProfileSetupName.svelte";
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
-  import { ProfileCreateStore } from "$store/ProfileCreateStore";
+  import { createContactStore, type ContactStore } from "$store/ContactStore";
+  import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
+  import { encodeCellIdToBase64 } from "$lib/utils";
+  import {
+    createMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
+  import { createConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import {
+    createConversationTitleStore,
+    type ConversationTitleStore,
+  } from "$store/ConversationTitleStore";
+  import type { CreateProfileInputUI } from "$lib/types";
+  import { createInviteStore, type InviteStore } from "$store/InviteStore";
+  import "../app.postcss";
 
+  // Holochain client
   let client: AppClient;
-  let relayStore: RelayStore;
-  let profilesStore: ProfilesStore | undefined = undefined;
-  let connected = false;
-  let readyToCreateProfile = false;
+  let provisionedRelayCellId: CellId;
 
-  $: myProfile = profilesStore ? profilesStore.myProfile : undefined;
-  $: myProfileExists =
-    $myProfile && $myProfile.status == "complete" && $myProfile.value !== undefined;
+  // Frontend store singletons
+  let profileStore: ProfileStore;
+  let contactStore: ContactStore;
+  let mergedProfileContactStore: MergedProfileContactInviteStore;
+  let conversationStore: ConversationStore;
+  let conversationTitleStore: ConversationTitleStore;
+  let inviteStore: InviteStore;
 
-  $: if (myProfileExists && relayStore) {
-    gotoAppPage();
-  }
+  // Is the holochain client connected?
+  let isClientConnected = false;
 
-  async function gotoAppPage() {
-    if (relayStore.conversations.length > 0) {
-      await goto("/conversations");
-    }
-    await goto("/welcome");
-  }
+  // Are the frontend stores initialized?
+  let isStoresSetup = false;
 
-  async function initHolochain() {
+  // Has the user clicked the "create account" button?
+  let isUserCreatingProfile = false;
+
+  // Profile create data
+  let profileCreateInput: CreateProfileInputUI = {
+    firstName: "",
+    lastName: "",
+    avatar: "",
+  };
+
+  $: myProfile =
+    profileStore &&
+    provisionedRelayCellId &&
+    $profileStore[encodeCellIdToBase64(provisionedRelayCellId)]
+      ? $profileStore[encodeCellIdToBase64(provisionedRelayCellId)][
+          encodeHashToBase64(client.myPubKey)
+        ]
+      : undefined;
+  $: myProfileExists = myProfile !== undefined;
+
+  async function initHolochainClient() {
     try {
       console.log("__HC_LAUNCHER_ENV__ is", window.__HC_LAUNCHER_ENV__);
 
@@ -61,31 +89,71 @@
         5 * 60 * 1000,
       );
       const appInfo = await client.appInfo();
+      if (appInfo === null) throw new Error("Failed to get appInfo");
       console.log("Relay cell ready. App Info is ", appInfo);
 
-      // Setup stores
-      profilesStore = new ProfilesStore(new ProfilesClient(client, ROLE_NAME));
+      // Get provisioned relay CellId
+      const provisionedRelayCellInfo = appInfo.cell_info[ROLE_NAME].find(
+        (c) => CellType.Provisioned in c,
+      );
+      if (provisionedRelayCellInfo === undefined)
+        throw new Error("Failed to get CellInfo for cell 'relay'");
+      provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
 
-      const relayClient = new RelayClient(client, profilesStore, ROLE_NAME, ZOME_NAME);
-      relayStore = new RelayStore(relayClient);
-      await relayStore.initialize();
-
-      connected = true;
+      isClientConnected = true;
       console.log("Connected");
     } catch (e) {
       console.error("Failed to init holochain", e);
-      toast.error(`${$t("common.holochain_connect_error")}: ${e.message}`);
+      toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
     }
   }
 
-  onMount(() => {
-    initLightDarkModeSwitcher();
-    initHolochain();
+  async function initStores() {
+    try {
+      // Setup stores
+      const relayClient = new RelayClient(client, provisionedRelayCellId);
+      contactStore = createContactStore(relayClient);
+      profileStore = createProfileStore(relayClient);
+      inviteStore = createInviteStore();
+      mergedProfileContactStore = createMergedProfileContactInviteStore(
+        profileStore,
+        contactStore,
+        inviteStore,
+      );
+      conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
+      conversationTitleStore = createConversationTitleStore(
+        conversationStore,
+        mergedProfileContactStore,
+        encodeHashToBase64(client.myPubKey),
+      );
 
+      // Initialize store data
+      await contactStore.initialize();
+      await profileStore.initialize();
+      await conversationStore.initialize();
+
+      // Initialize signal handler
+      createSignalHandler(relayClient, conversationStore);
+
+      isStoresSetup = true;
+    } catch (e) {
+      console.error("Failed to init stores", e);
+      toast.error(`${$t("common.stores_setup_error")}: ${e}`);
+    }
+  }
+
+  async function setupApp() {
+    initLightDarkModeSwitcher();
     document.addEventListener("click", handleLinkClick);
-    return () => {
-      document.removeEventListener("click", handleLinkClick);
-    };
+
+    await initHolochainClient();
+    await initStores();
+  }
+
+  onMount(setupApp);
+
+  onDestroy(() => {
+    document.removeEventListener("click", handleLinkClick);
   });
 
   setContext("myPubKey", {
@@ -93,28 +161,57 @@
     getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
   });
 
-  setContext("profiles", {
-    getStore: () => profilesStore,
+  setContext("provisionedRelayCellId", {
+    getCellId: () => provisionedRelayCellId,
+    getCellIdB64: () => encodeCellIdToBase64(provisionedRelayCellId),
   });
 
-  setContext("relayStore", {
-    getStore: () => relayStore,
+  setContext("profileStore", {
+    getStore: () => profileStore,
+  });
+
+  setContext("contactStore", {
+    getStore: () => contactStore,
+  });
+
+  setContext("mergedProfileContactStore", {
+    getStore: () => mergedProfileContactStore,
+  });
+
+  setContext("conversationStore", {
+    getStore: () => conversationStore,
+  });
+
+  setContext("conversationTitleStore", {
+    getStore: () => conversationTitleStore,
+  });
+
+  setContext("inviteStore", {
+    getStore: () => inviteStore,
   });
 </script>
 
 <div class="mx-auto flex h-screen w-full max-w-screen-lg flex-col items-center">
-  {#if connected && myProfileExists}
+  {#if isClientConnected && isStoresSetup && myProfileExists}
     <slot />
-  {:else if connected && !myProfileExists && !readyToCreateProfile}
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && !isUserCreatingProfile}
     <AppLanding>
-      <Button icon="lock" on:click={() => (readyToCreateProfile = true)} moreClasses="!font-normal">
+      <Button
+        icon="lock"
+        on:click={() => (isUserCreatingProfile = true)}
+        moreClasses="!font-normal"
+      >
         {$t("common.create_an_account")}
       </Button>
     </AppLanding>
-  {:else if connected && !myProfileExists && readyToCreateProfile && $ProfileCreateStore.firstName === ""}
-    <ProfileSetupName />
-  {:else if connected && !myProfileExists && readyToCreateProfile && $ProfileCreateStore.firstName.length >= MIN_FIRST_NAME_LENGTH}
-    <ProfileSetupAvatar />
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && profileCreateInput.firstName === ""}
+    <ProfileSetupName bind:value={profileCreateInput} />
+  {:else if isClientConnected && isStoresSetup && !myProfileExists && isUserCreatingProfile && profileCreateInput.firstName.length >= MIN_FIRST_NAME_LENGTH}
+    <ProfileSetupAvatar bind:value={profileCreateInput} />
+  {:else if isClientConnected && !isStoresSetup}
+    <AppLanding>
+      {$t("common.stores_setup")}
+    </AppLanding>
   {:else}
     <AppLanding>
       {$t("common.connecting_to_holochain")}

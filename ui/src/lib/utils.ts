@@ -1,4 +1,3 @@
-import DOMPurify from "dompurify";
 import {
   isPermissionGranted,
   requestPermission,
@@ -9,6 +8,9 @@ import { platform } from "@tauri-apps/plugin-os";
 import { setModeCurrent } from "@skeletonlabs/skeleton";
 import { open } from "@tauri-apps/plugin-shell";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { Base64 } from "js-base64";
+import type { CellId } from "@holochain/client";
+import type { CellIdB64 } from "./types";
 
 /**
  * Share text via sharesheet
@@ -153,4 +155,23 @@ export function convertDataURIToUint8Array(dataURI: string): Uint8Array {
 export function makeFullName(firstName: string, lastName?: string): string {
   const hasLastName = lastName !== undefined && lastName.length > 0;
   return `${firstName}${hasLastName ? " " + lastName : ""}`;
+}
+
+export function encodeCellIdToBase64(cellId: CellId): CellIdB64 {
+  return Base64.fromUint8Array(new Uint8Array([...cellId[0], ...cellId[1]]), true);
+}
+
+export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
+  const bytes = Base64.toUint8Array(base64);
+  return [bytes.slice(0, 39), bytes.slice(39)];
+}
+
+export function isSameDay(d1: Date, d2?: Date) {
+  if (d2 === undefined) return false;
+
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
 }

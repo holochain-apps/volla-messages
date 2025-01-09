@@ -2,25 +2,29 @@
   import Button from "$lib/Button.svelte";
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
-  import { ProfileCreateStore } from "$store/ProfileCreateStore";
   import { MIN_FIRST_NAME_LENGTH } from "$config";
-  import { Alignment } from "$lib/types";
+  import { Alignment, type CreateProfileInputUI } from "$lib/types";
   import toast from "svelte-french-toast";
 
-  let firstName = $ProfileCreateStore.firstName;
-  let lastName = $ProfileCreateStore.lastName;
+  export let value: CreateProfileInputUI = {
+    firstName: "",
+    lastName: "",
+    avatar: "",
+  };
+  let inputValue = value;
   let saving = false;
 
-  $: isFirstNameValid = firstName.trim().length >= MIN_FIRST_NAME_LENGTH;
+  $: isFirstNameValid = inputValue.firstName.trim().length >= MIN_FIRST_NAME_LENGTH;
 
   async function saveName() {
     if (!isFirstNameValid) return;
 
     saving = true;
     try {
-      firstName = firstName.trim();
-      lastName = lastName.trim();
-      ProfileCreateStore.update((p) => ({ ...p, firstName, lastName }));
+      value = {
+        ...inputValue,
+        avatar: inputValue.avatar,
+      };
     } catch (e) {
       toast.error("Failed to set name");
     }
@@ -29,7 +33,7 @@
 </script>
 
 <Header>
-  <div slot="left" class="bg-appLogo h-auto w-[16px] bg-contain bg-center bg-no-repeat" />
+  <div slot="left" class="bg-appLogo h-[16px] w-[16px] bg-contain bg-center bg-no-repeat p-4" />
 </Header>
 
 <form on:submit|preventDefault={saveName} class="contents">
@@ -41,7 +45,7 @@
       type="text"
       placeholder={$t("common.first_name") + " *"}
       name="firstName"
-      bind:value={firstName}
+      bind:value={inputValue.firstName}
       minlength={MIN_FIRST_NAME_LENGTH}
     />
     <input
@@ -49,7 +53,7 @@
       type="text"
       placeholder={$t("common.last_name")}
       name="lastName"
-      bind:value={lastName}
+      bind:value={inputValue.lastName}
     />
   </div>
 

@@ -2,93 +2,238 @@ import {
   encodeHashToBase64,
   type ActionHash,
   type AgentPubKeyB64,
-  type DnaHashB64,
+  type CellId,
+  type Record,
 } from "@holochain/client";
-import { writable, get, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
-import { RelayStore } from "$store/RelayStore";
-import { makeFullName } from "$lib/utils";
-import { persisted } from "svelte-persisted-store";
-import type { ConversationStore } from "./ConversationStore";
-import type { Contact, ContactExtended } from "$lib/types";
+import { get, type Invalidator, type Subscriber, type Unsubscriber, derived } from "svelte/store";
+import { decodeCellIdFromBase64, makeFullName } from "$lib/utils";
+import type { CellIdB64, Contact, ContactExtended, ProfileExtended } from "$lib/types";
+import type { RelayClient } from "./RelayClient";
+import { EntryRecord } from "@holochain-open-dev/utils";
+import { persisted } from "./GenericPersistedStore";
+import { createGenericKeyValueStore } from "./GenericKeyValueStore";
+import { sortBy } from "lodash-es";
+
+export interface ContactsExtendedObj {
+  [agentPubKeyB64: AgentPubKeyB64]: ContactExtended;
+}
 
 export interface ContactStore {
-  getPrivateConversation: () => ConversationStore | undefined;
-  getIsPendingConnection: () => boolean | undefined;
-  getAsProfile: () => {
-    publicKeyB64: string;
-    profile: {
-      nickname: string;
-      fields: {
-        firstName: string;
-        lastName: string;
-        avatar: string;
-      };
-    };
-  };
+  initialize: () => Promise<void>;
+  create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
+  update: (val: Contact) => Promise<void>;
+  getHasAgentJoinedDht: (agentPubKeyB64: AgentPubKeyB64) => Promise<boolean>;
+  getAsProfileExtended: (agentPubKeyB64: AgentPubKeyB64) => ProfileExtended;
   subscribe: (
     this: void,
-    run: Subscriber<ContactExtended>,
-    invalidate?: Invalidator<ContactExtended> | undefined,
+    run: Subscriber<ContactsExtendedObj>,
+    invalidate?: Invalidator<ContactsExtendedObj> | undefined,
   ) => Unsubscriber;
 }
 
-export function createContactStore(
-  relayStore: RelayStore,
-  contact: Contact,
-  originalActionHash: ActionHash,
-  previousActionHash: ActionHash,
-  dnaHashB64?: DnaHashB64 | undefined,
-) {
-  const publicKeyB64 = encodeHashToBase64(contact.public_key);
-  const privateConversationDnaHashB64 = persisted(
-    `CONTACTS.${publicKeyB64}.PRIVATE_CONVERSATION`,
-    dnaHashB64,
+/**
+ * Creates a store for managing contacts
+ *
+ * @param client
+ * @returns
+ */
+export function createContactStore(client: RelayClient): ContactStore {
+  const contacts = createGenericKeyValueStore<ContactExtended>();
+  const cellIds = persisted<{ [agentPubKeyB64: AgentPubKeyB64]: CellId }>(
+    `CONTACTS.PRIVATE_CONVERSATION`,
+    {},
   );
-  const data = writable<ContactExtended>({
-    contact,
-    originalActionHash,
-    previousActionHash,
-    fullName: makeFullName(contact.first_name, contact.last_name),
-    publicKeyB64,
-    privateConversationDnaHashB64: get(privateConversationDnaHashB64),
-  });
 
-  function getPrivateConversation() {
-    const val = get(privateConversationDnaHashB64);
-    if (val === undefined) return undefined;
-
-    return relayStore.getConversation(val);
+  /**
+   * Create a contact
+   *
+   * Note the private conversation Cell with this contact must be created
+   * BEFORE calling this function.
+   *
+   * @param val
+   * @param cellId: The CellId of the private conversation with this contact
+   */
+  async function create(val: Contact, cellIdB64: CellIdB64) {
+    const record = await client.createContact(val);
+    const agentPubKeyB64 = encodeHashToBase64(val.public_key);
+    const cellId = decodeCellIdFromBase64(cellIdB64);
+    cellIds.update((d) => ({
+      ...d,
+      [agentPubKeyB64]: cellId,
+    }));
+    contacts.updateKeyValue(agentPubKeyB64, _makeContactExtendedFromRecord(record, cellId));
   }
 
-  // Check if the contact has joined the private conversation between you yet
-  function getIsPendingConnection() {
-    const privateConversation = getPrivateConversation();
-    if (!privateConversation) return false;
-
-    const conversationAgents = get(privateConversation).conversation.agentProfiles;
-    return conversationAgents && Object.keys(conversationAgents).length === 1;
+  /**
+   * Update a contact
+   */
+  async function update(val: Contact) {
+    const prevContact = contacts.getKeyValue(encodeHashToBase64(val.public_key));
+    const record = await client.updateContact({
+      original_contact_hash: prevContact.originalActionHash,
+      previous_contact_hash: prevContact.previousActionHash,
+      updated_contact: val,
+    });
+    contacts.updateKeyValue(
+      encodeHashToBase64(val.public_key),
+      _makeContactExtendedFromRecord(record, prevContact.cellId, prevContact.originalActionHash),
+    );
   }
 
-  function getAsProfile() {
-    const val = get(data);
+  /**
+   * Fetch contacts data and load into writable
+   */
+  async function initialize() {
+    const contactRecords = await client.getAllContacts();
+    const $cellIds = get(cellIds);
+
+    // Set contacts writables
+    contacts.set(
+      // Convert list to obj
+      Object.fromEntries(
+        // Construct list of [agentPubKeyB64, ContactExtended]
+        contactRecords
+          .filter((c) => c.contact !== undefined)
+          .map((c) => [
+            encodeHashToBase64(c.contact!.public_key),
+            _makeContactExtended(
+              c.contact!,
+              c.original_action,
+              c.signed_action.hashed.hash,
+              $cellIds[encodeHashToBase64(c.contact!.public_key)],
+            ),
+          ]),
+      ),
+    );
+  }
+
+  /**
+   * Check if there are 2+ profiles in private conversation cell.
+   *
+   * @returns
+   */
+  async function getHasAgentJoinedDht(agentPubKeyB64: AgentPubKeyB64): Promise<boolean> {
+    const c = contacts.getKeyValue(agentPubKeyB64);
+    const agents = await client.getAgentsWithProfile(c.cellId);
+    return agents.length >= 2;
+  }
+
+  /**
+   * Get a contact, transform into a ProfileExtended
+   *
+   * @param agentPubKeyB64
+   * @returns
+   */
+  function getAsProfileExtended(agentPubKeyB64: AgentPubKeyB64): ProfileExtended {
+    const c = contacts.getKeyValue(agentPubKeyB64);
 
     return {
-      publicKeyB64: val.publicKeyB64,
+      publicKeyB64: c.publicKeyB64,
       profile: {
-        nickname: val.fullName,
+        nickname: c.fullName,
         fields: {
-          firstName: val.contact.first_name,
-          lastName: val.contact.last_name,
-          avatar: val.contact.avatar,
+          firstName: c.contact.first_name,
+          lastName: c.contact.last_name,
+          avatar: c.contact.avatar,
         },
       },
     };
   }
 
+  /**
+   * Construct a ContactExtended
+   *
+   * @param record
+   * @param cellId
+   * @param originalActionHash
+   * @returns
+   */
+  function _makeContactExtendedFromRecord(
+    record: Record,
+    cellId: CellId,
+    originalActionHash?: ActionHash,
+  ): ContactExtended {
+    const contact = new EntryRecord<Contact>(record).entry;
+    if (!contact) throw new Error("Failed to make ContactExtended. No entry in record.");
+
+    originalActionHash = originalActionHash ? originalActionHash : record.signed_action.hashed.hash;
+    return _makeContactExtended(
+      contact,
+      originalActionHash,
+      record.signed_action.hashed.hash,
+      cellId,
+    );
+  }
+
+  /**
+   * Construct a ContactExtended
+   *
+   * @param contact
+   * @param originalActionHash
+   * @param previousActionHash
+   * @param cellId
+   * @returns
+   */
+  function _makeContactExtended(
+    contact: Contact,
+    originalActionHash: ActionHash,
+    previousActionHash: ActionHash,
+    cellId: CellId,
+  ): ContactExtended {
+    return {
+      contact,
+      originalActionHash,
+      previousActionHash,
+      fullName: makeFullName(contact.first_name, contact.last_name),
+      publicKeyB64: encodeHashToBase64(contact.public_key),
+      cellId,
+    };
+  }
+
   return {
-    getPrivateConversation,
-    getIsPendingConnection,
-    getAsProfile,
-    subscribe: data.subscribe,
+    initialize,
+
+    create,
+    update,
+
+    getHasAgentJoinedDht,
+    getAsProfileExtended,
+
+    subscribe: contacts.subscribe,
   };
 }
+
+/**
+ * Creates a derived store for a single contact from the main contact store
+ *
+ * @param contactStore - The main contact store instance
+ * @param agentPubKeyB64 - The base64 encoded public key of the agent
+ * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
+ */
+export function deriveOneContactStore(contactStore: ContactStore, agentPubKeyB64: AgentPubKeyB64) {
+  const { subscribe } = derived(contactStore, ($contactStore) => $contactStore[agentPubKeyB64]);
+
+  const getHasAgentJoinedDht = () => contactStore.getHasAgentJoinedDht(agentPubKeyB64);
+  const getAsProfileExtended = () => contactStore.getAsProfileExtended(agentPubKeyB64);
+
+  return {
+    update: contactStore.update,
+    getHasAgentJoinedDht,
+    getAsProfileExtended,
+    subscribe,
+  };
+}
+
+/**
+ * Creates a derived store for a single contact from the main contact store
+ *
+ * @param contactStore - The main contact store instance
+ * @param agentPubKeyB64 - The base64 encoded public key of the agent
+ * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
+ */
+export const deriveContactListStore = (contactStore: ContactStore) =>
+  derived(contactStore, ($contactStore) => {
+    if ($contactStore === undefined) return [];
+
+    return sortBy(Object.entries($contactStore), [(c) => c[1].fullName]);
+  });

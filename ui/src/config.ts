@@ -15,5 +15,11 @@ export const MIN_FIRST_NAME_LENGTH = 3;
 // Currently set to 15MB
 export const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
+// Maximum filename length to display in Message
+export const MESSAGE_MAX_FILENAME_LENGTH = 20;
+
+// Maximum filename length to display in ConversationMessageInput
+export const INPUT_MAX_FILENAME_LENGTH = 10;
+
 export const ROLE_NAME = "relay";
 export const ZOME_NAME = "relay";

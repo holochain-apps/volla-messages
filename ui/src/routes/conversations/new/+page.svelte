@@ -5,13 +5,15 @@
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { MIN_TITLE_LENGTH } from "$config";
-  import { RelayStore } from "$store/RelayStore";
   import { Privacy } from "$lib/types";
   import toast from "svelte-french-toast";
-  import { get } from "svelte/store";
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
+  import type { ConversationStore } from "$store/ConversationStore";
+  import { encodeHashToBase64 } from "@holochain/client";
 
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
 
   let title = "";
   let imageUrl = "";
@@ -20,10 +22,16 @@
   async function createConversation(privacy: Privacy) {
     pendingCreate = true;
     try {
-      const conversationStore = await relayStore.createConversation(title, imageUrl, privacy);
-      await goto(`/conversations/${get(conversationStore).conversation.dnaHashB64}`);
+      const cellIdB64 = await conversationStore.create({
+        config: {
+          title,
+          image: imageUrl,
+        },
+        privacy,
+      });
+      await goto(`/conversations/${cellIdB64}`);
     } catch (e) {
-      toast.error(`${$t("common.create_conversation_error")}: ${e.message}`);
+      toast.error(`${$t("common.create_conversation_error")}: ${e}`);
     }
     pendingCreate = false;
   }
@@ -40,19 +48,19 @@
       try {
         imageUrl = event.detail;
       } catch (e) {
-        toast.error(`${$t("common.upload_image_error")}: ${e.message}`);
+        toast.error(`${$t("common.upload_image_error")}: ${e}`);
       }
     }}
   />
 </div>
 
 <div class="flex min-w-[66%] grow flex-col justify-start">
-  <h1 class="h1">{$t("conversations.group_name")}</h1>
+  <h1 class="h1">{$t("common.group_name")}</h1>
   <input
     autofocus
     class="mt-2 w-full border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
     type="text"
-    placeholder={$t("conversations.enter_name_here")}
+    placeholder={$t("common.enter_name_here")}
     name="title"
     bind:value={title}
     minlength={MIN_TITLE_LENGTH}
@@ -65,6 +73,6 @@
     disabled={!valid || pendingCreate}
     loading={pendingCreate}
   >
-    {$t("conversations.create_group")}
+    {$t("common.create_group")}
   </Button>
 </div>

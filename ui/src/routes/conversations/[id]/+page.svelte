@@ -1,103 +1,183 @@
 <script lang="ts">
   import { debounce } from "lodash-es";
-  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+  import { type AgentPubKeyB64 } from "@holochain/client";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { t } from "$translations";
-  import { RelayStore } from "$store/RelayStore";
-  import { Privacy, type Image } from "$lib/types";
+  import { Privacy, type LocalFile } from "$lib/types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
-  import ConversationMembers from "./ConversationMembers.svelte";
+  import PrivateConversationImage from "./PrivateConversationImage.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import {
+    deriveCellConversationMessagesListStore,
+    deriveCellConversationStore,
+    type ConversationStore,
+  } from "$store/ConversationStore";
+  import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
+  import { toast } from "svelte-french-toast";
+  import {
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
+  import {
+    type ConversationTitleStore,
+    deriveCellConversationTitleStore,
+  } from "$store/ConversationTitleStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
-
-  const relayStore = getContext<{ getStore: () => RelayStore }>("relayStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
+    "mergedProfileContactStore",
+  ).getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
+  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
+    "conversationTitleStore",
+  ).getStore();
 
-  let conversationStore = relayStore.getConversation($page.params.id);
+  let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
+  let messagesList = deriveCellConversationMessagesListStore(conversation);
+  let profiles = deriveCellProfileStore(profileStore, $page.params.id);
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
+    mergedProfileContactStore,
+    $page.params.id,
+    myPubKeyB64,
+  );
+  let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
 
   let configTimeout: NodeJS.Timeout;
   let agentTimeout: NodeJS.Timeout;
   let messageTimeout: NodeJS.Timeout;
 
   let conversationMessageInputRef: HTMLInputElement;
-  let conversationContainer: HTMLElement;
+  let conversationContainerRef: HTMLElement;
   let scrollAtBottom = true;
   let scrollAtTop = false;
+  let sending = false;
 
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
 
-  $: agentProfiles = $conversationStore ? $conversationStore.conversation.agentProfiles : {};
-  $: numMembers = Object.keys(agentProfiles).length;
+  $: iAmProgenitor = $conversation.conversation.dnaProperties.progenitor === myPubKeyB64;
 
-  const checkForAgents = async () => {
-    if (!conversationStore) return;
-
-    const a = await conversationStore.fetchAgents();
-    if (Object.values(a).length < 2) {
-      agentTimeout = setTimeout(() => {
-        checkForAgents();
-      }, 2000);
-    }
-  };
-
-  const checkForConfig = async () => {
-    if (!conversationStore) return;
-
-    const c = await conversationStore.fetchConfig();
-    if (!c?.title) {
-      configTimeout = setTimeout(() => {
-        checkForConfig();
-      }, 2000);
-    }
-  };
-
-  const checkForMessages = async () => {
-    if (!conversationStore || !$conversationStore) return;
-
-    const [_, h] = await conversationStore.loadMessageSetFromCurrentBucket();
-    // If this we aren't getting anything back and there are no messages loaded at all
-    // then keep trying as this is probably a no network, or a just joined situation
-    if (h.length == 0 && Object.keys($conversationStore?.conversation.messages).length == 0) {
-      messageTimeout = setTimeout(() => {
-        checkForMessages();
-      }, 2000);
-    }
-  };
-
-  const checkForData = () => {
-    checkForAgents();
-    checkForConfig();
-    checkForMessages();
-  };
-
-  function handleResize() {
+  // Reactive update to scroll to the bottom every time the messages update,
+  // but only if the user is near the bottom already
+  $: if ($messagesList.length > 0) {
     if (scrollAtBottom) {
-      scrollToBottom();
+      scrollToBottom(100);
     }
   }
-  const debouncedHandleResize = debounce(handleResize, 100);
+
+  /**
+   * Fetch agent profiles every 2s, until at least 2 profiles are received.
+   */
+  async function loadProfiles() {
+    await profiles.load();
+
+    if ($mergedProfileContactList.length < 2) {
+      agentTimeout = setTimeout(() => {
+        loadProfiles();
+      }, 2000);
+    }
+  }
+
+  /**
+   * Fetch config every 2s, until it is received.
+   *
+   * Note that if the config is updated, the latest version will not appear until
+   * navigating away from and back to this page.
+   */
+  async function loadConfig() {
+    await conversation.loadConfig();
+
+    if ($conversation.conversation.config === undefined) {
+      configTimeout = setTimeout(() => {
+        loadConfig();
+      }, 2000);
+    }
+  }
+
+  /**
+   * Fetch messages from current bucket every 2s, until any messages are received.
+   */
+  async function loadMessages() {
+    await messagesList.loadCurrentBucket();
+
+    if ($messagesList.length === 0) {
+      messageTimeout = setTimeout(() => {
+        loadMessages();
+      }, 2000);
+    }
+  }
+
+  const loadData = () => {
+    loadProfiles();
+    loadConfig();
+    loadMessages();
+  };
+
+  function _handleResize() {
+    if (!scrollAtBottom) return;
+
+    scrollToBottom();
+  }
+  const debouncedHandleResize = debounce(_handleResize, 100);
+
+  const handleScroll = debounce(() => {
+    if (conversationContainerRef === undefined) return;
+
+    const atTop = conversationContainerRef.scrollTop < SCROLL_TOP_THRESHOLD;
+    if (!scrollAtTop && atTop) {
+      messagesList.loadPreviousBucket();
+    }
+    scrollAtTop = atTop;
+    scrollAtBottom =
+      conversationContainerRef.scrollHeight - conversationContainerRef.scrollTop <=
+      conversationContainerRef.clientHeight + SCROLL_BOTTOM_THRESHOLD;
+  }, 100);
+
+  function scrollToBottom(delay: number = 0) {
+    setTimeout(() => {
+      if (!conversationContainerRef) return;
+      conversationContainerRef.scrollTop = conversationContainerRef.scrollHeight;
+      scrollAtBottom = true;
+    }, delay);
+  }
+
+  async function sendMessage(text: string, files: LocalFile[]) {
+    if (sending) return;
+
+    // Focus on input field to ensure the keyboard remains open after sending message on android
+    conversationMessageInputRef.focus();
+
+    sending = true;
+    try {
+      await conversation.sendMessage(text, files);
+    } catch (e) {
+      console.error(e);
+      toast.error(`${$t("common.error_sending_message")}: ${e.message}`);
+    }
+    sending = false;
+  }
 
   onMount(() => {
-    if (!conversationStore) {
-      goto("/conversations");
-    } else {
-      checkForData();
-      conversationContainer.addEventListener("scroll", handleScroll);
-      window.addEventListener("resize", debouncedHandleResize);
-      conversationMessageInputRef.focus();
-      conversationStore.setUnread(false);
-    }
+    conversationMessageInputRef.focus();
+
+    loadData();
+
+    conversationContainerRef.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", debouncedHandleResize);
+
+    conversation.updateUnread(false);
+
+    scrollToBottom();
   });
 
   // Cleanup
@@ -105,109 +185,72 @@
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-    conversationContainer && conversationContainer.removeEventListener("scroll", handleScroll);
+
+    conversationContainerRef.removeEventListener("scroll", handleScroll);
+
     window.removeEventListener("resize", debouncedHandleResize);
   });
-
-  // Reactive update to scroll to the bottom every time the messages update,
-  // but only if the user is near the bottom already
-  $: if ($conversationStore && $conversationStore.processedMessages.length > 0) {
-    if (scrollAtBottom) {
-      setTimeout(scrollToBottom, 100);
-    }
-  }
-
-  const handleScroll = debounce(() => {
-    const atTop = conversationContainer.scrollTop < SCROLL_TOP_THRESHOLD;
-    if (!scrollAtTop && atTop && conversationStore) {
-      conversationStore.loadMessagesSet();
-    }
-    scrollAtTop = atTop;
-    scrollAtBottom =
-      conversationContainer.scrollHeight - conversationContainer.scrollTop <=
-      conversationContainer.clientHeight + SCROLL_BOTTOM_THRESHOLD;
-  }, 100);
-
-  function scrollToBottom() {
-    if (conversationContainer) {
-      conversationContainer.scrollTop = conversationContainer.scrollHeight;
-      scrollAtBottom = true;
-    }
-  }
-
-  async function sendMessage(text: string, images: Image[]) {
-    if (conversationStore && (text.trim() || images.length > 0)) {
-      conversationStore.sendMessage(myPubKeyB64, text, images);
-      setTimeout(scrollToBottom, 100);
-      conversationMessageInputRef.focus();
-    }
-  }
 </script>
 
-<Header backUrl={`/conversations${$conversationStore?.archived ? "/archive" : ""}`}>
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
-    {conversationStore?.getTitle()}
+<Header backUrl="/conversations">
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
+    {$conversationTitle}
   </h1>
 
   <div class="flex items-center justify-center" slot="right">
     <ButtonIconBare
-      moreClasses="ml-2 !w-[18px] !h-auto"
+      moreClasses="!w-[18px] !h-auto"
+      moreClassesButton="p-4"
       icon="gear"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     />
 
-    {#if $conversationStore && $conversationStore.conversation.privacy === Privacy.Private && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64}
+    {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
       <ButtonIconBare
-        moreClasses="ml-5 h-[24px] w-[24px]"
+        moreClasses="h-[24px] w-[24px]"
+        moreClassesButton="p-4"
         icon="addPerson"
-        on:click={() =>
-          goto(`/conversations/${$conversationStore?.conversation.dnaHashB64}/invite`)}
+        on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
       />
     {/if}
   </div>
 </Header>
 
-{#if conversationStore && $conversationStore && typeof $conversationStore.processedMessages !== undefined}
-  <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
-    <div
-      class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
-      bind:this={conversationContainer}
-    >
-      {#if $conversationStore.conversation.privacy === Privacy.Private}
-        <div class="flex items-center justify-center gap-4">
-          {#if encodeHashToBase64($conversationStore.conversation.progenitor) !== myPubKeyB64 && numMembers === 1}
-            <!-- When you join a private conversation and it has not synced yet -->
-            <SvgIcon icon="spinner" moreClasses="mb-5 w-[44px] h-[44px]" />
-          {/if}
+<div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
+  <div
+    class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
+    bind:this={conversationContainerRef}
+  >
+    {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private}
+      <PrivateConversationImage cellIdB64={$page.params.id} />
+    {:else if $conversation.conversation.config?.image}
+      <img
+        src={$conversation.conversation.config.image}
+        alt="Conversation"
+        class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
+      />
+    {/if}
 
-          <ConversationMembers {conversationStore} />
-        </div>
-      {:else if $conversationStore.conversation.config?.image}
-        <img
-          src={$conversationStore.conversation.config.image}
-          alt="Conversation"
-          class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
-        />
-      {/if}
-      <h1 class="b-1 break-all text-3xl">{conversationStore.getTitle()}</h1>
+    <h1 class="b-1 break-all text-3xl">{$conversationTitle}</h1>
 
-      <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
-      <div class="text-left text-sm">
-        {$tAny("conversations.num_members", { count: numMembers })}
-      </div>
-
-      {#if $conversationStore.processedMessages.length === 0 && encodeHashToBase64($conversationStore.conversation.progenitor) === myPubKeyB64 && numMembers === 1}
-        <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
-        <ConversationEmpty {conversationStore} />
-      {:else}
-        <!-- Display conversation messages -->
-        <ConversationMessages messages={$conversationStore.processedMessages} />
-      {/if}
+    <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
+    <div class="text-left text-sm">
+      {$t("common.num_members", { count: $mergedProfileContactList.length })}
     </div>
-  </div>
 
-  <ConversationMessageInput
-    bind:ref={conversationMessageInputRef}
-    on:send={(e) => sendMessage(e.detail.text, e.detail.images)}
-  />
-{/if}
+    {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContactList.length === 1}
+      <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
+      <ConversationEmpty cellIdB64={$page.params.id} />
+    {:else}
+      <!-- Display conversation messages -->
+      <ConversationMessages cellIdB64={$page.params.id} messages={$messagesList} />
+    {/if}
+  </div>
+</div>
+
+<ConversationMessageInput
+  bind:ref={conversationMessageInputRef}
+  disabled={sending}
+  loading={sending}
+  on:send={(e) => sendMessage(e.detail.text, e.detail.files)}
+/>

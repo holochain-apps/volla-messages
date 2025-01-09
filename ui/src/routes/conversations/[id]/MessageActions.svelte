@@ -1,6 +1,6 @@
 <script lang="ts">
   import ButtonInline from "$lib/ButtonInline.svelte";
-  import { type Message, type Image, FileStatus } from "$lib/types";
+  import { FileStatus, type MessageExtended, type MessageFileExtended } from "$lib/types";
   import { t } from "$translations";
   import { convertDataURIToUint8Array, copyToClipboard } from "$lib/utils";
   import { save } from "@tauri-apps/plugin-dialog";
@@ -8,29 +8,25 @@
   import { downloadDir } from "@tauri-apps/api/path";
   import toast from "svelte-french-toast";
 
-  export let message: Message;
+  export let message: MessageExtended;
 
-  $: hasText = !!message?.content && message.content.trim() !== "";
-  $: hasImages = message?.images
-    ? message.images.some((img) => img.status === FileStatus.Loaded)
-    : false;
+  $: hasText = message.message.content.trim().length > 0;
+  $: hasLoadedFiles = message.messageFileExtendeds.some((f) => f.status === FileStatus.Loaded);
 
-  const downloadImage = async (image: Image) => {
-    if (!image || image.status !== FileStatus.Loaded || !image.dataURL) {
-      console.error("Invalid image for download", image);
-      return;
-    }
+  async function downloadFile(file: MessageFileExtended) {
+    if (file.dataURL === undefined) return;
+
     try {
       const defaultDir = await downloadDir();
       const savePath = await save({
         title: "Save Image",
-        defaultPath: `${defaultDir}/${image.name}`,
+        defaultPath: `${defaultDir}/${file.messageFile.name}`,
       });
 
       if (!savePath) return;
 
       try {
-        const imageBlob = convertDataURIToUint8Array(image.dataURL);
+        const imageBlob = convertDataURIToUint8Array(file.dataURL);
         await writeFile(savePath, imageBlob, { create: true });
         toast.success($t("common.download_file_success"));
       } catch (e) {
@@ -40,29 +36,29 @@
       console.error("Download failed", e);
       toast.error(`${$t("common.download_file_error")}: ${e.message}`);
     }
-  };
+  }
 
-  const copy = async () => {
-    if (message?.content) {
-      try {
-        await copyToClipboard(message.content);
-        toast.success($t("common.copy_success"));
-      } catch (e) {
-        toast.error(`${$t("common.copy_error")}: ${e.message}`);
+  async function copy() {
+    if (!hasText) return;
+
+    try {
+      await copyToClipboard(message.message.content);
+      toast.success($t("common.copy_success"));
+    } catch (e) {
+      toast.error(`${$t("common.copy_error")}: ${e}`);
+    }
+  }
+
+  async function download() {
+    if (!hasLoadedFiles) return;
+
+    for (const file of message.messageFileExtendeds) {
+      if (file.status === FileStatus.Loaded && file.dataURL !== undefined) {
+        //Downloads only the loaded images sequentially
+        await downloadFile(file);
       }
     }
-  };
-
-  const download = async () => {
-    if (message?.images) {
-      for (const image of message.images) {
-        if (image.status === FileStatus.Loaded) {
-          //Downloads only the loaded images sequentially
-          await downloadImage(image);
-        }
-      }
-    }
-  };
+  }
 </script>
 
 <div class="my-1 flex w-full items-center justify-center space-x-2">
@@ -72,18 +68,18 @@
       icon="copy"
       moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
     >
-      <span class="text-xs md:text-sm">{$t("conversations.copy_text")}</span>
+      <span class="text-xs md:text-sm">{$t("common.copy_text")}</span>
     </ButtonInline>
   {/if}
 
-  {#if hasImages}
+  {#if hasLoadedFiles}
     <ButtonInline
       on:click={download}
       icon="download"
       moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
       moreClasses="w-[30px]"
     >
-      <span class="text-xs md:text-sm">{$t("conversations.download")}</span>
+      <span class="text-xs md:text-sm">{$t("common.download")}</span>
     </ButtonInline>
   {/if}
 </div>
