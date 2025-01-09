@@ -345,7 +345,7 @@ export function createConversationStore(
     const record = await client.createMessage(cellId, {
       message: {
         content,
-        bucket: _makeBucket(key1, new Date()),
+        bucket: getBucket(key1, new Date().getTime()),
         images: messageFiles,
       },
       agents: agentPubKeys,
@@ -573,14 +573,6 @@ export function createConversationStore(
     } catch (e) {
       return { messageFile, status: FileStatus.Error, dataURL: undefined };
     }
-  }
-
-  function _makeBucket(key1: CellIdB64, date: Date) {
-    const c = get(conversations)[key1];
-    if (!c) throw new Error(`Conversation not found with CellIdB64 ${key1}`);
-
-    const diff = date.getTime() - c.dnaProperties.created;
-    return Math.round(diff / BUCKET_RANGE_MS);
   }
 
   return {
