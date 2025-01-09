@@ -4,7 +4,7 @@ import type { ProfileStore } from "./ProfileStore";
 import type { ContactStore } from "./ContactStore";
 import type { AgentPubKeyB64 } from "@holochain/client";
 import { sortBy, uniq } from "lodash-es";
-import type { GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import type { GenericKeyValueStoreData } from "./generic/GenericKeyValueStore";
 import type { InviteStore } from "./InviteStore";
 
 export interface MergedProfileContactInviteStore {

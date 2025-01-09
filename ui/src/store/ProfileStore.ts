@@ -13,7 +13,7 @@ import { flatten } from "lodash-es";
 import {
   createGenericKeyKeyValueStore,
   type GenericKeyKeyValueStoreData,
-} from "./GenericKeyKeyValueStore";
+} from "./generic/GenericKeyKeyValueStore";
 
 export interface ProfilesExtendedObj {
   [agentPubKeyB64: AgentPubKeyB64]: ProfileExtended;

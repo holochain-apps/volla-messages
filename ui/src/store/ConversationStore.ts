@@ -31,15 +31,18 @@ import {
   fileToDataUrl,
 } from "$lib/utils";
 import type { RelayClient } from "./RelayClient";
-import { createGenericKeyValueStore, type GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import {
+  createGenericKeyValueStore,
+  type GenericKeyValueStoreData,
+} from "./generic/GenericKeyValueStore";
 import type { Subscriber, Invalidator, Unsubscriber } from "svelte/motion";
 import { derived, get } from "svelte/store";
-import { persisted } from "./GenericPersistedStore";
+import { persisted } from "./generic/GenericPersistedStore";
 import { Base64 } from "js-base64";
 import {
   createGenericKeyKeyValueStore,
   type GenericKeyKeyValueStoreData,
-} from "./GenericKeyKeyValueStore";
+} from "./generic/GenericKeyKeyValueStore";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import pRetry from "p-retry";

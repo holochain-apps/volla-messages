@@ -1,6 +1,6 @@
 import type { CellIdB64 } from "$lib/types";
 import type { AgentPubKeyB64 } from "@holochain/client";
-import { persisted } from "./GenericPersistedStore";
+import { persisted } from "./generic/GenericPersistedStore";
 import { type Subscriber, type Invalidator, type Unsubscriber, derived } from "svelte/store";
 
 export interface InviteStore {

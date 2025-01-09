@@ -6,8 +6,8 @@ import {
 } from "./MergedProfileContactInviteStore";
 import { Privacy, type CellIdB64, type ProfileExtended } from "$lib/types";
 import type { AgentPubKeyB64 } from "@holochain/client";
-import { persisted } from "./GenericPersistedStore";
-import type { GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import { persisted } from "./generic/GenericPersistedStore";
+import type { GenericKeyValueStoreData } from "./generic/GenericKeyValueStore";
 
 export interface ConversationTitleStore {
   subscribe: (
@@ -85,7 +85,7 @@ export function deriveCellConversationTitleStore(
 }
 
 function makePrivateConversationTitle(profiles: ProfileExtended[]) {
-  console.log('makePrivateConversationTitle', profiles);
+  console.log("makePrivateConversationTitle", profiles);
   let title;
   if (profiles.length === 2) {
     // Full name of the one other person in the chat

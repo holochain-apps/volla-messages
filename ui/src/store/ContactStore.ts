@@ -10,11 +10,11 @@ import { decodeCellIdFromBase64, makeFullName } from "$lib/utils";
 import type { CellIdB64, Contact, ContactExtended, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
 import { EntryRecord } from "@holochain-open-dev/utils";
-import { persisted } from "./GenericPersistedStore";
+import { persisted } from "./generic/GenericPersistedStore";
 import {
   createGenericKeyValueStore,
   type GenericKeyValueStoreDataExtended,
-} from "./GenericKeyValueStore";
+} from "./generic/GenericKeyValueStore";
 
 export interface ContactStore {
   initialize: () => Promise<void>;
