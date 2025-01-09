@@ -1,9 +1,0 @@
-{
-  "no_contacts_header": "U hebt geen contactpersonen toegevoegd",
-  "no_contacts_text": "Er is nog niemand om mee te chatten! Voeg je vertrouwde vrienden en familie toe door hun Volla Messages-contactcode op te vragen, te vinden in hun persoonlijke profiel in de Volla Messages-app..",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} gesprek",
-  "page_title": "Creëer",
-  "search_placeholder": "Zoek naam of contactcode",
-  "view": "Bekijk",
-  "unconfirmed": "Niet bevestigd"
-}

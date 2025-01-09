@@ -2,7 +2,7 @@
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
   import { scanStore } from "$store/ScanStore";
-  import { decodeCellIdFromBase64, encodeCellIdToBase64, isMobile, makeFullName } from "$lib/utils";
+  import { isMobile, makeFullName } from "$lib/utils";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputContact from "../InputContact.svelte";
   import { goto } from "$app/navigation";
@@ -12,14 +12,13 @@
   import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import toast from "svelte-french-toast";
   import type { ConversationStore } from "$store/ConversationStore";
-
-  // Silly thing to get around typescript issues with sveltekit-i18n
-  const tAny = t as any;
+  import type { InviteStore } from "$store/InviteStore";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let saving = false;
   let contact: Contact = {
@@ -41,7 +40,7 @@
         privacy: Privacy.Private,
       });
       // Invite agent to conversation
-      await conversationStore.invite(cellIdB64, [encodeHashToBase64(contact.public_key)]);
+      await inviteStore.invite(cellIdB64, [encodeHashToBase64(contact.public_key)]);
 
       // Create contact
       await contactStore.create(contact, cellIdB64);
@@ -50,7 +49,7 @@
       await goto(`/conversations/${cellIdB64}`);
     } catch (e) {
       console.error(e);
-      toast.error($tAny("contacts.error_saving", { updating: false }));
+      toast.error($t("common.error_saving", { updating: false }));
     }
     saving = false;
   }
@@ -64,10 +63,10 @@
   loadScanResult();
 </script>
 
-<Header back title={$t("contacts.create_new_contact")}>
+<Header back title={$t("common.create_new_contact")}>
   <div slot="right">
     {#if isMobile()}
-      <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" />
+      <ButtonIconBare on:click={() => scanStore.scan()} icon="qrCodeScan" moreClassesButton="p-4" />
     {/if}
   </div>
 </Header>

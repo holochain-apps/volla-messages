@@ -8,22 +8,20 @@
   import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import {
-    deriveCellMergedProfileContactListStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import { page } from "$app/stores";
   import {
     deriveCellConversationTitleStore,
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
-
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
+  import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
@@ -33,7 +31,7 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -41,12 +39,14 @@
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
+  const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
+  let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
   $: invitationTitle =
     $mergedProfileContactList.length === 1
@@ -65,35 +65,35 @@
     >
       <SvgIcon icon="handshake" moreClasses="w-[36px] h-[36px]" />
       <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
-        {$t("contacts.pending_connection_header")}
+        {$t("common.pending_connection_header")}
       </h1>
       <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-        {$tAny("contacts.pending_connection_description", {
+        {$t("common.pending_connection_description", {
           name: $conversationTitle,
         })}
       </p>
 
-      {#await conversation.makePrivateInviteCode($conversation.conversation.invited[0], invitationTitle) then text}
+      {#await conversation.makePrivateInviteCode($invite[0], invitationTitle) then text}
         <div class="flex justify-center">
           <ButtonsCopyShare
             moreClasses="bg-tertiary-600 dark:bg-secondary-700"
             {text}
-            copyLabel={$t("contacts.copy_invite_code")}
-            shareLabel={$t("contacts.share_invite_code")}
+            copyLabel={$t("common.copy_invite_code")}
+            shareLabel={$t("common.share_invite_code")}
           />
         </div>
       {/await}
     </div>
   {:else if $conversation.conversation.dnaProperties.privacy === Privacy.Public && $conversation.conversation.publicInviteCode}
     <p class="text-secondary-500 dark:text-tertiary-700 mx-10 mb-8 text-center text-xs">
-      {$t("conversations.share_invitation_code_msg")}
+      {$t("common.share_invitation_code_msg")}
     </p>
 
     <div class="mb-8">
       <ButtonsCopyShare
         text={$conversation.conversation.publicInviteCode}
-        copyLabel={$t("conversations.copy_invite_code")}
-        shareLabel={$t("conversations.share_invite_code")}
+        copyLabel={$t("common.copy_invite_code")}
+        shareLabel={$t("common.share_invite_code")}
       />
     </div>
   {/if}

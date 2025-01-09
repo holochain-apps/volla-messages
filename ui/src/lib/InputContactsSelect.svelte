@@ -38,7 +38,7 @@
   }
 </script>
 
-<div class="flex w-full flex-col items-center p-5">
+<div class="flex w-full flex-col items-center px-2">
   <ContactsList {excludedAgentPubKeyB64s} {searchQuery} bind:selectedAgentPubKeyB64s={value} />
 
   {#if value.length > 0}

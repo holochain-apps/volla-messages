@@ -20,22 +20,19 @@
   import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
   import { toast } from "svelte-french-toast";
   import {
-    deriveCellMergedProfileContactListStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteListStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
   import {
     type ConversationTitleStore,
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any;
-
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -48,7 +45,7 @@
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let messagesList = deriveCellConversationMessagesListStore(conversation);
   let profiles = deriveCellProfileStore(profileStore, $page.params.id);
-  let mergedProfileContactList = deriveCellMergedProfileContactListStore(
+  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -157,12 +154,15 @@
   async function sendMessage(text: string, files: LocalFile[]) {
     if (sending) return;
 
+    // Focus on input field to ensure the keyboard remains open after sending message on android
+    conversationMessageInputRef.focus();
+
     sending = true;
     try {
       await conversation.sendMessage(text, files);
     } catch (e) {
       console.error(e);
-      toast.error(`${$t("conversations.error_sending_message")}: ${e.message}`);
+      toast.error(`${$t("common.error_sending_message")}: ${e.message}`);
     }
     sending = false;
   }
@@ -193,20 +193,22 @@
 </script>
 
 <Header backUrl="/conversations">
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap text-center">
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
     {$conversationTitle}
   </h1>
 
   <div class="flex items-center justify-center" slot="right">
     <ButtonIconBare
-      moreClasses="ml-2 !w-[18px] !h-auto"
+      moreClasses="!w-[18px] !h-auto"
+      moreClassesButton="p-4"
       icon="gear"
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     />
 
     {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
       <ButtonIconBare
-        moreClasses="ml-5 h-[24px] w-[24px]"
+        moreClasses="h-[24px] w-[24px]"
+        moreClassesButton="p-4"
         icon="addPerson"
         on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
       />
@@ -233,7 +235,7 @@
 
     <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
     <div class="text-left text-sm">
-      {$tAny("conversations.num_members", { count: $mergedProfileContactList.length })}
+      {$t("common.num_members", { count: $mergedProfileContactList.length })}
     </div>
 
     {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContactList.length === 1}

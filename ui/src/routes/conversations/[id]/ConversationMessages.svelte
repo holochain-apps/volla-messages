@@ -5,18 +5,18 @@
   import BaseMessage from "./Message.svelte";
   import { getContext } from "svelte";
   import {
-    deriveCellMergedProfileContactStore,
-    type MergedProfileContactStore,
-  } from "$store/MergedProfileContactStore";
+    deriveCellMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
 
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactStore }>(
+  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
 
-  let mergedProfileContact = deriveCellMergedProfileContactStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
   );

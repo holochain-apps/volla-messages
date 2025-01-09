@@ -55,12 +55,12 @@
 </div>
 
 <div class="flex min-w-[66%] grow flex-col justify-start">
-  <h1 class="h1">{$t("conversations.group_name")}</h1>
+  <h1 class="h1">{$t("common.group_name")}</h1>
   <input
     autofocus
     class="mt-2 w-full border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
     type="text"
-    placeholder={$t("conversations.enter_name_here")}
+    placeholder={$t("common.enter_name_here")}
     name="title"
     bind:value={title}
     minlength={MIN_TITLE_LENGTH}
@@ -73,6 +73,6 @@
     disabled={!valid || pendingCreate}
     loading={pendingCreate}
   >
-    {$t("conversations.create_group")}
+    {$t("common.create_group")}
   </Button>
 </div>

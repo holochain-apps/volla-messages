@@ -1,10 +1,9 @@
 import { derived, get, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import type { ConversationStore } from "./ConversationStore";
 import {
-  deriveCellMergedProfileContactListStore,
-  deriveMergedProfileContactListStore,
-  type MergedProfileContactStore,
-} from "./MergedProfileContactStore";
+  deriveMergedProfileContactInviteListStore,
+  type MergedProfileContactInviteStore,
+} from "./MergedProfileContactInviteStore";
 import { Privacy, type CellIdB64, type ProfileExtended } from "$lib/types";
 import type { AgentPubKeyB64 } from "@holochain/client";
 import { persisted } from "./GenericPersistedStore";
@@ -20,12 +19,12 @@ export interface ConversationTitleStore {
 
 export function createConversationTitleStore(
   conversationStore: ConversationStore,
-  mergedProfileContactStore: MergedProfileContactStore,
+  mergedProfileContactStore: MergedProfileContactInviteStore,
   myPubKeyB64: AgentPubKeyB64,
 ): ConversationTitleStore {
   const persistedData = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
-  const mergedProfileContactList = deriveMergedProfileContactListStore(
+  const mergedProfileContactList = deriveMergedProfileContactInviteListStore(
     mergedProfileContactStore,
     myPubKeyB64,
   );
@@ -37,7 +36,6 @@ export function createConversationTitleStore(
           const previousTitle = get(persistedData)[cellIdB64];
 
           let title;
-
           if (
             previousTitle !== undefined &&
             (!conversation.cellInfo.enabled ||
@@ -87,6 +85,7 @@ export function deriveCellConversationTitleStore(
 }
 
 function makePrivateConversationTitle(profiles: ProfileExtended[]) {
+  console.log('makePrivateConversationTitle', profiles);
   let title;
   if (profiles.length === 2) {
     // Full name of the one other person in the chat

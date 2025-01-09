@@ -68,7 +68,7 @@
       icon="copy"
       moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
     >
-      <span class="text-xs md:text-sm">{$t("conversations.copy_text")}</span>
+      <span class="text-xs md:text-sm">{$t("common.copy_text")}</span>
     </ButtonInline>
   {/if}
 
@@ -79,7 +79,7 @@
       moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
       moreClasses="w-[30px]"
     >
-      <span class="text-xs md:text-sm">{$t("conversations.download")}</span>
+      <span class="text-xs md:text-sm">{$t("common.download")}</span>
     </ButtonInline>
   {/if}
 </div>

@@ -4,10 +4,11 @@ import type { ProfileStore } from "./ProfileStore";
 import type { ContactStore } from "./ContactStore";
 import type { GenericKeyKeyValueStoreData } from "./GenericKeyKeyValueStore";
 import type { AgentPubKeyB64 } from "@holochain/client";
-import { sortBy } from "lodash-es";
+import { sortBy, uniq } from "lodash-es";
 import type { GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import type { InviteStore } from "./InviteStore";
 
-export interface MergedProfileContactStore {
+export interface MergedProfileContactInviteStore {
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyKeyValueStoreData<ProfileExtended>>,
@@ -23,16 +24,17 @@ export interface MergedProfileContactStore {
  * @param client
  * @returns
  */
-export function createMergedProfileContactStore(
+export function createMergedProfileContactInviteStore(
   profileStore: ProfileStore,
   contactStore: ContactStore,
-): MergedProfileContactStore {
-  const { subscribe } = derived([profileStore, contactStore], ([$profileStore, $contactStore]) => {
-    const cellIdB64s = Object.keys($profileStore);
+  inviteStore: InviteStore,
+): MergedProfileContactInviteStore {
+  const { subscribe } = derived([profileStore, contactStore, inviteStore], ([$profileStore, $contactStore, $inviteStore]) => {
+    const cellIdB64s = uniq([...Object.keys($profileStore), ...Object.keys($contactStore), ...Object.keys($inviteStore)]);
 
     return Object.fromEntries(
       cellIdB64s.map((cellIdB64) => {
-        const agentPubKeyB64s = Object.keys($profileStore[cellIdB64]);
+        const agentPubKeyB64s = uniq([...Object.keys($profileStore[cellIdB64] || []), ...($inviteStore[cellIdB64] || [])]);
 
         // Return [CellIdB64, {[AgentPubKeyB64]: ProfileExtended}]
         return [
@@ -58,7 +60,7 @@ export function createMergedProfileContactStore(
   };
 }
 
-export interface MergedProfileContactListStore {
+export interface MergedProfileContactInviteListStore {
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyValueStoreData<[string, ProfileExtended][]>>,
@@ -66,10 +68,10 @@ export interface MergedProfileContactListStore {
   ) => Unsubscriber;
 }
 
-export function deriveMergedProfileContactListStore(
-  mergedProfileContactStore: MergedProfileContactStore,
+export function deriveMergedProfileContactInviteListStore(
+  mergedProfileContactStore: MergedProfileContactInviteStore,
   myAgentPubKeyB64: AgentPubKeyB64,
-): MergedProfileContactListStore {
+): MergedProfileContactInviteListStore {
   const { subscribe } = derived(mergedProfileContactStore, ($mergedProfileContactStore) => {
     return Object.fromEntries(
       Object.entries($mergedProfileContactStore).map(([cellIdB64, cellProfiles]) => [
@@ -90,8 +92,8 @@ export function deriveMergedProfileContactListStore(
   };
 }
 
-export function deriveCellMergedProfileContactStore(
-  mergedProfileContactStore: MergedProfileContactStore,
+export function deriveCellMergedProfileContactInviteStore(
+  mergedProfileContactStore: MergedProfileContactInviteStore,
   cellIdB64: CellIdB64,
 ) {
   return derived(mergedProfileContactStore, ($mergedProfileContactStore) => {
@@ -101,8 +103,8 @@ export function deriveCellMergedProfileContactStore(
   });
 }
 
-export function deriveCellMergedProfileContactListStore(
-  mergedProfileContactStore: MergedProfileContactStore,
+export function deriveCellMergedProfileContactInviteListStore(
+  mergedProfileContactStore: MergedProfileContactInviteStore,
   cellIdB64: CellIdB64,
   myAgentPubKeyB64: AgentPubKeyB64,
 ) {

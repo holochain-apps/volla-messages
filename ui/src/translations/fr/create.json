@@ -1,8 +1,0 @@
-{
-  "no_contacts_header": "Vous n'avez pas encore ajouté de contacts.",
-  "no_contacts_text": "Il n'y a encore personne avec qui vous pouvez chatter ! Ajoutez vos amis et votre famille de confiance en demandant leur code de contact Volla Messages, que vous trouverez dans leur profil personnel dans l'application Volla Messages.",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} Conversation",
-  "page_title": "Créer",
-  "search_placeholder": "Chercher un nom ou un code de contact",
-  "view": "Regarder"
-}
