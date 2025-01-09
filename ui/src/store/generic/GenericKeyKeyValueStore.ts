@@ -3,7 +3,13 @@ import {
   createGenericKeyValueStore,
   type GenericKeyValueStore,
   type GenericKeyValueStoreData,
+  type GenericKeyValueStoreReadable,
 } from "./GenericKeyValueStore";
+import { sortBy } from "lodash-es";
+
+export type GenericKeyKeyValueStoreReadable<T> = GenericKeyValueStoreReadable<
+  GenericKeyValueStoreData<T>
+>;
 
 export interface GenericKeyKeyValueStore<T>
   extends GenericKeyValueStore<GenericKeyValueStoreData<T>> {
@@ -61,10 +67,11 @@ export function createGenericKeyKeyValueStore<T>(): GenericKeyKeyValueStore<T> {
 export function deriveGenericKeyValueStore<T>(
   genericKeyKeyValueStore: GenericKeyKeyValueStore<T>,
   key1: string,
+  listSortBy: Array<(val: any) => any> = [],
 ): GenericKeyValueStore<T> {
   const store = derived(genericKeyKeyValueStore, ($genericKeyKeyValueStore) => ({
     data: $genericKeyKeyValueStore.data[key1] || {},
-    list: Object.entries($genericKeyKeyValueStore.data[key1] || {}),
+    list: sortBy(Object.entries($genericKeyKeyValueStore.data[key1] || {}), listSortBy),
     count: Object.keys($genericKeyKeyValueStore.data[key1] || []).length,
   }));
 
@@ -77,6 +84,22 @@ export function deriveGenericKeyValueStore<T>(
     set: (val: GenericKeyValueStoreData<T>) => genericKeyKeyValueStore.setKeyValue(key1, val),
     update: (updater: Updater<GenericKeyValueStoreData<T>>) =>
       genericKeyKeyValueStore.updateKeyValue(key1, updater),
+    subscribe: store.subscribe,
+  };
+}
+
+export function deriveGenericKeyValueStoreReadable<T>(
+  genericKeyKeyValueStore: GenericKeyKeyValueStoreReadable<T>,
+  key1: string,
+  listSortBy: Array<(val: any) => any> = [],
+) {
+  const store = derived(genericKeyKeyValueStore, ($genericKeyKeyValueStore) => ({
+    data: $genericKeyKeyValueStore.data[key1] || {},
+    list: sortBy(Object.entries($genericKeyKeyValueStore.data[key1] || {}), listSortBy),
+    count: Object.keys($genericKeyKeyValueStore.data[key1] || []).length,
+  }));
+
+  return {
     subscribe: store.subscribe,
   };
 }

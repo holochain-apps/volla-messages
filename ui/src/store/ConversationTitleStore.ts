@@ -1,11 +1,7 @@
 import { derived, get, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import type { ConversationStore } from "./ConversationStore";
-import {
-  deriveMergedProfileContactInviteListStore,
-  type MergedProfileContactInviteStore,
-} from "./MergedProfileContactInviteStore";
+import { type MergedProfileContactInviteStore } from "./MergedProfileContactInviteStore";
 import { Privacy, type CellIdB64, type ProfileExtended } from "$lib/types";
-import type { AgentPubKeyB64 } from "@holochain/client";
 import { persisted } from "./generic/GenericPersistedStore";
 import type { GenericKeyValueStoreData } from "./generic/GenericKeyValueStore";
 
@@ -20,17 +16,12 @@ export interface ConversationTitleStore {
 export function createConversationTitleStore(
   conversationStore: ConversationStore,
   mergedProfileContactStore: MergedProfileContactInviteStore,
-  myPubKeyB64: AgentPubKeyB64,
 ): ConversationTitleStore {
   const persistedData = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
-  const mergedProfileContactList = deriveMergedProfileContactInviteListStore(
-    mergedProfileContactStore,
-    myPubKeyB64,
-  );
   const data = derived(
-    [conversationStore, mergedProfileContactList],
-    ([$conversationStore, $mergedProfileContactList]) => {
+    [conversationStore, mergedProfileContactStore],
+    ([$conversationStore, $mergedProfileContactStore]) => {
       const newVal = Object.fromEntries(
         Object.entries($conversationStore.conversations).map(([cellIdB64, conversation]) => {
           const previousTitle = get(persistedData)[cellIdB64];
@@ -39,18 +30,18 @@ export function createConversationTitleStore(
           if (
             previousTitle !== undefined &&
             (!conversation.cellInfo.enabled ||
-              $mergedProfileContactList[cellIdB64] === undefined ||
+              $mergedProfileContactStore.data[cellIdB64] === undefined ||
               conversation.config === undefined)
           ) {
             // We have a title saved, and we are not able to derive a title, so use the saved title
             title = previousTitle;
           } else if (
             conversation.dnaProperties.privacy === Privacy.Private &&
-            $mergedProfileContactList[cellIdB64] !== undefined
+            $mergedProfileContactStore.data[cellIdB64] !== undefined
           ) {
             // Private conversations have a title derived from the names of the participants, and my own name
             title = makePrivateConversationTitle(
-              $mergedProfileContactList[cellIdB64].map(([, p]) => p),
+              Object.values($mergedProfileContactStore.data[cellIdB64]),
             );
           } else if (conversation.dnaProperties.privacy === Privacy.Public && conversation.config) {
             title = conversation.config.title;

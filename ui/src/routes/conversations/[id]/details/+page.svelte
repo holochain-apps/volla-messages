@@ -13,7 +13,7 @@
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
-    deriveCellMergedProfileContactInviteListStore,
+    deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import MemberListItem from "./MemberListItem.svelte";
@@ -51,7 +51,7 @@
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
-  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -61,9 +61,9 @@
 
   $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
   $: invitationTitle =
-    $mergedProfileContactList.length === 1
+    $mergedProfileContact.count === 1
       ? `${myProfile.profile.nickname}`
-      : `${myProfile.profile.nickname} + ${$mergedProfileContactList.length - 1}`;
+      : `${myProfile.profile.nickname} + ${$mergedProfileContact.count - 1}`;
 
   // used for editing Group conversation details
   let image = $conversation.conversation.config?.image || "";
@@ -72,7 +72,7 @@
 
   $: iAmProgenitor = myPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
   $: invitedUnjoinedAgentPubKeyB64s = $invite.filter((a) => !(a in Object.keys($profiles)));
-  $: mergedProfileContactListJoined = $mergedProfileContactList.filter(
+  $: mergedProfileContactListJoined = $mergedProfileContact.list.filter(
     ([agentPubKeyB64]) => !invitedUnjoinedAgentPubKeyB64s.includes(agentPubKeyB64),
   );
 

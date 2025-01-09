@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isMobile, isSameDay } from "$lib/utils";
-  import type { ActionHashB64 } from "@holochain/client";
+  import type { ActionHashB64, AgentPubKeyB64 } from "@holochain/client";
   import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
   import { getContext } from "svelte";
@@ -12,6 +12,9 @@
   const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
@@ -19,6 +22,7 @@
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
+    myPubKeyB64,
   );
 
   let selected: ActionHashB64 | undefined;
@@ -26,7 +30,7 @@
   $: messagesByAgentsWithProfiles = messages.filter(
     ([, messageExtended]) =>
       $mergedProfileContact !== undefined &&
-      $mergedProfileContact[messageExtended.authorAgentPubKeyB64] !== undefined,
+      $mergedProfileContact.data[messageExtended.authorAgentPubKeyB64] !== undefined,
   );
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {

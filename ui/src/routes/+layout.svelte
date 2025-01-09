@@ -134,7 +134,6 @@
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactStore,
-        encodeHashToBase64(client.myPubKey),
       );
 
       // Initialize store data

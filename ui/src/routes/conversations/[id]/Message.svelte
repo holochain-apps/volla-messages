@@ -14,7 +14,6 @@
     deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
-  import { decodeCellIdFromBase64 } from "$lib/utils";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
@@ -32,10 +31,11 @@
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
+    myPubKeyB64,
   );
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
-  $: authorNickname = $mergedProfileContact[message.authorAgentPubKeyB64].profile.nickname;
+  $: authorNickname = $mergedProfileContact.data[message.authorAgentPubKeyB64].profile.nickname;
 </script>
 
 {#if showDate}

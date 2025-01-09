@@ -419,8 +419,9 @@ export function createConversationStore(
     const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactStore,
       key1,
+      encodeHashToBase64(client.client.myPubKey),
     );
-    const fromProfile = get(mergedProfileContact)[encodeHashToBase64(signal.from)];
+    const fromProfile = get(mergedProfileContact).data[encodeHashToBase64(signal.from)];
 
     // Trigger a system notification
     _triggerMessageNotification(messageExtended, fromProfile);

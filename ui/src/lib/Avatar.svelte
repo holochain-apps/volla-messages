@@ -15,6 +15,9 @@
   const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
     "provisionedRelayCellId",
   ).getCellId();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
   export let cellIdB64: CellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
   export let agentPubKeyB64: AgentPubKeyB64;
@@ -23,19 +26,24 @@
   export let namePosition = "row";
   export let moreClasses = "";
 
-  $: profiles = deriveCellMergedProfileContactInviteStore(mergedProfileContactStore, cellIdB64);
-  $: profileExtended = $profiles ? $profiles[agentPubKeyB64] : undefined;
-  $: title = profileExtended ? profileExtended.profile.nickname : "";
+  let profiles = deriveCellMergedProfileContactInviteStore(
+    mergedProfileContactStore,
+    cellIdB64,
+    myPubKeyB64,
+  );
+
+  $: profile = $profiles.data[agentPubKeyB64];
+  $: title = profile ? profile.profile.nickname : "";
 </script>
 
 <div class="avatar-{namePosition} {moreClasses}" {title}>
-  {#if profileExtended && profileExtended.profile.fields.avatar}
+  {#if profile && profile.profile.fields.avatar}
     <div
       class="flex h-[150px] w-[150px] items-center justify-center overflow-hidden rounded-full"
       style="width: {size}px; height: {size}px"
     >
       <img
-        src={profileExtended.profile.fields.avatar}
+        src={profile.profile.fields.avatar}
         alt="avatar"
         width={size}
         height={size}

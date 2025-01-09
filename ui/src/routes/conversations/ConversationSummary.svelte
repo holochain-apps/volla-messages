@@ -10,7 +10,6 @@
   import { goto } from "$app/navigation";
   import { getContext } from "svelte";
   import { type ProfileStore } from "$store/ProfileStore";
-  import { deriveCellMergedProfileContactInviteListStore } from "$store/MergedProfileContactInviteStore";
   import MessagePreview from "./MessagePreview.svelte";
   import UnreadIndicator from "./UnreadIndicator.svelte";
   import type { AgentPubKeyB64 } from "@holochain/client";
@@ -20,6 +19,7 @@
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
   import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
+  import { deriveCellMergedProfileContactInviteStore } from "$store/MergedProfileContactInviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -38,7 +38,7 @@
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
-  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
     myPubKeyB64,
@@ -201,7 +201,7 @@
             <UnreadIndicator />
           {/if}
 
-          {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContactList.length === 1 && $invite.length > 0}
+          {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContact.count === 1 && $invite.length > 0}
             <span class="text-secondary-400">{$t("common.unconfirmed")}</span>
           {:else if $conversation.latestMessage}
             <MessagePreview {cellIdB64} messageExtended={$conversation.latestMessage} />
@@ -210,7 +210,7 @@
       </div>
       <div class="text-secondary-300 relative flex flex-row items-center text-xs">
         <SvgIcon icon="person" moreClasses="h-[8px] w-[8px]" />
-        <div class="ml-1">{$mergedProfileContactList.length}</div>
+        <div class="ml-1">{$mergedProfileContact.count}</div>
       </div>
       {#if !isMobile() && isHovering && x === 0}
         <button

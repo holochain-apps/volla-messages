@@ -20,7 +20,7 @@
   import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
   import { toast } from "svelte-french-toast";
   import {
-    deriveCellMergedProfileContactInviteListStore,
+    deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import {
@@ -45,7 +45,7 @@
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let messagesList = deriveCellConversationMessagesListStore(conversation);
   let profiles = deriveCellProfileStore(profileStore, $page.params.id);
-  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -81,7 +81,7 @@
   async function loadProfiles() {
     await profiles.load();
 
-    if ($mergedProfileContactList.length < 2) {
+    if ($mergedProfileContact.count < 2) {
       agentTimeout = setTimeout(() => {
         loadProfiles();
       }, 2000);
@@ -235,10 +235,10 @@
 
     <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
     <div class="text-left text-sm">
-      {$t("common.num_members", { count: $mergedProfileContactList.length })}
+      {$t("common.num_members", { count: $mergedProfileContact.count })}
     </div>
 
-    {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContactList.length === 1}
+    {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContact.count === 1}
       <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
       <ConversationEmpty cellIdB64={$page.params.id} />
     {:else}

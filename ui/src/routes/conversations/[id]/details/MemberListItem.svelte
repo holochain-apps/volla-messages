@@ -27,6 +27,7 @@
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     cellIdB64,
+    myPubKeyB64,
   );
 
   $: isAdmin = agentPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
@@ -39,8 +40,8 @@
   <span class="ml-4 flex-1 text-sm font-bold">
     {#if isMe}
       {$t("common.you")}
-    {:else if $mergedProfileContact[agentPubKeyB64] !== undefined}
-      {$mergedProfileContact[agentPubKeyB64].profile.nickname}
+    {:else if $mergedProfileContact.data[agentPubKeyB64] !== undefined}
+      {$mergedProfileContact.data[agentPubKeyB64].profile.nickname}
     {/if}
   </span>
 

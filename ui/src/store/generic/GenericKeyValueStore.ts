@@ -19,18 +19,21 @@ export interface GenericKeyValueStoreDataExtended<T> {
   count: number;
 }
 
-export interface GenericKeyValueStore<T> {
+export interface GenericKeyValueStoreReadable<T> {
+  subscribe: (
+    this: void,
+    run: Subscriber<GenericKeyValueStoreDataExtended<T>>,
+    invalidate?: Invalidator<GenericKeyValueStoreDataExtended<T>> | undefined,
+  ) => Unsubscriber;
+}
+
+export interface GenericKeyValueStore<T> extends GenericKeyValueStoreReadable<T> {
   getKeyValue: (key: string) => T;
   setKeyValue: (key: string, val: T) => void;
   updateKeyValue: (key: string, updater: Updater<T>) => void;
   removeKeyValue: (key: string) => void;
   set: (this: void, value: GenericKeyValueStoreData<T>) => void;
   update: (this: void, updater: Updater<GenericKeyValueStoreData<T>>) => void;
-  subscribe: (
-    this: void,
-    run: Subscriber<GenericKeyValueStoreDataExtended<T>>,
-    invalidate?: Invalidator<GenericKeyValueStoreDataExtended<T>> | undefined,
-  ) => Unsubscriber;
 }
 
 /**

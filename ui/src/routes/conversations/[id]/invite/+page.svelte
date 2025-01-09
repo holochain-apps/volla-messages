@@ -11,7 +11,7 @@
   import InputContactsSelect from "$lib/InputContactsSelect.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
-    deriveCellMergedProfileContactInviteListStore,
+    deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import { uniq } from "lodash-es";
@@ -29,7 +29,7 @@
   const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
-  let profiles = deriveCellMergedProfileContactInviteListStore(
+  let profiles = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactStore,
     $page.params.id,
     myPubKeyB64,
@@ -39,7 +39,7 @@
   let searchQuery = "";
   let saving = false;
 
-  $: conversationMemberAgentPubKeyB64s = uniq([...$invite, ...$profiles.map(([a]) => a)]);
+  $: conversationMemberAgentPubKeyB64s = uniq([...$invite, ...$profiles.list.map(([a]) => a)]);
 
   async function inviteContacts(selectedContacts: AgentPubKeyB64[]) {
     if (selectedContacts.length === 0) return;
