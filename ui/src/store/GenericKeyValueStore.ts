@@ -1,3 +1,4 @@
+import { sortBy } from "lodash-es";
 import {
   derived,
   get as svelteStoreGet,
@@ -12,28 +13,42 @@ export interface GenericKeyValueStoreData<T> {
   [key: string]: T;
 }
 
+export interface GenericKeyValueStoreDataExtended<T> {
+  data: GenericKeyValueStoreData<T>;
+  list: [string, T][];
+  count: number;
+}
+
 export interface GenericKeyValueStore<T> {
   getKeyValue: (key: string) => T;
   setKeyValue: (key: string, val: T) => void;
-  updateKeyValue: (key: string, val: T) => void;
+  updateKeyValue: (key: string, updater: Updater<T>) => void;
   removeKeyValue: (key: string) => void;
   set: (this: void, value: GenericKeyValueStoreData<T>) => void;
   update: (this: void, updater: Updater<GenericKeyValueStoreData<T>>) => void;
-  subscribe(
+  subscribe: (
     this: void,
-    run: Subscriber<GenericKeyValueStoreData<T>>,
-    invalidate?: Invalidator<GenericKeyValueStoreData<T>> | undefined,
-  ): Unsubscriber;
+    run: Subscriber<GenericKeyValueStoreDataExtended<T>>,
+    invalidate?: Invalidator<GenericKeyValueStoreDataExtended<T>> | undefined,
+  ) => Unsubscriber;
 }
 
 /**
  * Creates a store for managing data associated with a key
  *
  * @template T - The type of data stored in the keyed store.
- * @returns {GenericKeyValueStoreData<T>} An object with methods to manipulate and subscribe to the store.
+ * @returns {GenericKeyValueStore<T>} An object with methods to manipulate and subscribe to the store.
  */
-export function createGenericKeyValueStore<T>(): GenericKeyValueStore<T> {
+export function createGenericKeyValueStore<T>(
+  listSortBy: Array<(val: any) => any> = [],
+): GenericKeyValueStore<T> {
   const data = writable<GenericKeyValueStoreData<T>>({});
+
+  const { subscribe } = derived(data, ($data) => ({
+    data: $data,
+    list: sortBy(Object.entries($data), listSortBy),
+    count: Object.keys($data).length,
+  }));
 
   function getKeyValue(key: string): T {
     const val = svelteStoreGet(data)[key];
@@ -41,20 +56,17 @@ export function createGenericKeyValueStore<T>(): GenericKeyValueStore<T> {
     return val;
   }
 
-  function updateKeyValue(key: string, val: T): void {
-    data.update((d) => ({
-      ...d,
-      [key]: {
-        ...d[key],
-        ...val,
-      },
-    }));
-  }
-
   function setKeyValue(key: string, val: T): void {
     data.update((d) => ({
       ...d,
       [key]: val,
+    }));
+  }
+
+  function updateKeyValue(key: string, updater: Updater<T>): void {
+    data.update((d) => ({
+      ...d,
+      [key]: updater(d[key]),
     }));
   }
 
@@ -72,13 +84,12 @@ export function createGenericKeyValueStore<T>(): GenericKeyValueStore<T> {
     removeKeyValue,
     update: data.update,
     set: data.set,
-    subscribe: data.subscribe,
+    subscribe,
   };
 }
 
-export interface GenericAgentStore<T> {
+export interface GenericValueStore<T> {
   set: (val: T) => void;
-  update: (val: T) => void;
   remove: (val: T) => void;
   subscribe: (
     this: void,
@@ -95,18 +106,17 @@ export interface GenericAgentStore<T> {
  * @returns A store interface with set/update/remove/subscribe methods for the specific agent
  */
 export function deriveGenericValueStore<T>(
-  genericKeyStore: GenericKeyValueStore<T>,
+  genericKeyValueStore: GenericKeyValueStore<T>,
   key: string,
-): GenericAgentStore<T> {
-  const data = derived(genericKeyStore, ($genericKeyStore) => $genericKeyStore[key]);
-  const set = (val: T) => genericKeyStore.setKeyValue(key, val);
-  const update = (val: T) => genericKeyStore.updateKeyValue(key, val);
-  const remove = () => genericKeyStore.removeKeyValue(key);
+): GenericValueStore<T> {
+  const data = derived(
+    genericKeyValueStore,
+    ($genericKeyValueStore) => $genericKeyValueStore.data[key],
+  );
 
   return {
-    set,
-    update,
-    remove,
+    set: (val: T) => genericKeyValueStore.setKeyValue(key, val),
+    remove: () => genericKeyValueStore.removeKeyValue(key),
     subscribe: data.subscribe,
   };
 }
