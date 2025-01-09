@@ -43,7 +43,7 @@
   "next_avatar": "Nästa:&nbsp;<strong>Avatar</strong>",
   "no_contacts_header": "Inga kontakter tillagda",
   "no_contacts_text": "Det finns ingen att kommunicera med än! Bjud in kollegor, vänner och familj med deras kod som finns i deras personliga profil i appen.",
-  "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
+  "num_members": "{{count}} {{count; 1:Member; default:Medlemmar;}}",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} konversation",
   "pending_connection_description": "{{name}} behöver ange din inbjudningskod för att upprätta en anslutning.",
   "pending_connection_header": "Kontakten behöver bekräfta",
