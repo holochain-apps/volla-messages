@@ -59,7 +59,7 @@
       </ButtonInline>
     {:else}
       <span class="text-primary-500 text-lg font-extrabold">+</span>
-      <ButtonDelete moreClasses="h-5 w-5" onDelete={handleDelete} />
+      <ButtonDelete moreClasses="h-5 w-5" on:click={handleDelete} />
     {/if}
   </div>
 </button>
