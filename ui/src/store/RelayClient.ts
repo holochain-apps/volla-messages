@@ -347,8 +347,8 @@ export class RelayClient {
     };
 
     const record = await this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
       fn_name: "create_conference",
       payload
     });
@@ -362,8 +362,8 @@ export class RelayClient {
     };
 
     await this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
       fn_name: "join_conference",
       payload
     });
@@ -371,8 +371,8 @@ export class RelayClient {
 
   public async leaveConference(roomId: ActionHash): Promise<void> {
     await this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
       fn_name: "leave_conference",
       payload: roomId
     });
@@ -392,8 +392,8 @@ export class RelayClient {
     };
 
     await this.client.callZome({
-      role_name: this.roleName,
-      zome_name: this.zomeName,
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
       fn_name: "send_signal",
       payload
     });
