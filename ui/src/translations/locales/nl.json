@@ -45,7 +45,7 @@
   "next_avatar": "Next:&nbsp;<strong>Avatar</strong>",
   "no_contacts_header": "U hebt geen contactpersonen toegevoegd",
   "no_contacts_text": "Er is nog niemand om mee te chatten! Voeg je vertrouwde vrienden en familie toe door hun Volla Messages-contactcode op te vragen, te vinden in hun persoonlijke profiel in de Volla Messages-app..",
-  "num_members": "{{count}} {{count; 1:Member; default:Members;}}",
+  "num_members": "{{count}} {{count; 1:Member; default:Leden;}}",
   "open_app_settings": "App-instellingen openen",
   "open_conversation": "{{existingConversation; true:Open; false:Create;}} gesprek",
   "pending_connection_description": "{{naam}} moet je uitnodigingscode invoeren om een verbinding tot stand te brengen.",
