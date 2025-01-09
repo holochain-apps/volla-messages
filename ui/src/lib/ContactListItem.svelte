@@ -26,7 +26,7 @@
       await contact.delete();
     } catch (err) {
       console.error(err);
-      toast.error($t("contacts.delete_contact_error"));
+      toast.error($t("common.delete_contact_error"));
     }
   }
 </script>

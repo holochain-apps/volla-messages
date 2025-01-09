@@ -26,6 +26,7 @@
   "create_group": "Create group",
   "create_new_contact": "Create New Contact",
   "created": "Created: {{date:date;}}",
+  "delete_contact_error": "Error deleting contact",
   "download": "Download",
   "download_file_error": "Failed to download file",
   "download_file_success": "File downloaded successfully",
