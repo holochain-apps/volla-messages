@@ -14,5 +14,6 @@
   "pending_connection_description": "{{name}} needs to enter your invite code to establish a connection.",
   "pending_connection_header": "Contact needs to confirm",
   "request_contact_code": "Request your contact's unique Volla Messages contact code, which is found by visiting their personal profile in the Volla Messages App.",
-  "send_message": "Send message"
+  "send_message": "Send message",
+  "delete_contact_error": "Error deleting contact"
 }
