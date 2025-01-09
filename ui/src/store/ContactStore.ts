@@ -86,9 +86,6 @@ export function createContactStore(client: RelayClient): ContactStore {
    */
   async function deleteContact(agentPubKeyB64: AgentPubKeyB64) {
     const contact = contacts.getKeyValue(agentPubKeyB64);
-    if (!contact) {
-      throw new Error(`Contact not found for agent ${agentPubKeyB64}`);
-    }
     await client.deleteContact(contact.originalActionHash);
     // Updates the local stores
     contacts.removeKeyValue(agentPubKeyB64);
