@@ -6,7 +6,8 @@
   import type { AgentPubKeyB64 } from "@holochain/client";
   import Avatar from "$lib/Avatar.svelte";
   import { getContext, onMount } from "svelte";
-  import ButtonDelete from "./ButtonDelete.svelte";
+  import ButtonDelete from "$lib/ButtonDelete.svelte";
+  import toast from "svelte-french-toast";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
 
@@ -25,6 +26,7 @@
       await contact.delete();
     } catch (err) {
       console.error(err);
+      toast.error($t("contacts.delete_contact_error"));
     }
   }
 </script>
