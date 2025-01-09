@@ -42,7 +42,7 @@ export function createMergedProfileContactInviteStore(
       return Object.fromEntries(
         cellIdB64s.map((cellIdB64) => {
           const agentPubKeyB64s = uniq([
-            ...Object.keys($profileStore[cellIdB64] || []),
+            ...$profileStore.list.map(([key]) => key),
             ...($inviteStore[cellIdB64] || []),
           ]);
 
@@ -56,7 +56,7 @@ export function createMergedProfileContactInviteStore(
                   agentPubKeyB64,
                   agentPubKeyB64 in $contactStore
                     ? contactStore.getAsProfileExtended(agentPubKeyB64)
-                    : $profileStore[cellIdB64][agentPubKeyB64],
+                    : $profileStore.data[cellIdB64][agentPubKeyB64],
                 ],
               ),
             ),

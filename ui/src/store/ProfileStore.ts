@@ -12,23 +12,31 @@ import { EntryRecord } from "@holochain-open-dev/utils";
 import { flatten } from "lodash-es";
 import {
   createGenericKeyKeyValueStore,
-  type GenericKeyKeyValueStoreData,
+  deriveGenericKeyValueStore,
+  type GenericKeyKeyValueStore,
 } from "./generic/GenericKeyKeyValueStore";
+import type {
+  GenericKeyValueStore,
+  GenericKeyValueStoreData,
+  GenericKeyValueStoreDataExtended,
+} from "./generic/GenericKeyValueStore";
 
 export interface ProfilesExtendedObj {
   [agentPubKeyB64: AgentPubKeyB64]: ProfileExtended;
 }
 
-export interface ProfileStore {
+export interface ProfileStore extends GenericKeyKeyValueStore<ProfileExtended> {
   initialize: () => Promise<void>;
-  create: (val: CreateProfileInputUI) => Promise<void>;
-  update: (val: CreateProfileInputUI) => Promise<void>;
+  createProfile: (val: CreateProfileInputUI) => Promise<void>;
+  updateProfile: (val: CreateProfileInputUI) => Promise<void>;
   load: () => Promise<void>;
   loadKey: (key: CellIdB64) => Promise<void>;
   subscribe: (
     this: void,
-    run: Subscriber<GenericKeyKeyValueStoreData<ProfileExtended>>,
-    invalidate?: Invalidator<GenericKeyKeyValueStoreData<ProfileExtended>> | undefined,
+    run: Subscriber<GenericKeyValueStoreDataExtended<GenericKeyValueStoreData<ProfileExtended>>>,
+    invalidate?:
+      | Invalidator<GenericKeyValueStoreDataExtended<GenericKeyValueStoreData<ProfileExtended>>>
+      | undefined,
   ) => Unsubscriber;
 }
 
@@ -46,7 +54,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
    *
    * @param val
    */
-  async function create(val: CreateProfileInputUI) {
+  async function createProfile(val: CreateProfileInputUI) {
     const input = {
       nickname: makeFullName(val.firstName, val.lastName),
       fields: val,
@@ -87,7 +95,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
   /**
    * Update your profile
    */
-  async function update(val: CreateProfileInputUI) {
+  async function updateProfile(val: CreateProfileInputUI) {
     const input = {
       nickname: makeFullName(val.firstName, val.lastName),
       fields: val,
@@ -121,7 +129,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     // Add all profiles to writable
     data.forEach(({ cellIdB64, agentPubKeyB64, profileExtended }) => {
-      profiles.updateKeyKeyValue(cellIdB64, agentPubKeyB64, profileExtended);
+      profiles.setKeyKeyValue(cellIdB64, agentPubKeyB64, profileExtended);
     });
   }
 
@@ -190,12 +198,15 @@ export function createProfileStore(client: RelayClient): ProfileStore {
   };
 }
 
-export function deriveCellProfileStore(profileStore: ProfileStore, cellIdB64: CellIdB64) {
-  const store = derived(profileStore, ($profileStore) => {
-    if ($profileStore[cellIdB64] === undefined) return {};
+export interface CellProfileStore extends GenericKeyValueStore<ProfileExtended> {
+  load: () => Promise<void>;
+}
 
-    return $profileStore[cellIdB64];
-  });
+export function deriveCellProfileStore(
+  profileStore: ProfileStore,
+  cellIdB64: CellIdB64,
+): CellProfileStore {
+  const store = deriveGenericKeyValueStore(profileStore, cellIdB64);
 
   return {
     ...store,

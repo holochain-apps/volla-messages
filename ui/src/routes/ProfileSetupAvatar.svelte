@@ -20,7 +20,7 @@
   async function createAccount() {
     loading = true;
     try {
-      await profileStore.create(value);
+      await profileStore.createProfile(value);
     } catch (e) {
       toast.error(`${$t("common.create_account_error")}: ${e}`);
     }

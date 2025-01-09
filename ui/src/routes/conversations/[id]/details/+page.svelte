@@ -18,7 +18,11 @@
   } from "$store/MergedProfileContactInviteStore";
   import MemberListItem from "./MemberListItem.svelte";
   import PrivateConversationImage from "../PrivateConversationImage.svelte";
-  import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
+  import {
+    type CellProfileStore,
+    type ProfileStore,
+    deriveCellProfileStore,
+  } from "$store/ProfileStore";
   import {
     type ConversationTitleStore,
     deriveCellConversationTitleStore,
@@ -34,10 +38,12 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
-  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
-    "provisionedRelayCellId",
-  ).getCellIdB64();
+  const profileStore = getContext<{
+    getStore: () => ProfileStore;
+  }>("profileStore").getStore();
+  const provisionedRelayCellProfileStore = getContext<{
+    getProvisionedRelayCellProfileStore: () => CellProfileStore;
+  }>("profileStore").getProvisionedRelayCellProfileStore();
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
@@ -53,7 +59,7 @@
   let profiles = deriveCellProfileStore(profileStore, $page.params.id);
   let invite = deriveCellInviteStore(inviteStore, $page.params.id);
 
-  $: myProfile = $profiles[myPubKeyB64];
+  $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
   $: invitationTitle =
     $mergedProfileContactList.length === 1
       ? `${myProfile.profile.nickname}`

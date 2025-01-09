@@ -65,6 +65,7 @@ export function deriveGenericKeyValueStore<T>(
   const store = derived(genericKeyKeyValueStore, ($genericKeyKeyValueStore) => ({
     data: $genericKeyKeyValueStore.data[key1] || {},
     list: Object.entries($genericKeyKeyValueStore.data[key1] || {}),
+    count: Object.keys($genericKeyKeyValueStore.data[key1] || []).length,
   }));
 
   return {

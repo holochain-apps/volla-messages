@@ -13,23 +13,20 @@
   import Avatar from "$lib/Avatar.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
-  import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
-  import { type CellIdB64 } from "$lib/types";
+  import { type CellProfileStore, type ProfileStore } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
-  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
-    "provisionedRelayCellId",
-  ).getCellIdB64();
+  const provisionedRelayCellProfileStore = getContext<{
+    getProvisionedRelayCellProfileStore: () => CellProfileStore;
+  }>("profileStore").getProvisionedRelayCellProfileStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
-  $: myProfile = $profiles[myPubKeyB64];
+  $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
 
   let contact = deriveAgentContactStore(contactStore, $page.params.id);
   let conversation = deriveCellConversationStore(

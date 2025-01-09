@@ -5,7 +5,7 @@
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import { getContext } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { type ProfileStore, deriveCellProfileStore } from "$store/ProfileStore";
+  import { type CellProfileStore } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import {
     deriveCellMergedProfileContactInviteListStore,
@@ -24,10 +24,9 @@
   const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
-  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
-  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
-    "provisionedRelayCellId",
-  ).getCellIdB64();
+  const provisionedRelayCellProfileStore = getContext<{
+    getProvisionedRelayCellProfileStore: () => CellProfileStore;
+  }>("profileStore").getProvisionedRelayCellProfileStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -44,14 +43,14 @@
   export let cellIdB64: CellIdB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
-  let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
   let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
+  $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
   $: invitationTitle =
     $mergedProfileContactList.length === 1
-      ? `${$profiles[myPubKeyB64].profile.nickname}`
-      : `${$profiles[myPubKeyB64].profile.nickname} + ${$mergedProfileContactList.length - 1}`;
+      ? myProfile.profile.nickname
+      : `${myProfile.profile.nickname} + ${$mergedProfileContactList.length - 1}`;
 </script>
 
 <div class="flex h-full w-full flex-col items-center justify-center">

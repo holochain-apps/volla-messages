@@ -12,6 +12,7 @@
   import type { ConversationStore } from "$store/ConversationStore";
   import type { ProfileStore } from "$store/ProfileStore";
   import { every } from "lodash-es";
+  import type { InviteStore } from "$store/InviteStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -24,7 +25,7 @@
   let selectedAgentPubKeyB64s: AgentPubKeyB64[] = [];
 
   // Find conversation that contains *all* the selected agents, and no other agents
-  $: conversationWithAllSelectedAgents = Object.entries($profileStore).find(
+  $: conversationWithAllSelectedAgents = $profileStore.list.find(
     ([, cellProfiles]) =>
       every(selectedAgentPubKeyB64s.map((agentPubKeyB64) => agentPubKeyB64 in cellProfiles)) &&
       selectedAgentPubKeyB64s.length === Object.keys(cellProfiles).length - 1,
