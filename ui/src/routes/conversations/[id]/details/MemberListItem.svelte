@@ -1,7 +1,6 @@
 <script lang="ts">
   import Avatar from "$lib/Avatar.svelte";
   import type { CellIdB64 } from "$lib/types";
-  import type { ContactStore } from "$store/ContactStore";
   import { type ConversationStore, deriveCellConversationStore } from "$store/ConversationStore";
   import {
     type MergedProfileContactInviteStore,
@@ -17,7 +16,6 @@
   const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
     "mergedProfileContactStore",
   ).getStore();
-  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -43,8 +41,6 @@
       {$t("common.you")}
     {:else if $mergedProfileContact[agentPubKeyB64] !== undefined}
       {$mergedProfileContact[agentPubKeyB64].profile.nickname}
-    {:else if $contactStore[agentPubKeyB64] !== undefined}
-      {$contactStore[agentPubKeyB64].fullName}
     {/if}
   </span>
 

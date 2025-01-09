@@ -7,7 +7,7 @@
   import ButtonsCopyShareIcon from "$lib/ButtonsCopyShareIcon.svelte";
   import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
+  import { deriveAgentContactStore, type ContactStore } from "$store/ContactStore";
   import { getContext, onDestroy, onMount } from "svelte";
   import { t } from "$translations";
   import Avatar from "$lib/Avatar.svelte";
@@ -31,7 +31,7 @@
   let profiles = deriveCellProfileStore(profileStore, provisionedRelayCellIdB64);
   $: myProfile = $profiles[myPubKeyB64];
 
-  let contact = deriveOneContactStore(contactStore, $page.params.id);
+  let contact = deriveAgentContactStore(contactStore, $page.params.id);
   let conversation = deriveCellConversationStore(
     conversationStore,
     encodeCellIdToBase64($contact.cellId),

@@ -2,7 +2,6 @@ import { derived, type Invalidator, type Subscriber, type Unsubscriber } from "s
 import type { CellIdB64, ProfileExtended } from "$lib/types";
 import type { ProfileStore } from "./ProfileStore";
 import type { ContactStore } from "./ContactStore";
-import type { GenericKeyKeyValueStoreData } from "./GenericKeyKeyValueStore";
 import type { AgentPubKeyB64 } from "@holochain/client";
 import { sortBy, uniq } from "lodash-es";
 import type { GenericKeyValueStoreData } from "./GenericKeyValueStore";
@@ -11,8 +10,10 @@ import type { InviteStore } from "./InviteStore";
 export interface MergedProfileContactInviteStore {
   subscribe: (
     this: void,
-    run: Subscriber<GenericKeyKeyValueStoreData<ProfileExtended>>,
-    invalidate?: Invalidator<GenericKeyKeyValueStoreData<ProfileExtended>> | undefined,
+    run: Subscriber<GenericKeyValueStoreData<GenericKeyValueStoreData<ProfileExtended>>>,
+    invalidate?:
+      | Invalidator<GenericKeyValueStoreData<GenericKeyValueStoreData<ProfileExtended>>>
+      | undefined,
   ) => Unsubscriber;
 }
 
@@ -29,31 +30,41 @@ export function createMergedProfileContactInviteStore(
   contactStore: ContactStore,
   inviteStore: InviteStore,
 ): MergedProfileContactInviteStore {
-  const { subscribe } = derived([profileStore, contactStore, inviteStore], ([$profileStore, $contactStore, $inviteStore]) => {
-    const cellIdB64s = uniq([...Object.keys($profileStore), ...Object.keys($contactStore), ...Object.keys($inviteStore)]);
+  const { subscribe } = derived(
+    [profileStore, contactStore, inviteStore],
+    ([$profileStore, $contactStore, $inviteStore]) => {
+      const cellIdB64s = uniq([
+        ...Object.keys($profileStore),
+        ...$contactStore.list.map((c) => c[0]),
+        ...Object.keys($inviteStore),
+      ]);
 
-    return Object.fromEntries(
-      cellIdB64s.map((cellIdB64) => {
-        const agentPubKeyB64s = uniq([...Object.keys($profileStore[cellIdB64] || []), ...($inviteStore[cellIdB64] || [])]);
+      return Object.fromEntries(
+        cellIdB64s.map((cellIdB64) => {
+          const agentPubKeyB64s = uniq([
+            ...Object.keys($profileStore[cellIdB64] || []),
+            ...($inviteStore[cellIdB64] || []),
+          ]);
 
-        // Return [CellIdB64, {[AgentPubKeyB64]: ProfileExtended}]
-        return [
-          cellIdB64,
-          Object.fromEntries(
-            agentPubKeyB64s.map((agentPubKeyB64) =>
-              // Return [AgentPubKeyB64, ProfileExtended]
-              [
-                agentPubKeyB64,
-                agentPubKeyB64 in $contactStore
-                  ? contactStore.getAsProfileExtended(agentPubKeyB64)
-                  : $profileStore[cellIdB64][agentPubKeyB64],
-              ],
+          // Return [CellIdB64, {[AgentPubKeyB64]: ProfileExtended}]
+          return [
+            cellIdB64,
+            Object.fromEntries(
+              agentPubKeyB64s.map((agentPubKeyB64) =>
+                // Return [AgentPubKeyB64, ProfileExtended]
+                [
+                  agentPubKeyB64,
+                  agentPubKeyB64 in $contactStore
+                    ? contactStore.getAsProfileExtended(agentPubKeyB64)
+                    : $profileStore[cellIdB64][agentPubKeyB64],
+                ],
+              ),
             ),
-          ),
-        ];
-      }),
-    );
-  });
+          ];
+        }),
+      );
+    },
+  );
 
   return {
     subscribe,

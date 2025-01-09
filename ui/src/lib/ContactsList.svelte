@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type ContactStore, deriveContactListStore } from "$store/ContactStore";
+  import { type ContactStore } from "$store/ContactStore";
   import { t } from "$translations";
   import { xor } from "lodash-es";
   import { getContext } from "svelte";
@@ -7,7 +7,6 @@
   import type { AgentPubKeyB64 } from "@holochain/client";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
-  let contactListStore = deriveContactListStore(contactStore);
 
   export let searchQuery: string = "";
   export let selectedAgentPubKeyB64s: AgentPubKeyB64[] = [];
@@ -15,14 +14,14 @@
 
   $: searchQueryNormalized = searchQuery.trim().toLowerCase();
 
-  $: searchResultsExclude = $contactListStore.filter(
+  $: searchResultsExclude = $contactStore.list.filter(
     ([agentPubKeyB64]) => !excludedAgentPubKeyB64s.includes(agentPubKeyB64),
   );
 
   // Derive the list of contacts to display, filtered by the search input
   $: searchResults =
     searchQueryNormalized.length > 0
-      ? searchResultsExclude.filter(([agentPubKeyB64, contactExtended]) =>
+      ? searchResultsExclude.filter(([, contactExtended]) =>
           contactExtended.fullName.toLowerCase().includes(searchQueryNormalized),
         )
       : searchResultsExclude;
