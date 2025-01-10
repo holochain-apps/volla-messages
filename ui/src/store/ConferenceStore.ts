@@ -1,13 +1,17 @@
-import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64} from "@holochain/client";
+import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
 import { get, type Subscriber, type Invalidator, type Unsubscriber } from "svelte/store";
-import { createGenericKeyValueStore, type GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import { 
+  createGenericKeyValueStore, 
+  type GenericKeyValueStore,
+  type GenericKeyValueStoreDataExtended,
+  deriveGenericValueStore
+} from "./generic/GenericKeyValueStore";
 import { RelayClient } from "./RelayClient";
 import {
   type ConferenceState,
   type SignalPayload,
   CallSignalType,
 } from "$lib/types";
-
 export interface ConferenceStore {
   initialize: () => Promise<void>;
   createConference: (title: string, participants: AgentPubKeyB64[]) => Promise<string>;
@@ -17,14 +21,20 @@ export interface ConferenceStore {
   handleSignalReceived: (roomId: string, signal: SignalPayload) => Promise<void>;
   initializeWebRTC: (roomId: string) => Promise<void>;
   cleanupWebRTC: (roomId: string) => void;
+  getConference: (roomId: string) => ConferenceState;
+  setConference: (roomId: string, state: ConferenceState) => void;
+  updateConference: (roomId: string, updater: (state: ConferenceState) => ConferenceState) => void;
+  removeConference: (roomId: string) => void;
   subscribe: (
-    run: Subscriber<GenericKeyValueStoreData<ConferenceState>>,
-    invalidate?: Invalidator<GenericKeyValueStoreData<ConferenceState>>
+    run: Subscriber<GenericKeyValueStoreDataExtended<ConferenceState>>,
+    invalidate?: Invalidator<GenericKeyValueStoreDataExtended<ConferenceState>>
   ) => Unsubscriber;
 }
 
 export function createConferenceStore(client: RelayClient): ConferenceStore {
-  const conferences = createGenericKeyValueStore<ConferenceState>();
+  const conferences: GenericKeyValueStore<ConferenceState> = createGenericKeyValueStore<ConferenceState>([
+    ([_, conference]) => conference.room.created_at
+  ]);
 
   const RTCConfig = {
     iceServers: [
@@ -56,41 +66,24 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       ended: false
     };
 
-    conferences.update(c => ({
-      ...c,
-      [room.room_id]: state
-    }));
-
+    conferences.setKeyValue(room.room_id, state);
     return room.room_id;
   }
 
   async function joinConference(roomId: string): Promise<void> {
     await client.joinConference(decodeHashFromBase64(roomId));
-    
     // Updating the conference state to mark as joined
-    conferences.update(c => {
-      const conf = c[roomId];
-      if (!conf) return c;
-      
-      return {
-        ...c,
-        [roomId]: {
-          ...conf,
-          isInitiator: false
-        }
-      };
-    });
+    conferences.updateKeyValue(roomId, (conf) => ({
+      ...conf,
+      isInitiator: false
+    }));
   }
 
   async function leaveConference(roomId: string): Promise<void> {
     await client.leaveConference(decodeHashFromBase64(roomId));
     cleanupWebRTC(roomId);
-    
     // Removing the conference from state
-    conferences.update(c => {
-      const { [roomId]: _, ...rest } = c;
-      return rest;
-    });
+    conferences.removeKeyValue(roomId);
   }
 
   async function sendSignal(
@@ -108,7 +101,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
   }
 
   async function handleSignalReceived(roomId: string, signal: SignalPayload): Promise<void> {
-    const state = get(conferences)[roomId];
+    const state = conferences.getKeyValue(roomId);
     if (!state) return;
 
     const participant = state.participants.get(encodeHashToBase64(signal.from));
@@ -141,7 +134,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
   }
 
   async function initializeWebRTC(roomId: string): Promise<void> {
-    const state = get(conferences)[roomId];
+    const state = conferences.getKeyValue(roomId);
     if (!state) return;
 
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -150,12 +143,9 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     });
 
     // Updating the state with local stream
-    conferences.update(c => ({
-      ...c,
-      [roomId]: {
-        ...c[roomId],
-        localStream: stream
-      }
+    conferences.updateKeyValue(roomId, (conf) => ({
+      ...conf,
+      localStream: stream
     }));
 
     // Initialising the peer connections for all participants
@@ -180,13 +170,10 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       };
 
       peerConnection.ontrack = (event) => {
-        conferences.update(c => {
-          const conf = c[roomId];
-          if (!conf) return c;
-
+        conferences.updateKeyValue(roomId, (conf) => {
           const participants = new Map(conf.participants);
           const participant = participants.get(pubKey);
-          if (!participant) return c;
+          if (!participant) return conf;
 
           participants.set(pubKey, {
             ...participant,
@@ -195,20 +182,14 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
           });
 
           return {
-            ...c,
-            [roomId]: {
-              ...conf,
-              participants
-            }
+            ...conf,
+            participants
           };
         });
       };
 
       // Updating the participant with peer connection
-      conferences.update(c => {
-        const conf = c[roomId];
-        if (!conf) return c;
-
+      conferences.updateKeyValue(roomId, (conf) => {
         const participants = new Map(conf.participants);
         participants.set(pubKey, {
           ...participant,
@@ -216,11 +197,8 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
         });
 
         return {
-          ...c,
-          [roomId]: {
-            ...conf,
-            participants
-          }
+          ...conf,
+          participants
         };
       });
 
@@ -239,7 +217,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
   }
 
   function cleanupWebRTC(roomId: string): void {
-    const state = get(conferences)[roomId];
+    const state = conferences.getKeyValue(roomId);
     if (!state) return;
 
     state.localStream?.getTracks().forEach(track => track.stop());
@@ -251,6 +229,11 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     }
   }
 
+  // Derived store for a specific conference
+  function deriveConferenceStore(roomId: string) {
+    return deriveGenericValueStore(conferences, roomId);
+  }
+
   return {
     initialize,
     createConference,
@@ -260,6 +243,10 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     handleSignalReceived,
     initializeWebRTC,
     cleanupWebRTC,
-    subscribe: conferences.subscribe
+    getConference: conferences.getKeyValue,
+    setConference: conferences.setKeyValue,
+    updateConference: conferences.updateKeyValue,
+    removeConference: conferences.removeKeyValue,
+    subscribe: conferences.subscribe,
   };
 }
