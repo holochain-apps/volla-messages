@@ -1,6 +1,6 @@
 <script lang="ts">
   import SvgIcon from "./SvgIcon.svelte";
-  export let moreClasses: string;
+  export let moreClasses: string = "";
 </script>
 
 <button
