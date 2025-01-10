@@ -14,11 +14,9 @@
   import toast from "svelte-french-toast";
   import { page } from "$app/stores";
 
-  const allContactsStore = getContext<{ getStore: () => ContactStore }>(
-    "allContactsStore",
-  ).getStore();
+  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
 
-  let contact = deriveAgentContactStore(allContactsStore, $page.params.id);
+  let contact = deriveAgentContactStore(contactStore, $page.params.id);
   let newContact = get(contact).contact;
   let saving = false;
 

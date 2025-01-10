@@ -42,9 +42,9 @@
   const provisionedRelayCellProfileStore = getContext<{
     getProvisionedRelayCellProfileStore: () => CellProfileStore;
   }>("profileStore").getProvisionedRelayCellProfileStore();
-  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
-    "conversationTitleStore",
-  ).getStore();
+  const conversationTitleStore = getContext<{
+    getStore: () => ConversationTitleStore;
+  }>("conversationTitleStore").getStore();
   const mergedProfileContactInviteJoinedStore = getContext<{
     getStore: () => MergedProfileContactInviteJoinedStore;
   }>("mergedProfileContactInviteJoinedStore").getStore();
@@ -132,7 +132,8 @@
         {title}
       </h1>
 
-      {#if $conversation.dnaProperties.privacy === Privacy.Public}
+      <!-- Don't let the user edit the title unless we actually have the conversation Config (with a prior user-created title) -->
+      {#if $conversation.dnaProperties.privacy === Privacy.Public && $conversation.config !== undefined}
         <ButtonIconBare
           on:click={() => (editingTitle = true)}
           icon="write"
