@@ -98,13 +98,14 @@
       bind:value={agentPubKeyB64}
       minlength={1}
     />
-
-    {#if !isAgentPubKeyB64Valid && agentPubKeyB64.length > 0}
-      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.invalid_contact_code")}</p>
-    {:else if !isContactNewAgent && !editMode}
-      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.contact_already_exist")}</p>
-    {:else if !isContactOtherAgent}
-      <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.cant_add_yourself")}</p>
+    {#if !saving}
+      {#if !isAgentPubKeyB64Valid && agentPubKeyB64.length > 0}
+        <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.invalid_contact_code")}</p>
+      {:else if !isContactNewAgent && !editMode}
+        <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.contact_already_exist")}</p>
+      {:else if !isContactOtherAgent}
+        <p class="text-error-500 ml-1 mt-1 text-xs">{$t("common.cant_add_yourself")}</p>
+      {/if}
     {/if}
 
     {#if !agentPubKeyB64}
