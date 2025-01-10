@@ -7,21 +7,20 @@
   import { MIN_FIRST_NAME_LENGTH } from "$config";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import ProfileNameInput from "./ProfileNameInput.svelte";
-  import type { AgentPubKeyB64, CellId } from "@holochain/client";
+  import type { AgentPubKeyB64 } from "@holochain/client";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
-  import type { ProfileStore } from "$store/ProfileStore";
-  import { encodeCellIdToBase64 } from "$lib/utils";
+  import { type CellProfileStore, type ProfileStore } from "$store/ProfileStore";
 
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
+  const provisionedRelayCellProfileStore = getContext<{
+    getProvisionedRelayCellProfileStore: () => CellProfileStore;
+  }>("profileStore").getProvisionedRelayCellProfileStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
-    "provisionedRelayCellId",
-  ).getCellId();
 
-  $: myProfileExtended = $profileStore[encodeCellIdToBase64(provisionedRelayCellId)][myPubKeyB64];
+  $: myProfileExtended = $provisionedRelayCellProfileStore.data[myPubKeyB64];
 
   let saving = false;
   let editingName = false;
@@ -32,7 +31,7 @@
 
     saving = true;
     try {
-      await profileStore.update({
+      await profileStore.updateProfile({
         firstName: firstNameVal,
         lastName: lastNameVal,
         avatar: avatarVal,

@@ -11,7 +11,7 @@
   import InputContactsSelect from "$lib/InputContactsSelect.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import {
-    deriveCellMergedProfileContactInviteListStore,
+    deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import { uniq } from "lodash-es";
@@ -20,17 +20,17 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
   const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
-  let profiles = deriveCellMergedProfileContactInviteListStore(
-    mergedProfileContactStore,
+  let profiles = deriveCellMergedProfileContactInviteStore(
+    mergedProfileContactInviteStore,
     $page.params.id,
     myPubKeyB64,
   );
@@ -39,7 +39,7 @@
   let searchQuery = "";
   let saving = false;
 
-  $: conversationMemberAgentPubKeyB64s = uniq([...$invite, ...$profiles.map(([a]) => a)]);
+  $: conversationMemberAgentPubKeyB64s = uniq([...$invite, ...$profiles.list.map(([a]) => a)]);
 
   async function inviteContacts(selectedContacts: AgentPubKeyB64[]) {
     if (selectedContacts.length === 0) return;
@@ -58,7 +58,7 @@
 <Header
   back
   title={$t("common.add_people", {
-    public: $conversation.conversation.dnaProperties.privacy === Privacy.Public,
+    public: $conversation.dnaProperties.privacy === Privacy.Public,
   })}
 />
 <div class="relative mx-auto flex w-full flex-1 flex-col items-center p-5">

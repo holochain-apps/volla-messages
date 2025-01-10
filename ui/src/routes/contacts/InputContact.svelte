@@ -43,7 +43,7 @@
       isAgentPubKeyB64Valid = false;
     }
   }
-  $: isContactNewAgent = !(agentPubKeyB64 in $contactStore);
+  $: isContactNewAgent = !(agentPubKeyB64 in $contactStore.data);
   $: isContactOtherAgent = myPubKeyB64 !== agentPubKeyB64;
   $: valid =
     isFirstNameValid &&

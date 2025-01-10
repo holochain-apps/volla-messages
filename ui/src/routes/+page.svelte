@@ -18,7 +18,7 @@
   ).getMyPubKeyB64();
 
   onMount(() => {
-    if (Object.keys($conversationStore.conversations).length > 0) {
+    if ($conversationStore.count > 0) {
       goto("/conversations");
     }
   });

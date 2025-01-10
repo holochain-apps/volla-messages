@@ -12,45 +12,48 @@
   import PrivateConversationImage from "./PrivateConversationImage.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
-  import {
-    deriveCellConversationMessagesListStore,
-    deriveCellConversationStore,
-    type ConversationStore,
-  } from "$store/ConversationStore";
+  import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
   import { toast } from "svelte-french-toast";
-  import {
-    deriveCellMergedProfileContactInviteListStore,
-    type MergedProfileContactInviteStore,
-  } from "$store/MergedProfileContactInviteStore";
   import {
     type ConversationTitleStore,
     deriveCellConversationTitleStore,
   } from "$store/ConversationTitleStore";
+  import {
+    deriveCellConversationMessageStore,
+    type ConversationMessageStore,
+  } from "$store/ConversationMessageStore";
+  import {
+    deriveCellMergedProfileContactInviteJoinedStore,
+    type MergedProfileContactInviteJoinedStore,
+  } from "$store/MergedProfileContactInviteJoinedStore";
+  import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
+  const mergedProfileContactInviteJoinedStore = getContext<{
+    getStore: () => MergedProfileContactInviteJoinedStore;
+  }>("mergedProfileContactInviteJoinedStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
+  const conversationMessageStore = getContext<{ getStore: () => ConversationMessageStore }>(
+    "conversationMessageStore",
+  ).getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
-  let messagesList = deriveCellConversationMessagesListStore(conversation);
+  let messages = deriveCellConversationMessageStore(conversationMessageStore, $page.params.id);
   let profiles = deriveCellProfileStore(profileStore, $page.params.id);
-  let mergedProfileContactList = deriveCellMergedProfileContactInviteListStore(
-    mergedProfileContactStore,
-    $page.params.id,
-    myPubKeyB64,
-  );
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
+  let joined = deriveCellMergedProfileContactInviteJoinedStore(
+    mergedProfileContactInviteJoinedStore,
+    $page.params.id,
+  );
 
   let configTimeout: NodeJS.Timeout;
   let agentTimeout: NodeJS.Timeout;
@@ -65,11 +68,11 @@
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
 
-  $: iAmProgenitor = $conversation.conversation.dnaProperties.progenitor === myPubKeyB64;
+  $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
 
   // Reactive update to scroll to the bottom every time the messages update,
   // but only if the user is near the bottom already
-  $: if ($messagesList.length > 0) {
+  $: if ($messages.count > 0) {
     if (scrollAtBottom) {
       scrollToBottom(100);
     }
@@ -81,10 +84,14 @@
   async function loadProfiles() {
     await profiles.load();
 
-    if ($mergedProfileContactList.length < 2) {
+    if ($joined.count < 2) {
       agentTimeout = setTimeout(() => {
         loadProfiles();
-      }, 2000);
+      }, POLLING_INTERVAL_FAST);
+    } else {
+      agentTimeout = setTimeout(() => {
+        loadProfiles();
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 
@@ -97,10 +104,14 @@
   async function loadConfig() {
     await conversation.loadConfig();
 
-    if ($conversation.conversation.config === undefined) {
+    if ($conversation.config === undefined) {
       configTimeout = setTimeout(() => {
         loadConfig();
-      }, 2000);
+      }, POLLING_INTERVAL_FAST);
+    } else {
+      configTimeout = setTimeout(() => {
+        loadConfig();
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 
@@ -108,12 +119,16 @@
    * Fetch messages from current bucket every 2s, until any messages are received.
    */
   async function loadMessages() {
-    await messagesList.loadCurrentBucket();
+    await messages.loadMessagesInCurrentBucket();
 
-    if ($messagesList.length === 0) {
+    if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
         loadMessages();
-      }, 2000);
+      }, POLLING_INTERVAL_FAST);
+    } else {
+      messageTimeout = setTimeout(() => {
+        loadMessages();
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 
@@ -135,7 +150,7 @@
 
     const atTop = conversationContainerRef.scrollTop < SCROLL_TOP_THRESHOLD;
     if (!scrollAtTop && atTop) {
-      messagesList.loadPreviousBucket();
+      messages.loadMessagesInPreviousBucket();
     }
     scrollAtTop = atTop;
     scrollAtBottom =
@@ -159,7 +174,7 @@
 
     sending = true;
     try {
-      await conversation.sendMessage(text, files);
+      await messages.sendMessage(text, files);
     } catch (e) {
       console.error(e);
       toast.error(`${$t("common.error_sending_message")}: ${e.message}`);
@@ -205,7 +220,7 @@
       on:click={() => goto(`/conversations/${$page.params.id}/details`)}
     />
 
-    {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
+    {#if $conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
       <ButtonIconBare
         moreClasses="h-[24px] w-[24px]"
         moreClassesButton="p-4"
@@ -221,11 +236,11 @@
     class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
     bind:this={conversationContainerRef}
   >
-    {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private}
+    {#if $conversation.dnaProperties.privacy === Privacy.Private}
       <PrivateConversationImage cellIdB64={$page.params.id} />
-    {:else if $conversation.conversation.config?.image}
+    {:else if $conversation.config?.image}
       <img
-        src={$conversation.conversation.config.image}
+        src={$conversation.config.image}
         alt="Conversation"
         class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
       />
@@ -235,15 +250,15 @@
 
     <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
     <div class="text-left text-sm">
-      {$t("common.num_members", { count: $mergedProfileContactList.length })}
+      {$t("common.num_members", { count: $joined.count })}
     </div>
 
-    {#if $messagesList.length === 0 && iAmProgenitor && $mergedProfileContactList.length === 1}
+    {#if $messages.count === 0 && iAmProgenitor && $joined.count === 1}
       <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
       <ConversationEmpty cellIdB64={$page.params.id} />
     {:else}
       <!-- Display conversation messages -->
-      <ConversationMessages cellIdB64={$page.params.id} messages={$messagesList} />
+      <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
     {/if}
   </div>
 </div>

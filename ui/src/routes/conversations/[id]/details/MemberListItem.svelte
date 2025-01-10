@@ -1,7 +1,6 @@
 <script lang="ts">
   import Avatar from "$lib/Avatar.svelte";
   import type { CellIdB64 } from "$lib/types";
-  import type { ContactStore } from "$store/ContactStore";
   import { type ConversationStore, deriveCellConversationStore } from "$store/ConversationStore";
   import {
     type MergedProfileContactInviteStore,
@@ -14,10 +13,9 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
-  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -27,11 +25,12 @@
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
+    mergedProfileContactInviteStore,
     cellIdB64,
+    myPubKeyB64,
   );
 
-  $: isAdmin = agentPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
+  $: isAdmin = agentPubKeyB64 === $conversation.dnaProperties.progenitor;
   $: isMe = agentPubKeyB64 === myPubKeyB64;
 </script>
 
@@ -41,10 +40,8 @@
   <span class="ml-4 flex-1 text-sm font-bold">
     {#if isMe}
       {$t("common.you")}
-    {:else if $mergedProfileContact[agentPubKeyB64] !== undefined}
-      {$mergedProfileContact[agentPubKeyB64].profile.nickname}
-    {:else if $contactStore[agentPubKeyB64] !== undefined}
-      {$contactStore[agentPubKeyB64].fullName}
+    {:else if $mergedProfileContact.data[agentPubKeyB64] !== undefined}
+      {$mergedProfileContact.data[agentPubKeyB64].profile.nickname}
     {/if}
   </span>
 
