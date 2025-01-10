@@ -87,12 +87,6 @@ export interface MessageFile {
   storage_entry_hash: EntryHash;
 }
 
-export interface MessageFileExtended {
-  messageFile: MessageFile;
-  status: FileStatus;
-  dataURL?: string;
-}
-
 /**
  * Conversation Message
  */
@@ -106,7 +100,6 @@ export interface Message {
 
 export interface MessageExtended {
   message: Message;
-  messageFileExtendeds: MessageFileExtended[];
   authorAgentPubKeyB64: AgentPubKeyB64;
   timestamp: number;
 }
@@ -275,6 +268,10 @@ export enum FileStatus {
   Error,
 }
 
+export interface FileExtended {
+  file?: File;
+  status: FileStatus;
+}
 
 /* Conference */
 

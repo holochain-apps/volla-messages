@@ -46,6 +46,7 @@
     type MergedProfileContactInviteJoinedStore,
     type MergedProfileContactInviteUnjoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
+  import { createFileStore, type FileStore } from "$store/FileStore";
   import { createConferenceStore, type ConferenceStore } from "$store/ConferenceStore";
 
   // Holochain client
@@ -59,6 +60,7 @@
   let contactStore: ContactStore;
   let mergedProfileContactInviteStore: MergedProfileContactInviteStore;
   let conversationStore: ConversationStore;
+  let fileStore: FileStore;
   let conversationTitleStore: ConversationTitleStore;
   let conversationMessageStore: ConversationMessageStore;
   let conversationLatestMessageStore: ConversationLatestMessageStore;
@@ -151,10 +153,12 @@
         inviteStore,
       );
       conversationStore = createConversationStore(relayClient);
+      fileStore = createFileStore(relayClient);
       conversationMessageStore = createConversationMessageStore(
         relayClient,
         conversationStore,
         mergedProfileContactInviteStore,
+        fileStore,
       );
       conversationLatestMessageStore = createConversationLatestMessageStore(
         conversationStore,
@@ -245,6 +249,10 @@
 
   setContext("conversationStore", {
     getStore: () => conversationStore,
+  });
+
+  setContext("fileStore", {
+    getStore: () => fileStore,
   });
 
   setContext("conversationTitleStore", {

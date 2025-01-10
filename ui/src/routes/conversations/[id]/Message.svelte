@@ -9,11 +9,12 @@
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
   import MessageFilePreview from "./MessageFilePreview.svelte";
-  import type { AgentPubKeyB64 } from "@holochain/client";
+  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import {
     deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
+  import AgentNickname from "$lib/AgentNickname.svelte";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
@@ -26,7 +27,6 @@
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
-  export let showDate: boolean = false;
 
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactInviteStore,
@@ -35,20 +35,7 @@
   );
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
-  $: authorNickname = $mergedProfileContact.data[message.authorAgentPubKeyB64].profile.nickname;
 </script>
-
-{#if showDate}
-  <li class="mb-2 mt-auto">
-    <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
-      {new Date(message.timestamp / 1000).toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })}
-    </div>
-  </li>
-{/if}
 
 <button
   class="message-content mt-3 block w-full border-0 text-left
@@ -61,7 +48,7 @@
   use:clickoutside
   on:clickoutside
   aria-pressed={isSelected}
-  aria-label={`Message from ${fromMe ? "you" : authorNickname}`}
+  aria-label="Message"
 >
   <div class="flex {fromMe ? 'justify-end' : 'justify-start'}">
     {#if !fromMe && showAuthor}
@@ -78,16 +65,19 @@
     <div class="max-w-3/4 ml-3 w-auto {fromMe && 'items-end text-end'}">
       {#if showAuthor}
         <span class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}">
-          <span class="font-bold">{fromMe ? "You" : authorNickname}</span>
+          <AgentNickname cellIdB64={cellIdB64} agentPubKeyB64={message.authorAgentPubKeyB64} />
           <span class="text-xxs mx-2">
             <Time timestamp={message.timestamp / 1000} format="h:mma" />
           </span>
         </span>
       {/if}
 
-      {#each message.messageFileExtendeds as file}
+      {#each message.message.images as file}
         <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-          <MessageFilePreview {file} align={fromMe ? Alignment.Right : Alignment.Left} />
+          <MessageFilePreview
+            entryHashB64={encodeHashToBase64(file.storage_entry_hash)}
+            align={fromMe ? Alignment.Right : Alignment.Left}
+          />
         </div>
       {/each}
 

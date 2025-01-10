@@ -5,22 +5,15 @@ import {
   type Message,
   type MessageExtended,
   type MessageFile,
-  type MessageFileExtended,
   type MessageRecord,
   type MessageSignal,
   type ProfileExtended,
 } from "$lib/types";
-import {
-  encodeCellIdToBase64,
-  decodeCellIdFromBase64,
-  enqueueNotification,
-  fileToDataUrl,
-} from "$lib/utils";
+import { encodeCellIdToBase64, decodeCellIdFromBase64, enqueueNotification } from "$lib/utils";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import { decodeHashFromBase64, encodeHashToBase64, type CellId } from "@holochain/client";
 import { difference, sortBy } from "lodash-es";
-import pRetry from "p-retry";
 import type { ConversationStore } from "./ConversationStore";
 import {
   createGenericKeyKeyValueStore,
@@ -34,11 +27,13 @@ import {
 import type { RelayClient } from "./RelayClient";
 import { derived, get } from "svelte/store";
 import type { GenericKeyValueStoreReadable } from "./generic/GenericKeyValueStore";
+import { TARGET_MESSAGES_COUNT } from "$config";
+import type { FileStore } from "./FileStore";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
-  loadMessagesInCurrentBucket: (key1: CellIdB64) => Promise<void>;
-  loadMessagesInPreviousBucket: (key1: CellIdB64) => Promise<void>;
+  loadMessagesInCurrentBucketTargetCount: (key1: CellIdB64) => Promise<void>;
+  loadMessagesInPreviousBucketTargetCount: (key1: CellIdB64) => Promise<void>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
 }
@@ -47,6 +42,7 @@ export function createConversationMessageStore(
   client: RelayClient,
   conversationStore: ConversationStore,
   mergedProfileContactInviteStore: MergedProfileContactInviteStore,
+  fileStore: FileStore,
 ): ConversationMessageStore {
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
 
@@ -98,7 +94,7 @@ export function createConversationMessageStore(
     // Load first bucket of messages
     await Promise.allSettled(
       cellInfos.map(async (cellInfo) =>
-        loadMessagesInCurrentBucket(encodeCellIdToBase64(cellInfo.cell_id)),
+        loadMessagesInCurrentBucketTargetCount(encodeCellIdToBase64(cellInfo.cell_id)),
       ),
     );
   }
@@ -113,7 +109,7 @@ export function createConversationMessageStore(
     );
     const messageFiles = await Promise.all(
       files.map(async (file) => {
-        const entryHash = await fileStorageClient.uploadFile(file.file);
+        const entryHash = await fileStore.upload(key1, file.file);
 
         const messageFile: MessageFile = {
           last_modified: file.file.lastModified,
@@ -163,33 +159,54 @@ export function createConversationMessageStore(
   }
 
   /**
-   * Load messages in bucket for the current timestamp
+   * Load messages, starting at the given bucket and working bakckwards,
+   * until at least a targetCount have been fetched.
    *
    * @param key1 CellIdB64
    * @returns
    */
-  async function loadMessagesInCurrentBucket(key1: CellIdB64) {
-    return _loadMessagesInBucket(key1, conversationStore.getBucket(key1, new Date().getTime()));
+  async function _loadMessagesFromBucketTargetCount(
+    key1: CellIdB64,
+    bucket: number,
+    targetCount: number = TARGET_MESSAGES_COUNT,
+  ) {
+    let count = 0;
+    while (count <= targetCount && bucket >= 0) {
+      count = await _loadMessagesInBucket(key1, bucket);
+      console.log("loadmessagesfrombucket", count, bucket);
+
+      bucket -= 1;
+    }
   }
 
   /**
-   * Load Messages in bucket before the oldest loaded bucket.
+   * Load messages, starting at the current bucket and working bakckwards,
+   * until at least a targetCount have been fetched.
    *
-   * i.e. the newest bucket that has not been loaded yet
    * @param key1 CellIdB64
    * @returns
    */
-  async function loadMessagesInPreviousBucket(key1: CellIdB64) {
+  async function loadMessagesInCurrentBucketTargetCount(key1: CellIdB64) {
+    let bucket = conversationStore.getBucket(key1, new Date().getTime());
+
+    return _loadMessagesFromBucketTargetCount(key1, bucket);
+  }
+
+  /**
+   * Load messages, starting at the oldest stored message's bucket and working bakckwards,
+   * until at least a targetCount have been fetched.
+   *
+   * @param key1 CellIdB64
+   * @returns
+   */
+  async function loadMessagesInPreviousBucketTargetCount(key1: CellIdB64) {
     const messagesSorted = sortBy(Object.entries(get(messages).data[key1] || {}), [
       ([, m]) => -1 * m.timestamp,
     ]);
-    const oldestBucketLoaded = messagesSorted[messagesSorted.length - 1];
-    if (oldestBucketLoaded === undefined) return;
+    const oldestMessageLoaded = messagesSorted[messagesSorted.length - 1];
+    if (oldestMessageLoaded === undefined) return;
 
-    return _loadMessagesInBucket(
-      key1,
-      conversationStore.getBucket(key1, oldestBucketLoaded[1].timestamp) - 1,
-    );
+    return _loadMessagesFromBucketTargetCount(key1, oldestMessageLoaded[1].message.bucket - 1);
   }
 
   async function handleMessageSignalReceived(key1: CellIdB64, signal: MessageSignal) {
@@ -221,7 +238,7 @@ export function createConversationMessageStore(
     _triggerMessageNotification(messageExtended, fromProfile);
   }
 
-  async function _loadMessagesInBucket(key1: CellIdB64, bucket: number) {
+  async function _loadMessagesInBucket(key1: CellIdB64, bucket: number): Promise<number> {
     const m = get(messages).data[key1];
 
     // Fetch message hashes from bucket
@@ -258,7 +275,8 @@ export function createConversationMessageStore(
         .filter((p) => p.status === "fulfilled")
         .map((p) => p.value),
     );
-    if (Object.keys(data || {}).length === 0) return;
+    const count = Object.keys(data || {}).length;
+    if (count === 0) return 0;
 
     // Update writable
     messages.update((c) => ({
@@ -268,6 +286,8 @@ export function createConversationMessageStore(
         ...data,
       },
     }));
+
+    return count;
   }
 
   async function _triggerMessageNotification(
@@ -296,53 +316,26 @@ export function createConversationMessageStore(
       "file_storage",
       cellId,
     );
-    const messageFileExtendeds = await Promise.all(
-      messageRecord.message.images.map(async (i) => _loadMessageFile(fileStorageClient, i)),
+
+    messageRecord.message.images.forEach((messageFile) =>
+      fileStore.download(
+        encodeCellIdToBase64(cellId),
+        encodeHashToBase64(messageFile.storage_entry_hash),
+      ),
     );
 
     return {
       message: messageRecord.message,
-      messageFileExtendeds,
       authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
       timestamp: messageRecord.signed_action.hashed.content.timestamp,
     };
   }
 
-  async function _loadMessageFile(
-    fileStorageClient: FileStorageClient,
-    messageFile: MessageFile,
-  ): Promise<MessageFileExtended> {
-    try {
-      // Download image file, retrying up to 10 times if download fails
-      const file = await pRetry(
-        () => fileStorageClient.downloadFile(messageFile.storage_entry_hash),
-        {
-          retries: 10,
-          minTimeout: 1000,
-          factor: 2,
-          onFailedAttempt: (e) => {
-            console.error(
-              `Failed to download file from hash ${encodeHashToBase64(messageFile.storage_entry_hash)}`,
-              e,
-            );
-          },
-        },
-      );
-
-      // Convert image blob to data url
-      const dataURL = await fileToDataUrl(file);
-
-      return { messageFile, status: FileStatus.Loaded, dataURL };
-    } catch (e) {
-      return { messageFile, status: FileStatus.Error, dataURL: undefined };
-    }
-  }
-
   return {
     ...messages,
     initialize,
-    loadMessagesInCurrentBucket,
-    loadMessagesInPreviousBucket,
+    loadMessagesInCurrentBucketTargetCount,
+    loadMessagesInPreviousBucketTargetCount,
     sendMessage,
     handleMessageSignalReceived,
     subscribe,
@@ -352,8 +345,8 @@ export function createConversationMessageStore(
 export interface CellConversationMessageStore
   extends GenericKeyValueStoreReadable<MessageExtended> {
   initialize: () => Promise<void>;
-  loadMessagesInCurrentBucket: (key1: CellIdB64) => Promise<void>;
-  loadMessagesInPreviousBucket: (key1: CellIdB64) => Promise<void>;
+  loadMessagesInCurrentBucketTargetCount: (key1: CellIdB64, targetCount: number) => Promise<void>;
+  loadMessagesInPreviousBucketTargetCount: (key1: CellIdB64) => Promise<void>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
 }
@@ -366,8 +359,10 @@ export function deriveCellConversationMessageStore(
 
   return {
     ...data,
-    loadMessagesInCurrentBucket: () => conversationMessageStore.loadMessagesInCurrentBucket(key),
-    loadMessagesInPreviousBucket: () => conversationMessageStore.loadMessagesInPreviousBucket(key),
+    loadMessagesInCurrentBucketTargetCount: () =>
+      conversationMessageStore.loadMessagesInCurrentBucketTargetCount(key),
+    loadMessagesInPreviousBucketTargetCount: () =>
+      conversationMessageStore.loadMessagesInPreviousBucketTargetCount(key),
     sendMessage: (content: string, files: LocalFile[]) =>
       conversationMessageStore.sendMessage(key, content, files),
     handleMessageSignalReceived: (signal: MessageSignal) =>
