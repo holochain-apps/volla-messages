@@ -52,7 +52,8 @@ export async function enqueueNotification(title: string, body: string) {
     const hasPermission = await isPermissionGranted();
     if (!hasPermission) {
       const permission = await requestPermission();
-      if (permission !== "granted") throw new Error("Permission to create notifications denied");
+      if (permission !== "granted")
+        throw new Error("Permission to create notifications denied");
     }
 
     sendNotification({ title, body });
@@ -69,30 +70,6 @@ export async function enqueueNotification(title: string, body: string) {
 export function isMobile(): boolean {
   const val = platform();
   return val === "android" || val === "ios";
-}
-
-/**
- * Convert file to data url
- *
- * @param file
- * @returns
- */
-export async function fileToDataUrl(file: File): Promise<string> {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-
-  return new Promise((resolve, reject) => {
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(
-          "Failed to convert File to Image: File contents are not a string"
-        );
-      }
-    };
-    reader.onerror = (e) => reject(`Failed to convert File to Image: ${e}`);
-  });
 }
 
 function setLightDarkMode(value: boolean) {
@@ -164,7 +141,10 @@ export function makeFullName(firstName: string, lastName?: string): string {
 }
 
 export function encodeCellIdToBase64(cellId: CellId): CellIdB64 {
-  return Base64.fromUint8Array(new Uint8Array([...cellId[0], ...cellId[1]]), true);
+  return Base64.fromUint8Array(
+    new Uint8Array([...cellId[0], ...cellId[1]]),
+    true
+  );
 }
 
 export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
