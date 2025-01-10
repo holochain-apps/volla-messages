@@ -21,7 +21,7 @@ export interface ContactStore {
   create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
   update: (key: AgentPubKeyB64, val: Contact) => Promise<void>;
   getHasAgentJoinedDht: (key: AgentPubKeyB64) => Promise<boolean>;
-  getAsProfileExtended: (key: AgentPubKeyB64) => ProfileExtended;
+  makeProfileExtended: (c: ContactExtended) => ProfileExtended;
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyValueStoreDataExtended<ContactExtended>>,
@@ -122,11 +122,8 @@ export function createContactStore(client: RelayClient): ContactStore {
    * @param agentPubKeyB64
    * @returns
    */
-  function getAsProfileExtended(agentPubKeyB64: AgentPubKeyB64): ProfileExtended {
-    const c = contacts.getKeyValue(agentPubKeyB64);
-
+  function makeProfileExtended(c: ContactExtended): ProfileExtended {
     return {
-      publicKeyB64: c.publicKeyB64,
       profile: {
         nickname: c.fullName,
         fields: {
@@ -135,6 +132,7 @@ export function createContactStore(client: RelayClient): ContactStore {
           avatar: c.contact.avatar,
         },
       },
+      publicKeyB64: c.publicKeyB64,
     };
   }
 
@@ -195,7 +193,7 @@ export function createContactStore(client: RelayClient): ContactStore {
     update,
 
     getHasAgentJoinedDht,
-    getAsProfileExtended,
+    makeProfileExtended,
 
     subscribe: contacts.subscribe,
   };
@@ -220,7 +218,7 @@ export function deriveAgentContactStore(
   return {
     update: (val: Contact) => contactStore.update(agentPubKeyB64, val),
     getHasAgentJoinedDht: () => contactStore.getHasAgentJoinedDht(agentPubKeyB64),
-    getAsProfileExtended: () => contactStore.getAsProfileExtended(agentPubKeyB64),
+    makeProfileExtended: (val: ContactExtended) => contactStore.makeProfileExtended(val),
     subscribe,
   };
 }

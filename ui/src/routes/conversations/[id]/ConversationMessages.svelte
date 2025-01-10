@@ -1,37 +1,13 @@
 <script lang="ts">
-  import { isMobile, isSameDay } from "$lib/utils";
+  import { isMobile, isSameDay, isWithinFiveMinutes } from "$lib/utils";
   import type { ActionHashB64, AgentPubKeyB64 } from "@holochain/client";
   import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
-  import { getContext } from "svelte";
-  import {
-    deriveCellMergedProfileContactInviteStore,
-    type MergedProfileContactInviteStore,
-  } from "$store/MergedProfileContactInviteStore";
-
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
-  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
-    "myPubKey",
-  ).getMyPubKeyB64();
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
 
-  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
-    cellIdB64,
-    myPubKeyB64,
-  );
-
   let selected: ActionHashB64 | undefined;
-
-  $: messagesByAgentsWithProfiles = messages.filter(
-    ([, messageExtended]) =>
-      $mergedProfileContact !== undefined &&
-      $mergedProfileContact.data[messageExtended.authorAgentPubKeyB64] !== undefined,
-  );
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
     // prevent clickoutside event from firing at the same time
@@ -64,7 +40,7 @@
 
 <div class="flex w-full flex-1 flex-col-reverse p-4">
   <ul>
-    {#each messagesByAgentsWithProfiles as [actionHashB64, messageExtended], i (actionHashB64)}
+    {#each messages as [actionHashB64, messageExtended], i (actionHashB64)}
       {@const prevMessageExtended = i === 0 ? undefined : messages[i - 1][1]}
 
       <BaseMessage
@@ -73,7 +49,10 @@
         isSelected={selected === actionHashB64}
         showAuthor={prevMessageExtended === undefined ||
           messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
-          messageExtended.timestamp - prevMessageExtended.timestamp < 1000 * 60 * 5}
+          !isWithinFiveMinutes(
+            new Date(messageExtended.timestamp / 1000),
+            new Date(prevMessageExtended.timestamp / 1000),
+          )}
         showDate={prevMessageExtended === undefined ||
           !isSameDay(
             new Date(messageExtended.timestamp / 1000),

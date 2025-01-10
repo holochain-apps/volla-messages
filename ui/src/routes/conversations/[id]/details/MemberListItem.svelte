@@ -13,9 +13,9 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -25,12 +25,12 @@
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
+    mergedProfileContactInviteStore,
     cellIdB64,
     myPubKeyB64,
   );
 
-  $: isAdmin = agentPubKeyB64 === $conversation.conversation.dnaProperties.progenitor;
+  $: isAdmin = agentPubKeyB64 === $conversation.dnaProperties.progenitor;
   $: isMe = agentPubKeyB64 === myPubKeyB64;
 </script>
 

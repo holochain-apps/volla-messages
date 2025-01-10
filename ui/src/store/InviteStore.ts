@@ -2,7 +2,7 @@ import type { CellIdB64 } from "$lib/types";
 import type { AgentPubKeyB64 } from "@holochain/client";
 import { persisted } from "./generic/GenericPersistedStore";
 import { type Subscriber, type Invalidator, type Unsubscriber, derived } from "svelte/store";
-import type { GenericKeyValueStoreDataExtended } from "./generic/GenericKeyValueStore";
+import { type GenericKeyValueStoreDataExtended } from "./generic/GenericKeyValueStore";
 
 export interface InviteStore {
   invite: (key: CellIdB64, agentPubKeyB64s: AgentPubKeyB64[]) => Promise<void>;
@@ -37,7 +37,11 @@ export function createInviteStore(): InviteStore {
 }
 
 export function deriveCellInviteStore(inviteStore: InviteStore, cellIdB64: CellIdB64) {
-  const { subscribe } = derived(inviteStore, ($inviteStore) => $inviteStore.data[cellIdB64]);
+  const { subscribe } = derived(inviteStore, ($inviteStore) => {
+    if ($inviteStore.data[cellIdB64] === undefined) return [];
+    return $inviteStore.data[cellIdB64];
+  });
+
   return {
     invite: (agentPubKeyB64s: AgentPubKeyB64[]) => inviteStore.invite(cellIdB64, agentPubKeyB64s),
     subscribe,

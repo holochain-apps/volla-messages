@@ -50,7 +50,7 @@ export function createGenericKeyValueStore<T>(
   const { subscribe } = derived(data, ($data) => ({
     data: $data,
     list: sortBy(Object.entries($data), listSortBy),
-    count: Object.keys($data).length,
+    count: Object.keys($data || {}).length,
   }));
 
   function getKeyValue(key: string): T {
@@ -91,9 +91,7 @@ export function createGenericKeyValueStore<T>(
   };
 }
 
-export interface GenericValueStore<T> {
-  set: (val: T) => void;
-  remove: (val: T) => void;
+export interface GenericValueStoreReadable<T> {
   subscribe: (
     this: void,
     run: Subscriber<T>,
@@ -108,18 +106,34 @@ export interface GenericValueStore<T> {
  * @param agentPubKeyB64 - The public key of the agent to derive the store for
  * @returns A store interface with set/update/remove/subscribe methods for the specific agent
  */
+export function deriveGenericValueStoreReadable<T>(
+  genericKeyValueStore: GenericKeyValueStore<T>,
+  key: string,
+): GenericValueStoreReadable<T> {
+  return derived(genericKeyValueStore, ($genericKeyValueStore) => $genericKeyValueStore.data[key]);
+}
+
+export interface GenericValueStore<T> extends GenericValueStoreReadable<T> {
+  set: (val: T) => void;
+  remove: (val: T) => void;
+}
+
+/**
+ * Creates a derived store for a specific agent from a generic agent keyed store
+ *
+ * @param genericAgentStore - The source store containing data for multiple agents
+ * @param agentPubKeyB64 - The public key of the agent to derive the store for
+ * @returns A store interface with set/update/remove/subscribe methods for the specific agent
+ */
 export function deriveGenericValueStore<T>(
   genericKeyValueStore: GenericKeyValueStore<T>,
   key: string,
 ): GenericValueStore<T> {
-  const data = derived(
-    genericKeyValueStore,
-    ($genericKeyValueStore) => $genericKeyValueStore.data[key],
-  );
+  const data = deriveGenericValueStoreReadable(genericKeyValueStore, key);
 
   return {
+    ...data,
     set: (val: T) => genericKeyValueStore.setKeyValue(key, val),
     remove: () => genericKeyValueStore.removeKeyValue(key),
-    subscribe: data.subscribe,
   };
 }

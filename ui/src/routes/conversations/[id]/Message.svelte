@@ -18,9 +18,9 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
 
   export let message: MessageExtended;
   export let cellIdB64: CellIdB64;
@@ -29,7 +29,7 @@
   export let showDate: boolean = false;
 
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
+    mergedProfileContactInviteStore,
     cellIdB64,
     myPubKeyB64,
   );
@@ -79,9 +79,9 @@
       {#if showAuthor}
         <span class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}">
           <span class="font-bold">{fromMe ? "You" : authorNickname}</span>
-          <span class="text-xxs mx-2"
-            ><Time timestamp={message.timestamp / 1000} format="h:mma" /></span
-          >
+          <span class="text-xxs mx-2">
+            <Time timestamp={message.timestamp / 1000} format="h:mma" />
+          </span>
         </span>
       {/if}
 

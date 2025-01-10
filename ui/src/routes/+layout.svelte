@@ -14,7 +14,7 @@
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
   import { createContactStore, type ContactStore } from "$store/ContactStore";
   import {
-    CellProfileStore,
+    type CellProfileStore,
     type ProfileStore,
     createProfileStore,
     deriveCellProfileStore,
@@ -32,6 +32,21 @@
   import type { CellIdB64, CreateProfileInputUI } from "$lib/types";
   import { createInviteStore, type InviteStore } from "$store/InviteStore";
   import "../app.postcss";
+  import {
+    type ConversationLatestMessageStore,
+    createConversationLatestMessageStore,
+  } from "$store/ConversationLatestMessageStore";
+  import {
+    type ConversationMessageStore,
+    createConversationMessageStore,
+  } from "$store/ConversationMessageStore";
+  import { createInvitationStore, type InvitationStore } from "$store/InvitationStore";
+  import {
+    createMergedProfileContactInviteJoinedStore,
+    createMergedProfileContactInviteUnjoinedStore,
+    type MergedProfileContactInviteJoinedStore,
+    type MergedProfileContactInviteUnjoinedStore,
+  } from "$store/MergedProfileContactInviteJoinedStore";
 
   // Holochain client
   let client: AppClient;
@@ -42,11 +57,16 @@
   // Frontend store singletons
   let profileStore: ProfileStore;
   let contactStore: ContactStore;
-  let mergedProfileContactStore: MergedProfileContactInviteStore;
+  let mergedProfileContactInviteStore: MergedProfileContactInviteStore;
   let conversationStore: ConversationStore;
   let conversationTitleStore: ConversationTitleStore;
+  let conversationMessageStore: ConversationMessageStore;
+  let conversationLatestMessageStore: ConversationLatestMessageStore;
   let inviteStore: InviteStore;
+  let invitationStore: InvitationStore;
   let provisionedRelayCellProfileStore: CellProfileStore;
+  let mergedProfileContactInviteUnjoinedStore: MergedProfileContactInviteUnjoinedStore;
+  let mergedProfileContactInviteJoinedStore: MergedProfileContactInviteJoinedStore;
 
   // Is the holochain client connected?
   let isClientConnected = false;
@@ -125,24 +145,46 @@
         provisionedRelayCellIdB64,
       );
       inviteStore = createInviteStore();
-      mergedProfileContactStore = createMergedProfileContactInviteStore(
+      invitationStore = createInvitationStore();
+      mergedProfileContactInviteStore = createMergedProfileContactInviteStore(
         profileStore,
         contactStore,
         inviteStore,
       );
-      conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
+      conversationStore = createConversationStore(relayClient);
+      conversationMessageStore = createConversationMessageStore(
+        relayClient,
+        conversationStore,
+        mergedProfileContactInviteStore,
+      );
+      conversationLatestMessageStore = createConversationLatestMessageStore(
+        conversationStore,
+        conversationMessageStore,
+      );
+      mergedProfileContactInviteUnjoinedStore = createMergedProfileContactInviteUnjoinedStore(
+        profileStore,
+        inviteStore,
+        mergedProfileContactInviteStore,
+      );
+      mergedProfileContactInviteJoinedStore = createMergedProfileContactInviteJoinedStore(
+        profileStore,
+        inviteStore,
+        mergedProfileContactInviteStore,
+      );
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
-        mergedProfileContactStore,
+        mergedProfileContactInviteJoinedStore,
+        invitationStore,
       );
 
       // Initialize store data
       await contactStore.initialize();
       await profileStore.initialize();
       await conversationStore.initialize();
+      await conversationMessageStore.initialize();
 
       // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore);
+      createSignalHandler(relayClient, conversationStore, conversationMessageStore);
 
       isStoresSetup = true;
     } catch (e) {
@@ -184,8 +226,16 @@
     getStore: () => contactStore,
   });
 
-  setContext("mergedProfileContactStore", {
-    getStore: () => mergedProfileContactStore,
+  setContext("mergedProfileContactInviteStore", {
+    getStore: () => mergedProfileContactInviteStore,
+  });
+
+  setContext("mergedProfileContactInviteJoinedStore", {
+    getStore: () => mergedProfileContactInviteJoinedStore,
+  });
+
+  setContext("mergedProfileContactInviteUnjoinedStore", {
+    getStore: () => mergedProfileContactInviteUnjoinedStore,
   });
 
   setContext("conversationStore", {
@@ -196,8 +246,20 @@
     getStore: () => conversationTitleStore,
   });
 
+  setContext("conversationMessageStore", {
+    getStore: () => conversationMessageStore,
+  });
+
+  setContext("conversationLatestMessageStore", {
+    getStore: () => conversationLatestMessageStore,
+  });
+
   setContext("inviteStore", {
     getStore: () => inviteStore,
+  });
+
+  setContext("invitationStore", {
+    getStore: () => invitationStore,
   });
 </script>
 

@@ -28,7 +28,7 @@
   $: conversationWithAllSelectedAgents = $profileStore.list.find(
     ([, cellProfiles]) =>
       every(selectedAgentPubKeyB64s.map((agentPubKeyB64) => agentPubKeyB64 in cellProfiles)) &&
-      selectedAgentPubKeyB64s.length === Object.keys(cellProfiles).length - 1,
+      selectedAgentPubKeyB64s.length === Object.keys(cellProfiles || []).length - 1,
   );
 
   async function createConversation(

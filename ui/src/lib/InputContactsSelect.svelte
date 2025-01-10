@@ -12,7 +12,7 @@
     };
   }>();
 
-  const contactsStore = getContext<{ getStore: () => ContactStore }>("contactsStore").getStore();
+  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
 
   export let value: AgentPubKeyB64[] = [];
   export let excludedAgentPubKeyB64s: AgentPubKeyB64[] = [];
@@ -21,9 +21,9 @@
   export let disabled = false;
   export let buttonLabel: string;
 
-  $: selectedContactExtendeds = value
-    .map((agentPubKeyB64) => $contactsStore.data[agentPubKeyB64])
-    .filter((c) => c !== undefined);
+  $: selectedContactExtendeds = $contactStore.list
+    .filter(([key]) => value.includes(key))
+    .map(([, contact]) => contact);
 
   // Derive a string with the names of the selected contacts
   let selectedContactNames = "";

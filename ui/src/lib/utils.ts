@@ -175,3 +175,9 @@ export function isSameDay(d1: Date, d2?: Date): boolean {
     d1.getDate() === d2.getDate()
   );
 }
+
+export function isWithinFiveMinutes(d1: Date, d2?: Date): boolean {
+  if (d2 === undefined) return false;
+
+  return Math.abs(d1.getTime() - d2.getTime()) <= 5 * 60 * 1000;
+}

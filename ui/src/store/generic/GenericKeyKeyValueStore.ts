@@ -72,7 +72,7 @@ export function deriveGenericKeyValueStore<T>(
   const store = derived(genericKeyKeyValueStore, ($genericKeyKeyValueStore) => ({
     data: $genericKeyKeyValueStore.data[key1] || {},
     list: sortBy(Object.entries($genericKeyKeyValueStore.data[key1] || {}), listSortBy),
-    count: Object.keys($genericKeyKeyValueStore.data[key1] || []).length,
+    count: Object.keys($genericKeyKeyValueStore.data[key1] || {}).length,
   }));
 
   return {
@@ -96,7 +96,7 @@ export function deriveGenericKeyValueStoreReadable<T>(
   const store = derived(genericKeyKeyValueStore, ($genericKeyKeyValueStore) => ({
     data: $genericKeyKeyValueStore.data[key1] || {},
     list: sortBy(Object.entries($genericKeyKeyValueStore.data[key1] || {}), listSortBy),
-    count: Object.keys($genericKeyKeyValueStore.data[key1] || []).length,
+    count: Object.keys($genericKeyKeyValueStore.data[key1] || {}).length,
   }));
 
   return {

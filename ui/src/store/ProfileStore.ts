@@ -4,7 +4,7 @@ import {
   type ClonedCell,
   type ProvisionedCell,
 } from "@holochain/client";
-import { derived, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
+import { type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import { encodeCellIdToBase64, makeFullName } from "$lib/utils";
 import type { CellIdB64, CreateProfileInputUI, Profile, ProfileExtended } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
@@ -29,8 +29,7 @@ export interface ProfileStore extends GenericKeyKeyValueStore<ProfileExtended> {
   initialize: () => Promise<void>;
   createProfile: (val: CreateProfileInputUI) => Promise<void>;
   updateProfile: (val: CreateProfileInputUI) => Promise<void>;
-  load: () => Promise<void>;
-  loadKey: (key: CellIdB64) => Promise<void>;
+  load: (key: CellIdB64) => Promise<void>;
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyValueStoreDataExtended<GenericKeyValueStoreData<ProfileExtended>>>,
@@ -48,6 +47,32 @@ export interface ProfileStore extends GenericKeyKeyValueStore<ProfileExtended> {
  */
 export function createProfileStore(client: RelayClient): ProfileStore {
   const profiles = createGenericKeyKeyValueStore<ProfileExtended>();
+
+  /**
+   * Fetch contacts data and load into writable
+   */
+  async function initialize() {
+    // Get all relay cells
+    const cellInfos = flatten(
+      await Promise.all([client.getRelayClonedCellInfos(), client.getRelayProvisionedCellInfo()]),
+    );
+
+    // Get all profiles in all relay cells
+    // Ignore any failures
+    const data = (
+      await Promise.allSettled(
+        cellInfos.map(async (cellInfo) => [
+          encodeCellIdToBase64(cellInfo.cell_id),
+          await _loadProfiles(cellInfo),
+        ]),
+      )
+    )
+      .filter((p) => p.status === "fulfilled")
+      .map((p) => p.value);
+
+    // Add all profiles to writable
+    profiles.set(Object.fromEntries(data));
+  }
 
   /**
    * Create your profile
@@ -133,32 +158,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
     });
   }
 
-  /**
-   * Fetch contacts data and load into writable
-   */
-  async function initialize() {
-    return load();
-  }
-
-  async function load() {
-    // Get all relay cells
-    const cellInfos = flatten(
-      await Promise.all([client.getRelayClonedCellInfos(), client.getRelayProvisionedCellInfo()]),
-    );
-
-    // Get all profiles in all relay cells
-    // Ignore any failures
-    const data = (await Promise.allSettled(cellInfos.map(_loadProfiles)))
-      .filter((p) => p.status === "fulfilled")
-      .map((p) => p.value);
-
-    // Add all profiles to writable
-    flatten(data).forEach(({ cellIdB64, agentPubKeyB64, profileExtended }) =>
-      profiles.setKeyKeyValue(cellIdB64, agentPubKeyB64, profileExtended),
-    );
-  }
-
-  async function loadKey(key: CellIdB64) {
+  async function load(key: CellIdB64) {
     // Get all relay cells
     const cellInfos = flatten(
       await Promise.all([client.getRelayClonedCellInfos(), client.getRelayProvisionedCellInfo()]),
@@ -170,31 +170,23 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 
     // Fetch profiles for cell
     const data = await _loadProfiles(cellInfo);
-    profiles.setKeyValue(
-      key,
-      Object.fromEntries(data.map((d) => [d.agentPubKeyB64, d.profileExtended])),
-    );
+    profiles.setKeyValue(key, data);
   }
 
-  async function _loadProfiles(cellInfo: ClonedCell | ProvisionedCell) {
+  async function _loadProfiles(
+    cellInfo: ClonedCell | ProvisionedCell,
+  ): Promise<{ [agentPubKeyB64: string]: ProfileExtended }> {
     const profilesExtended = await client.getAllProfiles(cellInfo.cell_id);
 
-    return profilesExtended.map((p) => ({
-      cellIdB64: encodeCellIdToBase64(cellInfo.cell_id),
-      agentPubKeyB64: p.publicKeyB64,
-      profileExtended: p,
-    }));
+    return Object.fromEntries(profilesExtended.map((p) => [p.publicKeyB64, p]));
   }
 
   return {
+    ...profiles,
     initialize,
     load,
-    loadKey,
-
-    create,
-    update,
-
-    subscribe: profiles.subscribe,
+    createProfile,
+    updateProfile,
   };
 }
 
@@ -210,6 +202,6 @@ export function deriveCellProfileStore(
 
   return {
     ...store,
-    load: () => profileStore.loadKey(cellIdB64),
+    load: () => profileStore.load(cellIdB64),
   };
 }

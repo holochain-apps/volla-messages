@@ -20,15 +20,22 @@
   } from "$store/ConversationTitleStore";
   import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
   import { deriveCellMergedProfileContactInviteStore } from "$store/MergedProfileContactInviteStore";
+  import {
+    type ConversationLatestMessageStore,
+    deriveCellConversationLatestMessageStore,
+  } from "$store/ConversationLatestMessageStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
+  const conversationLatestMessageStore = getContext<{
+    getStore: () => ConversationLatestMessageStore;
+  }>("conversationLatestMessageStore").getStore();
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => ProfileStore }>(
-    "mergedProfileContactStore",
+  const mergedProfileContactInviteStore = getContext<{ getStore: () => ProfileStore }>(
+    "mergedProfileContactInviteStore",
   ).getStore();
   const inviteStore = getContext<{ getStore: () => InviteStore }>("inviteStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -39,11 +46,15 @@
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
+    mergedProfileContactInviteStore,
     cellIdB64,
     myPubKeyB64,
   );
   let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, cellIdB64);
+  let conversationLatestMessage = deriveCellConversationLatestMessageStore(
+    conversationLatestMessageStore,
+    cellIdB64,
+  );
   let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
   let isHovering = false;
@@ -126,8 +137,8 @@
     if (isDragging) {
       e.preventDefault();
       e.stopPropagation();
-    } else if ($conversation.conversation.cellInfo.enabled) {
-      goto(`/conversations/${encodeCellIdToBase64($conversation.conversation.cellInfo.cell_id)}`);
+    } else if ($conversation.cellInfo.enabled) {
+      goto(`/conversations/${encodeCellIdToBase64($conversation.cellInfo.cell_id)}`);
     }
   }
 
@@ -149,7 +160,7 @@
   }
 
   async function archiveConversation() {
-    if ($conversation.conversation.cellInfo.enabled) {
+    if ($conversation.cellInfo.enabled) {
       conversation.disable();
     } else {
       conversation.enable();
@@ -179,11 +190,11 @@
       on:mouseleave={handleLeave}
       on:blur={handleLeave}
     >
-      {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private}
+      {#if $conversation.dnaProperties.privacy === Privacy.Private}
         <PrivateConversationImageThumbnail {cellIdB64} />
-      {:else if $conversation.conversation.config?.image}
+      {:else if $conversation.config?.image}
         <img
-          src={$conversation.conversation.config.image}
+          src={$conversation.config.image}
           alt="Conversation"
           class="h-10 w-10 rounded-full object-cover"
         />
@@ -197,14 +208,14 @@
       <div class="ml-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <span class="text-base">{$conversationTitle}</span>
         <span class="flex min-w-0 items-center overflow-hidden text-ellipsis text-nowrap text-xs">
-          {#if $conversation.conversation.unread}
+          {#if $conversation.unread}
             <UnreadIndicator />
           {/if}
 
-          {#if $conversation.conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContact.count === 1 && $invite.length > 0}
+          {#if $conversation.dnaProperties.privacy === Privacy.Private && $mergedProfileContact.count === 1 && $invite.length > 0}
             <span class="text-secondary-400">{$t("common.unconfirmed")}</span>
-          {:else if $conversation.latestMessage}
-            <MessagePreview {cellIdB64} messageExtended={$conversation.latestMessage} />
+          {:else if $conversationLatestMessage}
+            <MessagePreview {cellIdB64} messageExtended={$conversationLatestMessage} />
           {/if}
         </span>
       </div>
@@ -226,7 +237,7 @@
       <!-- <div class="flex flex-1 items-center justify-start ml-1  rounded-lg bg-secondary-500">Mark as Unread</div> -->
       <div
         class="mr-1 flex flex-1 items-center justify-end rounded-lg
-        {$conversation.conversation.cellInfo.enabled ? 'bg-primary-500' : 'bg-secondary-900'}"
+        {$conversation.cellInfo.enabled ? 'bg-primary-500' : 'bg-secondary-900'}"
       >
         <button
           class="text-surface-100 dark:text-tertiary-100 mr-2 flex flex-col items-center justify-center font-bold"
@@ -234,9 +245,7 @@
         >
           <SvgIcon icon="archive" />
           <span class="text-xs">
-            {$conversation.conversation.cellInfo.enabled
-              ? $t("common.archive")
-              : $t("common.restore")}
+            {$conversation.cellInfo.enabled ? $t("common.archive") : $t("common.restore")}
           </span>
         </button>
       </div>
@@ -255,9 +264,7 @@
       <button class="flex flex-row items-center justify-start" on:click={startArchive}>
         <SvgIcon icon="archive" moreClasses="mr-2" />
         <span class="text-xs"
-          >{$conversation.conversation.cellInfo.enabled
-            ? $t("common.archive")
-            : $t("common.restore")}</span
+          >{$conversation.cellInfo.enabled ? $t("common.archive") : $t("common.restore")}</span
         >
       </button>
     </li>

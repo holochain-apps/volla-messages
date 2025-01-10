@@ -2,24 +2,23 @@
   import { decodeHashFromBase64, type AgentPubKeyB64, type CellId } from "@holochain/client";
   import { getContext } from "svelte";
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
-  import { encodeCellIdToBase64 } from "$lib/utils";
   import {
     deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import { type CellIdB64 } from "./types";
 
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
-  const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
+  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
     "provisionedRelayCellId",
-  ).getCellId();
+  ).getCellIdB64();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
 
-  export let cellIdB64: CellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
+  export let cellIdB64: CellIdB64 = provisionedRelayCellIdB64;
   export let agentPubKeyB64: AgentPubKeyB64;
 
   export let size: number = 32;
@@ -27,7 +26,7 @@
   export let moreClasses = "";
 
   let profiles = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
+    mergedProfileContactInviteStore,
     cellIdB64,
     myPubKeyB64,
   );

@@ -20,9 +20,9 @@
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
@@ -30,7 +30,7 @@
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let profiles = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactStore,
+    mergedProfileContactInviteStore,
     $page.params.id,
     myPubKeyB64,
   );
@@ -58,7 +58,7 @@
 <Header
   back
   title={$t("common.add_people", {
-    public: $conversation.conversation.dnaProperties.privacy === Privacy.Public,
+    public: $conversation.dnaProperties.privacy === Privacy.Public,
   })}
 />
 <div class="relative mx-auto flex w-full flex-1 flex-col items-center p-5">
