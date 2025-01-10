@@ -158,6 +158,7 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     title: string,
   ) {
     const c = get(conversations).data[key];
+    if (!c) throw new Error(`Conversation not found with cellIdB64 ${key}`);
     if (c.dnaProperties.privacy === Privacy.Public)
       throw new Error("Private invitation codes are only for private conversations");
 

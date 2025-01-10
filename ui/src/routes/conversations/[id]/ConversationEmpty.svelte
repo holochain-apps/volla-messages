@@ -72,16 +72,18 @@
         })}
       </p>
 
-      {#await conversation.makePrivateInviteCode($invite[0], invitationTitle) then text}
-        <div class="flex justify-center">
-          <ButtonsCopyShare
-            moreClasses="bg-tertiary-600 dark:bg-secondary-700"
-            {text}
-            copyLabel={$t("common.copy_invite_code")}
-            shareLabel={$t("common.share_invite_code")}
-          />
-        </div>
-      {/await}
+      {#if $invite.length > 0}
+        {#await conversation.makePrivateInviteCode($invite[0], invitationTitle) then text}
+          <div class="flex justify-center">
+            <ButtonsCopyShare
+              moreClasses="bg-tertiary-600 dark:bg-secondary-700"
+              {text}
+              copyLabel={$t("common.copy_invite_code")}
+              shareLabel={$t("common.share_invite_code")}
+            />
+          </div>
+        {/await}
+      {/if}
     </div>
   {:else if $conversation.dnaProperties.privacy === Privacy.Public && $conversation.publicInviteCode}
     <p class="text-secondary-500 dark:text-tertiary-700 mx-10 mb-8 text-center text-xs">

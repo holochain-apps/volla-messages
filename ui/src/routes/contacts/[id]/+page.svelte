@@ -13,8 +13,13 @@
   import Avatar from "$lib/Avatar.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
-  import { type CellProfileStore, type ProfileStore } from "$store/ProfileStore";
+  import {
+    deriveCellProfileStore,
+    type CellProfileStore,
+    type ProfileStore,
+  } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
+  import { POLLING_INTERVAL_SLOW } from "$config";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
@@ -23,24 +28,40 @@
   const provisionedRelayCellProfileStore = getContext<{
     getProvisionedRelayCellProfileStore: () => CellProfileStore;
   }>("profileStore").getProvisionedRelayCellProfileStore();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
   $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
 
   let contact = deriveAgentContactStore(contactStore, $page.params.id);
-  let conversation = deriveCellConversationStore(
-    conversationStore,
-    encodeCellIdToBase64($contact.cellId),
-  );
+  let conversation =
+    $contact.cellId !== undefined
+      ? deriveCellConversationStore(conversationStore, encodeCellIdToBase64($contact.cellId))
+      : undefined;
+  let profiles =
+    $contact.cellId !== undefined
+      ? deriveCellProfileStore(profileStore, encodeCellIdToBase64($contact.cellId))
+      : undefined;
 
   let pollInterval: NodeJS.Timeout;
-  let hasAgentJoinedDht: boolean = false;
+  $: hasAgentJoinedDht =
+    profiles !== undefined &&
+    $profiles?.list.find(([key]) => key === $contact.publicKeyB64) !== undefined;
+
+  async function loadProfiles() {
+    if (!profiles) return;
+
+    await profiles.load();
+    if (!hasAgentJoinedDht) {
+      pollInterval = setTimeout(() => {
+        loadProfiles();
+      }, POLLING_INTERVAL_SLOW);
+    }
+  }
+
   onMount(() => {
-    pollInterval = setInterval(
-      async () => (hasAgentJoinedDht = await contact.getHasAgentJoinedDht()),
-      5000,
-    );
+    loadProfiles();
   });
   onDestroy(() => clearInterval(pollInterval));
 </script>
@@ -69,38 +90,43 @@
   </div>
 </div>
 
-{#if hasAgentJoinedDht}
-  <div class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4">
-    <SvgIcon icon="handshake" moreClasses="w-[36px] h-[36px]" />
-    <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
-      {$t("common.pending_connection_header")}
-    </h1>
-    <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
-      {$t("common.pending_connection_description", {
-        name: $contact?.contact.first_name,
-      })}
-    </p>
-    {#await conversation.makePrivateInviteCode($contact.publicKeyB64, myProfile.profile.nickname) then res}
-      {#if res}
-        <div class="flex justify-center">
-          <ButtonsCopyShare
-            text={res}
-            copyLabel={$t("common.copy_invite_code")}
-            shareLabel={$t("common.share_invite_code")}
-          />
-        </div>
-      {/if}
-    {/await}
-  </div>
-{:else}
-  <div class="my-4">
-    <Button
-      icon="speechBubble"
-      on:click={() => {
-        goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
-      }}
+{#if $contact.cellId !== undefined && conversation !== undefined}
+  {#if hasAgentJoinedDht}
+    <div class="my-4">
+      <Button
+        icon="speechBubble"
+        on:click={() => {
+          if ($contact.cellId === undefined) return;
+          goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
+        }}
+      >
+        {$t("common.send_message")}
+      </Button>
+    </div>
+  {:else}
+    <div
+      class="bg-tertiary-500 dark:bg-secondary-500 mx-8 flex flex-col items-center rounded-xl p-4"
     >
-      {$t("common.send_message")}
-    </Button>
-  </div>
+      <SvgIcon icon="handshake" moreClasses="w-[36px] h-[36px]" />
+      <h1 class="text-secondary-500 dark:text-tertiary-100 mt-2 text-xl font-bold">
+        {$t("common.pending_connection_header")}
+      </h1>
+      <p class="text-secondary-400 dark:text-tertiary-700 mb-6 mt-4 text-center text-sm">
+        {$t("common.pending_connection_description", {
+          name: $contact?.contact.first_name,
+        })}
+      </p>
+      {#await conversation.makePrivateInviteCode($contact.publicKeyB64, myProfile.profile.nickname) then res}
+        {#if res}
+          <div class="flex justify-center">
+            <ButtonsCopyShare
+              text={res}
+              copyLabel={$t("common.copy_invite_code")}
+              shareLabel={$t("common.share_invite_code")}
+            />
+          </div>
+        {/if}
+      {/await}
+    </div>
+  {/if}
 {/if}
