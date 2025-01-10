@@ -1,33 +1,43 @@
 <script lang="ts">
   import ButtonInline from "$lib/ButtonInline.svelte";
-  import { FileStatus, type MessageExtended, type MessageFileExtended } from "$lib/types";
+  import { FileStatus, type MessageExtended } from "$lib/types";
   import { t } from "$translations";
-  import { convertDataURIToUint8Array, copyToClipboard } from "$lib/utils";
+  import { copyToClipboard } from "$lib/utils";
   import { save } from "@tauri-apps/plugin-dialog";
   import { writeFile } from "@tauri-apps/plugin-fs";
   import { downloadDir } from "@tauri-apps/api/path";
   import toast from "svelte-french-toast";
+  import { deriveCellFileStore, type FileStore } from "$store/FileStore";
+  import { getContext } from "svelte";
+  import { page } from "$app/stores";
+  import { encodeHashToBase64 } from "@holochain/client";
+  const fileStore = getContext<{
+    getStore: () => FileStore;
+  }>("fileStore").getStore();
+  let cellFileStore = deriveCellFileStore(fileStore, $page.params.id);
 
   export let message: MessageExtended;
 
   $: hasText = message.message.content.trim().length > 0;
-  $: hasLoadedFiles = message.messageFileExtendeds.some((f) => f.status === FileStatus.Loaded);
+  $: hasLoadedFiles = message.message.images.some(
+    (f) =>
+      $cellFileStore.data[encodeHashToBase64(f.storage_entry_hash)] &&
+      $cellFileStore.data[encodeHashToBase64(f.storage_entry_hash)].status === FileStatus.Loaded,
+  );
 
-  async function downloadFile(file: MessageFileExtended) {
-    if (file.dataURL === undefined) return;
-
+  async function downloadFile(file: File) {
     try {
       const defaultDir = await downloadDir();
       const savePath = await save({
         title: "Save Image",
-        defaultPath: `${defaultDir}/${file.messageFile.name}`,
+        defaultPath: `${defaultDir}/${file.name}`,
       });
 
       if (!savePath) return;
 
       try {
-        const imageBlob = convertDataURIToUint8Array(file.dataURL);
-        await writeFile(savePath, imageBlob, { create: true });
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        await writeFile(savePath, bytes, { create: true });
         toast.success($t("common.download_file_success"));
       } catch (e) {
         console.error("Saving file failed", e);
@@ -52,11 +62,14 @@
   async function download() {
     if (!hasLoadedFiles) return;
 
-    for (const file of message.messageFileExtendeds) {
-      if (file.status === FileStatus.Loaded && file.dataURL !== undefined) {
-        //Downloads only the loaded images sequentially
-        await downloadFile(file);
-      }
+    for (const { storage_entry_hash } of message.message.images) {
+      if ($cellFileStore.data[encodeHashToBase64(storage_entry_hash)] === undefined) return;
+      if ($cellFileStore.data[encodeHashToBase64(storage_entry_hash)].file === undefined) return;
+      if ($cellFileStore.data[encodeHashToBase64(storage_entry_hash)]?.status !== FileStatus.Loaded)
+        return;
+
+      // Downloads only the loaded images sequentially
+      await downloadFile($cellFileStore.data[encodeHashToBase64(storage_entry_hash)].file as File);
     }
   }
 </script>
