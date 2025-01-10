@@ -27,6 +27,7 @@
       await contact.update(val);
 
       // Navigate to private conversation
+      if ($contact.cellId === undefined) return;
       await goto(`/conversations/${encodeCellIdToBase64($contact.cellId)}`);
     } catch (e) {
       console.error(e);
