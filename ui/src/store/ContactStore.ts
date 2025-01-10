@@ -20,8 +20,6 @@ export interface ContactStore {
   initialize: () => Promise<void>;
   create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
   update: (key: AgentPubKeyB64, val: Contact) => Promise<void>;
-  getHasAgentJoinedDht: (key: AgentPubKeyB64) => Promise<boolean>;
-  makeProfileExtended: (c: ContactExtended) => ProfileExtended;
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyValueStoreDataExtended<ContactExtended>>,
@@ -106,37 +104,6 @@ export function createContactStore(client: RelayClient): ContactStore {
   }
 
   /**
-   * Check if there are 2+ profiles in private conversation cell.
-   *
-   * @returns
-   */
-  async function getHasAgentJoinedDht(agentPubKeyB64: AgentPubKeyB64): Promise<boolean> {
-    const c = contacts.getKeyValue(agentPubKeyB64);
-    const agents = await client.getAgentsWithProfile(c.cellId);
-    return agents.length >= 2;
-  }
-
-  /**
-   * Get a contact, transform into a ProfileExtended
-   *
-   * @param agentPubKeyB64
-   * @returns
-   */
-  function makeProfileExtended(c: ContactExtended): ProfileExtended {
-    return {
-      profile: {
-        nickname: c.fullName,
-        fields: {
-          firstName: c.contact.first_name,
-          lastName: c.contact.last_name,
-          avatar: c.contact.avatar,
-        },
-      },
-      publicKeyB64: c.publicKeyB64,
-    };
-  }
-
-  /**
    * Construct a ContactExtended
    *
    * @param record
@@ -146,7 +113,7 @@ export function createContactStore(client: RelayClient): ContactStore {
    */
   function _makeContactExtendedFromRecord(
     record: Record,
-    cellId: CellId,
+    cellId?: CellId,
     originalActionHash?: ActionHash,
   ): ContactExtended {
     const contact = new EntryRecord<Contact>(record).entry;
@@ -174,7 +141,7 @@ export function createContactStore(client: RelayClient): ContactStore {
     contact: Contact,
     originalActionHash: ActionHash,
     previousActionHash: ActionHash,
-    cellId: CellId,
+    cellId?: CellId,
   ): ContactExtended {
     return {
       contact,
@@ -188,13 +155,8 @@ export function createContactStore(client: RelayClient): ContactStore {
 
   return {
     initialize,
-
     create,
     update,
-
-    getHasAgentJoinedDht,
-    makeProfileExtended,
-
     subscribe: contacts.subscribe,
   };
 }
@@ -217,8 +179,6 @@ export function deriveAgentContactStore(
 
   return {
     update: (val: Contact) => contactStore.update(agentPubKeyB64, val),
-    getHasAgentJoinedDht: () => contactStore.getHasAgentJoinedDht(agentPubKeyB64),
-    makeProfileExtended: (val: ContactExtended) => contactStore.makeProfileExtended(val),
     subscribe,
   };
 }

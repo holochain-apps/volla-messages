@@ -1,5 +1,5 @@
 import { derived } from "svelte/store";
-import type { CellIdB64, ProfileExtended } from "$lib/types";
+import type { CellIdB64, ContactExtended, ProfileExtended } from "$lib/types";
 import type { ProfileStore } from "./ProfileStore";
 import type { ContactStore } from "./ContactStore";
 import type { AgentPubKeyB64 } from "@holochain/client";
@@ -26,6 +26,26 @@ export function createMergedProfileContactInviteStore(
   contactStore: ContactStore,
   inviteStore: InviteStore,
 ): MergedProfileContactInviteStore {
+  /**
+   * Get a contact, transform into a ProfileExtended
+   *
+   * @param agentPubKeyB64
+   * @returns
+   */
+  function _makeProfileExtendedFromContactExtended(c: ContactExtended): ProfileExtended {
+    return {
+      profile: {
+        nickname: c.fullName,
+        fields: {
+          firstName: c.contact.first_name,
+          lastName: c.contact.last_name,
+          avatar: c.contact.avatar,
+        },
+      },
+      publicKeyB64: c.publicKeyB64,
+    };
+  }
+
   return derived(
     [profileStore, contactStore, inviteStore],
     ([$profileStore, $contactStore, $inviteStore]) => {
@@ -47,7 +67,9 @@ export function createMergedProfileContactInviteStore(
               .map((agentPubKeyB64) => {
                 let value;
                 if (agentPubKeyB64 in $contactStore.data) {
-                  value = contactStore.makeProfileExtended($contactStore.data[agentPubKeyB64]);
+                  value = _makeProfileExtendedFromContactExtended(
+                    $contactStore.data[agentPubKeyB64],
+                  );
                 } else if ($profileStore.data[cellIdB64] !== undefined) {
                   value = $profileStore.data[cellIdB64][agentPubKeyB64];
                 }

@@ -5,19 +5,48 @@
   import { t } from "$translations";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import Avatar from "$lib/Avatar.svelte";
-  import { getContext, onMount } from "svelte";
+  import { getContext, onDestroy, onMount } from "svelte";
+  import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
+  import { encodeCellIdToBase64 } from "./utils";
+  import { POLLING_INTERVAL_SLOW } from "$config";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
+  const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
 
   export let agentPubKeyB64: AgentPubKeyB64;
   export let selected: boolean = false;
 
   let contact = deriveAgentContactStore(contactStore, agentPubKeyB64);
+  let profiles =
+    $contact.cellId !== undefined
+      ? deriveCellProfileStore(profileStore, encodeCellIdToBase64($contact.cellId))
+      : undefined;
 
-  let hasAgentJoinedDht = false;
-  onMount(async () => {
-    hasAgentJoinedDht = await contactStore.getHasAgentJoinedDht(agentPubKeyB64);
+  let pollInterval: NodeJS.Timeout;
+  $: hasAgentJoinedDht =
+    profiles !== undefined &&
+    $profiles?.list.find(([key]) => key === $contact.publicKeyB64) !== undefined;
+
+  async function loadProfiles() {
+    console.log("Running loadProfiles");
+    if (!profiles) return;
+
+    await profiles.load();
+    if (!hasAgentJoinedDht) {
+      pollInterval = setTimeout(() => {
+        loadProfiles();
+      }, POLLING_INTERVAL_SLOW);
+    }
+  }
+
+  onMount(() => {
+    loadProfiles();
   });
+  onDestroy(() => clearInterval(pollInterval));
 </script>
 
 <button

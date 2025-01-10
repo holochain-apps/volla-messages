@@ -221,7 +221,7 @@ export interface ContactExtended {
   previousActionHash: ActionHash;
 
   // CellId of private 1-1 conversation with this contact
-  cellId: CellId;
+  cellId?: CellId;
 }
 
 /**
