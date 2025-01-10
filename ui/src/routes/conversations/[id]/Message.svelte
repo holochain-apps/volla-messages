@@ -9,7 +9,7 @@
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
   import MessageFilePreview from "./MessageFilePreview.svelte";
-  import type { AgentPubKeyB64 } from "@holochain/client";
+  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import {
     deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
@@ -72,9 +72,12 @@
         </span>
       {/if}
 
-      {#each message.messageFileExtendeds as file}
+      {#each message.message.images as file}
         <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-          <MessageFilePreview {file} align={fromMe ? Alignment.Right : Alignment.Left} />
+          <MessageFilePreview
+            entryHashB64={encodeHashToBase64(file.storage_entry_hash)}
+            align={fromMe ? Alignment.Right : Alignment.Left}
+          />
         </div>
       {/each}
 

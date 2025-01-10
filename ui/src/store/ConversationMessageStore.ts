@@ -5,22 +5,15 @@ import {
   type Message,
   type MessageExtended,
   type MessageFile,
-  type MessageFileExtended,
   type MessageRecord,
   type MessageSignal,
   type ProfileExtended,
 } from "$lib/types";
-import {
-  encodeCellIdToBase64,
-  decodeCellIdFromBase64,
-  enqueueNotification,
-  fileToDataUrl,
-} from "$lib/utils";
+import { encodeCellIdToBase64, decodeCellIdFromBase64, enqueueNotification } from "$lib/utils";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import { decodeHashFromBase64, encodeHashToBase64, type CellId } from "@holochain/client";
 import { difference, sortBy } from "lodash-es";
-import pRetry from "p-retry";
 import type { ConversationStore } from "./ConversationStore";
 import {
   createGenericKeyKeyValueStore,
@@ -35,6 +28,7 @@ import type { RelayClient } from "./RelayClient";
 import { derived, get } from "svelte/store";
 import type { GenericKeyValueStoreReadable } from "./generic/GenericKeyValueStore";
 import { TARGET_MESSAGES_COUNT } from "$config";
+import type { FileStore } from "./FileStore";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
@@ -48,6 +42,7 @@ export function createConversationMessageStore(
   client: RelayClient,
   conversationStore: ConversationStore,
   mergedProfileContactInviteStore: MergedProfileContactInviteStore,
+  fileStore: FileStore,
 ): ConversationMessageStore {
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
 
@@ -114,7 +109,7 @@ export function createConversationMessageStore(
     );
     const messageFiles = await Promise.all(
       files.map(async (file) => {
-        const entryHash = await fileStorageClient.uploadFile(file.file);
+        const entryHash = await fileStore.upload(key1, file.file);
 
         const messageFile: MessageFile = {
           last_modified: file.file.lastModified,
@@ -321,46 +316,19 @@ export function createConversationMessageStore(
       "file_storage",
       cellId,
     );
-    const messageFileExtendeds = await Promise.all(
-      messageRecord.message.images.map(async (i) => _loadMessageFile(fileStorageClient, i)),
+
+    messageRecord.message.images.forEach((messageFile) =>
+      fileStore.download(
+        encodeCellIdToBase64(cellId),
+        encodeHashToBase64(messageFile.storage_entry_hash),
+      ),
     );
 
     return {
       message: messageRecord.message,
-      messageFileExtendeds,
       authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
       timestamp: messageRecord.signed_action.hashed.content.timestamp,
     };
-  }
-
-  async function _loadMessageFile(
-    fileStorageClient: FileStorageClient,
-    messageFile: MessageFile,
-  ): Promise<MessageFileExtended> {
-    try {
-      // Download image file, retrying up to 10 times if download fails
-      const file = await pRetry(
-        () => fileStorageClient.downloadFile(messageFile.storage_entry_hash),
-        {
-          retries: 10,
-          minTimeout: 1000,
-          factor: 2,
-          onFailedAttempt: (e) => {
-            console.error(
-              `Failed to download file from hash ${encodeHashToBase64(messageFile.storage_entry_hash)}`,
-              e,
-            );
-          },
-        },
-      );
-
-      // Convert image blob to data url
-      const dataURL = await fileToDataUrl(file);
-
-      return { messageFile, status: FileStatus.Loaded, dataURL };
-    } catch (e) {
-      return { messageFile, status: FileStatus.Error, dataURL: undefined };
-    }
   }
 
   return {
