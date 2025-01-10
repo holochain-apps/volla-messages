@@ -46,6 +46,7 @@
     type MergedProfileContactInviteJoinedStore,
     type MergedProfileContactInviteUnjoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
+  import { createConferenceStore, type ConferenceStore } from "$store/ConferenceStore";
 
   // Holochain client
   let client: AppClient;
@@ -62,6 +63,7 @@
   let conversationMessageStore: ConversationMessageStore;
   let conversationLatestMessageStore: ConversationLatestMessageStore;
   let inviteStore: InviteStore;
+  let conferenceStore: ConferenceStore;
   let provisionedRelayCellProfileStore: CellProfileStore;
   let mergedProfileContactInviteUnjoinedStore: MergedProfileContactInviteUnjoinedStore;
   let mergedProfileContactInviteJoinedStore: MergedProfileContactInviteJoinedStore;
@@ -158,6 +160,7 @@
         conversationStore,
         conversationMessageStore,
       );
+      conferenceStore = createConferenceStore(relayClient);
       mergedProfileContactInviteUnjoinedStore = createMergedProfileContactInviteUnjoinedStore(
         profileStore,
         inviteStore,
@@ -178,9 +181,15 @@
       await profileStore.initialize();
       await conversationStore.initialize();
       await conversationMessageStore.initialize();
+      await conferenceStore.initialize();
 
       // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore, conversationMessageStore);
+      createSignalHandler(
+        relayClient,
+        conversationStore,
+        conversationMessageStore,
+        conferenceStore,
+      );
 
       isStoresSetup = true;
     } catch (e) {
@@ -252,6 +261,10 @@
 
   setContext("inviteStore", {
     getStore: () => inviteStore,
+  });
+
+  setContext("conferenceStore", {
+    getStore: () => conferenceStore,
   });
 </script>
 
