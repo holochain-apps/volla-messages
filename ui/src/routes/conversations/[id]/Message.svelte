@@ -14,6 +14,7 @@
     deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
+  import AgentNickname from "$lib/AgentNickname.svelte";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
@@ -34,7 +35,6 @@
   );
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
-  $: authorNickname = $mergedProfileContact.data[message.authorAgentPubKeyB64].profile.nickname;
 </script>
 
 <button
@@ -48,7 +48,7 @@
   use:clickoutside
   on:clickoutside
   aria-pressed={isSelected}
-  aria-label={`Message from ${fromMe ? "you" : authorNickname}`}
+  aria-label="Message"
 >
   <div class="flex {fromMe ? 'justify-end' : 'justify-start'}">
     {#if !fromMe && showAuthor}
@@ -65,7 +65,7 @@
     <div class="max-w-3/4 ml-3 w-auto {fromMe && 'items-end text-end'}">
       {#if showAuthor}
         <span class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}">
-          <span class="font-bold">{fromMe ? "You" : authorNickname}</span>
+          <AgentNickname cellIdB64={cellIdB64} agentPubKeyB64={message.authorAgentPubKeyB64} />
           <span class="text-xxs mx-2">
             <Time timestamp={message.timestamp / 1000} format="h:mma" />
           </span>
