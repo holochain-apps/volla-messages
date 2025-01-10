@@ -166,7 +166,7 @@ export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
   return [bytes.slice(0, 39), bytes.slice(39)];
 }
 
-export function isSameDay(d1: Date, d2?: Date) {
+export function isSameDay(d1: Date, d2?: Date): boolean {
   if (d2 === undefined) return false;
 
   return (
