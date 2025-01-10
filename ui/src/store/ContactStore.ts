@@ -21,24 +21,24 @@ import type {
 } from "$lib/types";
 import type { RelayClient } from "./RelayClient";
 import { EntryRecord } from "@holochain-open-dev/utils";
-import { persisted } from "./GenericPersistedStore";
-import { createGenericKeyValueStore } from "./GenericKeyValueStore";
-import { sortBy } from "lodash-es";
-
-export interface ContactsExtendedObj {
-  [agentPubKeyB64: AgentPubKeyB64]: ContactExtended;
-}
+import { persisted } from "./generic/GenericPersistedStore";
+import {
+  createGenericKeyValueStore,
+  type GenericKeyValueStoreDataExtended,
+} from "./generic/GenericKeyValueStore";
 
 export interface ContactStore {
   initialize: () => Promise<void>;
   create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
-  update: (val: Contact) => Promise<void>;
-  getHasAgentJoinedDht: (agentPubKeyB64: AgentPubKeyB64) => Promise<boolean>;
-  getAsProfileExtended: (agentPubKeyB64: AgentPubKeyB64) => ProfileExtended;
+  update: (key: AgentPubKeyB64, val: Contact) => Promise<void>;
+  getHasAgentJoinedDht: (key: AgentPubKeyB64) => Promise<boolean>;
+  makeProfileExtended: (c: ContactExtended) => ProfileExtended;
   subscribe: (
     this: void,
-    run: Subscriber<ContactsExtendedObj>,
-    invalidate?: Invalidator<ContactsExtendedObj> | undefined
+    run: Subscriber<GenericKeyValueStoreDataExtended<ContactExtended>>,
+    invalidate?:
+      | Invalidator<GenericKeyValueStoreDataExtended<ContactExtended>>
+      | undefined
   ) => Unsubscriber;
 }
 
@@ -49,7 +49,9 @@ export interface ContactStore {
  * @returns
  */
 export function createContactStore(client: RelayClient): ContactStore {
-  const contacts = createGenericKeyValueStore<ContactExtended>();
+  const contacts = createGenericKeyValueStore<ContactExtended>([
+    (c) => c[1].fullName,
+  ]);
   const cellIds = persisted<{ [agentPubKeyB64: AgentPubKeyB64]: CellId }>(
     `CONTACTS.PRIVATE_CONVERSATION`,
     {}
@@ -72,7 +74,7 @@ export function createContactStore(client: RelayClient): ContactStore {
       ...d,
       [agentPubKeyB64]: cellId,
     }));
-    contacts.updateKeyValue(
+    contacts.setKeyValue(
       agentPubKeyB64,
       _makeContactExtendedFromRecord(record, cellId)
     );
@@ -81,17 +83,15 @@ export function createContactStore(client: RelayClient): ContactStore {
   /**
    * Update a contact
    */
-  async function update(val: Contact) {
-    const prevContact = contacts.getKeyValue(
-      encodeHashToBase64(val.public_key)
-    );
+  async function update(key: AgentPubKeyB64, val: Contact) {
+    const prevContact = contacts.getKeyValue(key);
     const record = await client.updateContact({
       original_contact_hash: prevContact.originalActionHash,
       previous_contact_hash: prevContact.previousActionHash,
       updated_contact: val,
     });
-    contacts.updateKeyValue(
-      encodeHashToBase64(val.public_key),
+    contacts.setKeyValue(
+      key,
       _makeContactExtendedFromRecord(
         record,
         prevContact.cellId,
@@ -146,13 +146,8 @@ export function createContactStore(client: RelayClient): ContactStore {
    * @param agentPubKeyB64
    * @returns
    */
-  function getAsProfileExtended(
-    agentPubKeyB64: AgentPubKeyB64
-  ): ProfileExtended {
-    const c = contacts.getKeyValue(agentPubKeyB64);
-
+  function makeProfileExtended(c: ContactExtended): ProfileExtended {
     return {
-      publicKeyB64: c.publicKeyB64,
       profile: {
         nickname: c.fullName,
         fields: {
@@ -161,6 +156,7 @@ export function createContactStore(client: RelayClient): ContactStore {
           avatar: c.contact.avatar,
         },
       },
+      publicKeyB64: c.publicKeyB64,
     };
   }
 
@@ -224,7 +220,7 @@ export function createContactStore(client: RelayClient): ContactStore {
     update,
 
     getHasAgentJoinedDht,
-    getAsProfileExtended,
+    makeProfileExtended,
 
     subscribe: contacts.subscribe,
   };
@@ -233,42 +229,25 @@ export function createContactStore(client: RelayClient): ContactStore {
 /**
  * Creates a derived store for a single contact from the main contact store
  *
- * @param contactStore - The main contact store instance
+ * @param allContactsStore - The main contact store instance
  * @param agentPubKeyB64 - The base64 encoded public key of the agent
  * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
  */
-export function deriveOneContactStore(
+export function deriveAgentContactStore(
   contactStore: ContactStore,
   agentPubKeyB64: AgentPubKeyB64
 ) {
   const { subscribe } = derived(
     contactStore,
-    ($contactStore) => $contactStore[agentPubKeyB64]
+    ($allContactsStore) => $allContactsStore.data[agentPubKeyB64]
   );
 
-  const getHasAgentJoinedDht = () =>
-    contactStore.getHasAgentJoinedDht(agentPubKeyB64);
-  const getAsProfileExtended = () =>
-    contactStore.getAsProfileExtended(agentPubKeyB64);
-
   return {
-    update: contactStore.update,
-    getHasAgentJoinedDht,
-    getAsProfileExtended,
+    update: (val: Contact) => contactStore.update(agentPubKeyB64, val),
+    getHasAgentJoinedDht: () =>
+      contactStore.getHasAgentJoinedDht(agentPubKeyB64),
+    makeProfileExtended: (val: ContactExtended) =>
+      contactStore.makeProfileExtended(val),
     subscribe,
   };
 }
-
-/**
- * Creates a derived store for a single contact from the main contact store
- *
- * @param contactStore - The main contact store instance
- * @param agentPubKeyB64 - The base64 encoded public key of the agent
- * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
- */
-export const deriveContactListStore = (contactStore: ContactStore) =>
-  derived(contactStore, ($contactStore) => {
-    if ($contactStore === undefined) return [];
-
-    return sortBy(Object.entries($contactStore), [(c) => c[1].fullName]);
-  });

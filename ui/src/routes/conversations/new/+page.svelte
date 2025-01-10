@@ -9,7 +9,6 @@
   import toast from "svelte-french-toast";
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
   import type { ConversationStore } from "$store/ConversationStore";
-  import { encodeHashToBase64 } from "@holochain/client";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
