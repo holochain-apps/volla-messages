@@ -1,4 +1,4 @@
-import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+import { decodeHashFromBase64, type AgentPubKey } from "@holochain/client";
 import { get, type Subscriber, type Invalidator, type Unsubscriber } from "svelte/store";
 import { 
   createGenericKeyValueStore, 
@@ -14,10 +14,10 @@ import {
 } from "$lib/types";
 export interface ConferenceStore {
   initialize: () => Promise<void>;
-  createConference: (title: string, participants: AgentPubKeyB64[]) => Promise<string>;
+  createConference: (title: string, participants: AgentPubKey[]) => Promise<string>;
   joinConference: (roomId: string) => Promise<void>;
   leaveConference: (roomId: string) => Promise<void>;
-  sendSignal: (roomId: string, target: AgentPubKeyB64, type: CallSignalType, data: string) => Promise<void>;
+  sendSignal: (roomId: string, target: AgentPubKey, type: CallSignalType, data: string) => Promise<void>;
   handleSignalReceived: (roomId: string, signal: SignalPayload) => Promise<void>;
   initializeWebRTC: (roomId: string) => Promise<void>;
   cleanupWebRTC: (roomId: string) => void;
@@ -48,9 +48,8 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     conferences.set({});
   }
 
-  async function createConference(title: string, participants: AgentPubKeyB64[]): Promise<string> {
-    const participantKeys = participants.map(p => decodeHashFromBase64(p));
-    const record = await client.createConference(title, participantKeys);
+  async function createConference(title: string, participants: AgentPubKey[]): Promise<string> {
+    const record = await client.createConference(title, participants);
     const room = record.entry;
     if (!room) throw new Error("Failed to decode conference room entry");
 
@@ -88,13 +87,13 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
 
   async function sendSignal(
     roomId: string, 
-    target: AgentPubKeyB64,
+    target: AgentPubKey,
     type: CallSignalType,
     data: string
   ): Promise<void> {
     await client.sendSignal(
       roomId,
-      decodeHashFromBase64(target),
+      target,
       type,
       data
     );
@@ -104,7 +103,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     const state = conferences.getKeyValue(roomId);
     if (!state) return;
 
-    const participant = state.participants.get(encodeHashToBase64(signal.from));
+    const participant = state.participants.get(signal.from);
     if (!participant) return;
 
     const peerConnection = participant.peerConnection;
@@ -117,7 +116,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
         await peerConnection.setLocalDescription(answer);
         await sendSignal(
           roomId,
-          encodeHashToBase64(signal.from),
+          signal.from,
           CallSignalType.Answer,
           JSON.stringify(answer)
         );
@@ -150,7 +149,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
 
     // Initialising the peer connections for all participants
     for (const [pubKey, participant] of state.participants.entries()) {
-      if (pubKey === encodeHashToBase64(client.client.myPubKey)) continue;
+      if (pubKey === client.client.myPubKey) continue;
 
       const peerConnection = new RTCPeerConnection(RTCConfig);
       
