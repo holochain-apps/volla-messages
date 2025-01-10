@@ -8,13 +8,9 @@
   import { t } from "$translations";
   import type { Invitation } from "$lib/types";
   import type { ConversationStore } from "$store/ConversationStore";
-  import { type InvitationStore } from "$store/InvitationStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
-  ).getStore();
-  const invitationStore = getContext<{ getStore: () => InvitationStore }>(
-    "invitationStore",
   ).getStore();
 
   let inviteCode = "";
@@ -27,7 +23,6 @@
       const msgpack = Base64.toUint8Array(inviteCode);
       const invitation: Invitation = decode(msgpack) as Invitation;
       const cellIdB64 = await conversationStore.join(invitation);
-      await invitationStore.set(cellIdB64, invitation);
 
       goto(`/conversations/${cellIdB64}`);
     } catch (e) {
