@@ -318,14 +318,14 @@ export interface SignalInput {
 
 export interface ConferenceState {
   room: ConferenceRoom;
-  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
+  participants: Map<AgentPubKey, ConferenceParticipant>;
   localStream?: MediaStream;
   isInitiator: boolean;
   ended: boolean;
 }
 
 export interface ConferenceParticipant {
-  publicKey: AgentPubKeyB64;
+  publicKey: AgentPubKey;
   peerConnection?: RTCPeerConnection;
   stream?: MediaStream;
   isConnected: boolean;
