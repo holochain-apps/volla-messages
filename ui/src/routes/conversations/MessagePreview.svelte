@@ -1,35 +1,19 @@
 <script lang="ts">
+  import Avatar from "$lib/Avatar.svelte";
   import type { CellIdB64, MessageExtended } from "$lib/types";
-  import {
-    deriveCellMergedProfileContactInviteStore,
-    type MergedProfileContactInviteStore,
-  } from "$store/MergedProfileContactInviteStore";
   import { t } from "$translations";
-  import type { AgentPubKeyB64 } from "@holochain/client";
   import DOMPurify from "dompurify";
-  import { getContext } from "svelte";
-
-  const mergedProfileContactInviteStore = getContext<{
-    getStore: () => MergedProfileContactInviteStore;
-  }>("mergedProfileContactInviteStore").getStore();
-  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
-    "myPubKey",
-  ).getMyPubKeyB64();
+  import AgentNickname from "$lib/AgentNickname.svelte";
 
   export let messageExtended: MessageExtended;
   export let cellIdB64: CellIdB64;
-
-  let profile = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactInviteStore,
-    cellIdB64,
-    myPubKeyB64,
-  );
 </script>
 
-<div class="flex items-center justify-start space-x-1">
-  {#if $profile.data[messageExtended.authorAgentPubKeyB64] !== undefined}
-    <div>{$profile.data[messageExtended.authorAgentPubKeyB64].profile.nickname}:</div>
-  {/if}
+<div class="flex items-start justify-start space-x-2 mt-1">
+  <div class=" flex items-start justify-start space-x-1">
+    <Avatar agentPubKeyB64={messageExtended.authorAgentPubKeyB64} {cellIdB64} size={14} />
+    <AgentNickname cellIdB64={cellIdB64} agentPubKeyB64={messageExtended.authorAgentPubKeyB64} />
+  </div>
 
   <div>{@html DOMPurify.sanitize(messageExtended.message.content)}</div>
 
