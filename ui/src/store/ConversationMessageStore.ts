@@ -71,11 +71,10 @@ export function createConversationMessageStore(
           Object.fromEntries(
             Object.entries(messagesData).filter(
               ([, messageExtended]) =>
-                true ||
-                ($mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
-                  $mergedProfileContactInviteStore.data[cellIdB64][
-                    messageExtended.authorAgentPubKeyB64
-                  ] !== undefined),
+                $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
+                $mergedProfileContactInviteStore.data[cellIdB64][
+                  messageExtended.authorAgentPubKeyB64
+                ] !== undefined,
             ),
           ),
         ]),
