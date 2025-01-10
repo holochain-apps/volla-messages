@@ -27,6 +27,7 @@
     deriveCellMergedProfileContactInviteJoinedStore,
     type MergedProfileContactInviteJoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
+  import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -86,11 +87,11 @@
     if ($joined.count < 2) {
       agentTimeout = setTimeout(() => {
         loadProfiles();
-      }, 2000);
+      }, POLLING_INTERVAL_FAST);
     } else {
       agentTimeout = setTimeout(() => {
         loadProfiles();
-      }, 15000);
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 
@@ -106,7 +107,11 @@
     if ($conversation.config === undefined) {
       configTimeout = setTimeout(() => {
         loadConfig();
-      }, 2000);
+      }, POLLING_INTERVAL_FAST);
+    } else {
+      configTimeout = setTimeout(() => {
+        loadConfig();
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 
@@ -119,7 +124,11 @@
     if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
         loadMessages();
-      }, 2000);
+      }, POLLING_INTERVAL_FAST);
+    } else {
+      messageTimeout = setTimeout(() => {
+        loadMessages();
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 

@@ -23,3 +23,7 @@ export const INPUT_MAX_FILENAME_LENGTH = 10;
 
 export const ROLE_NAME = "relay";
 export const ZOME_NAME = "relay";
+
+// Polling intervals, used on conversations page
+export const POLLING_INTERVAL_SLOW = 30 * 1000;
+export const POLLING_INTERVAL_FAST = 2 * 1000;
