@@ -21,9 +21,9 @@
   export let disabled = false;
   export let buttonLabel: string;
 
-  $: selectedContactExtendeds = value
-    .map((agentPubKeyB64) => $contactStore[agentPubKeyB64])
-    .filter((c) => c !== undefined);
+  $: selectedContactExtendeds = $contactStore.list
+    .filter(([key]) => value.includes(key))
+    .map(([, contact]) => contact);
 
   // Derive a string with the names of the selected contacts
   let selectedContactNames = "";

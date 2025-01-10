@@ -1,13 +1,11 @@
 import { derived, get, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
 import type { ConversationStore } from "./ConversationStore";
-import {
-  deriveMergedProfileContactInviteListStore,
-  type MergedProfileContactInviteStore,
-} from "./MergedProfileContactInviteStore";
+import { type MergedProfileContactInviteStore } from "./MergedProfileContactInviteStore";
 import { Privacy, type CellIdB64, type ProfileExtended } from "$lib/types";
-import type { AgentPubKeyB64 } from "@holochain/client";
-import { persisted } from "./GenericPersistedStore";
-import type { GenericKeyValueStoreData } from "./GenericKeyValueStore";
+import { persisted } from "./generic/GenericPersistedStore";
+import type { GenericKeyValueStoreData } from "./generic/GenericKeyValueStore";
+import type { InvitationStore } from "./InvitationStore";
+import type { MergedProfileContactInviteJoinedStore } from "./MergedProfileContactInviteJoinedStore";
 
 export interface ConversationTitleStore {
   subscribe: (
@@ -19,47 +17,68 @@ export interface ConversationTitleStore {
 
 export function createConversationTitleStore(
   conversationStore: ConversationStore,
-  mergedProfileContactStore: MergedProfileContactInviteStore,
-  myPubKeyB64: AgentPubKeyB64,
+  mergedProfileContactInviteStore: MergedProfileContactInviteStore,
+  invitationStore: InvitationStore,
 ): ConversationTitleStore {
   const persistedData = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
-  const mergedProfileContactList = deriveMergedProfileContactInviteListStore(
-    mergedProfileContactStore,
-    myPubKeyB64,
-  );
   const data = derived(
-    [conversationStore, mergedProfileContactList],
-    ([$conversationStore, $mergedProfileContactList]) => {
+    [conversationStore, mergedProfileContactInviteStore, invitationStore],
+    ([$conversationStore, $mergedProfileContactInviteStore, $invitationStore]) => {
       const newVal = Object.fromEntries(
-        Object.entries($conversationStore.conversations).map(([cellIdB64, conversation]) => {
-          const previousTitle = get(persistedData)[cellIdB64];
+        $conversationStore.list
+          .map(([cellIdB64, conversation]) => {
+            const previousTitle = get(persistedData)[cellIdB64];
+            let title;
 
-          let title;
-          if (
-            previousTitle !== undefined &&
-            (!conversation.cellInfo.enabled ||
-              $mergedProfileContactList[cellIdB64] === undefined ||
-              conversation.config === undefined)
-          ) {
-            // We have a title saved, and we are not able to derive a title, so use the saved title
-            title = previousTitle;
-          } else if (
-            conversation.dnaProperties.privacy === Privacy.Private &&
-            $mergedProfileContactList[cellIdB64] !== undefined
-          ) {
-            // Private conversations have a title derived from the names of the participants, and my own name
-            title = makePrivateConversationTitle(
-              $mergedProfileContactList[cellIdB64].map(([, p]) => p),
-            );
-          } else if (conversation.dnaProperties.privacy === Privacy.Public && conversation.config) {
-            title = conversation.config.title;
-          } else {
-            title = "...";
-          }
+            // Derive a title for the conversation
 
-          return [cellIdB64, title];
-        }),
+            // If Private, and there are other profiles, generate a title from the profile names
+            if (
+              conversation.dnaProperties.privacy === Privacy.Private &&
+              $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
+              Object.keys($mergedProfileContactInviteStore.data[cellIdB64]).length > 1
+            ) {
+              title = makePrivateConversationTitle(
+                Object.values($mergedProfileContactInviteStore.data[cellIdB64] || {}),
+              );
+            }
+            // If we have a Config, use that title
+            else if (conversation.config !== undefined) {
+              title = conversation.config.title;
+            }
+            // If we have an Invitation saved to localstorage, use that title
+            else if ($invitationStore[cellIdB64] !== undefined) {
+              title = $invitationStore[cellIdB64].title;
+            }
+            // If it is public and there are other profiles, generate a title from the profile names
+            else if (
+              $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
+              Object.keys($mergedProfileContactInviteStore.data[cellIdB64]).length > 1
+            ) {
+              title = makePrivateConversationTitle(
+                Object.values($mergedProfileContactInviteStore.data[cellIdB64] || {}),
+              );
+            }
+            // If we have a previous title saved to localstorage, use that
+            // Localstorage persistance is necessary for disabled conversations as we cannot access the cell's data
+            else if (
+              previousTitle !== undefined &&
+              previousTitle !== null &&
+              previousTitle !== ""
+            ) {
+              title = previousTitle;
+            }
+            // If we cannot derive a title, and we don't have one saved, use the cellInfo cell name
+            else {
+              title = conversation.cellInfo.name;
+            }
+
+            return [cellIdB64, title];
+          })
+
+          // Exclude titles that are still undefined
+          .filter((val) => val !== undefined),
       );
 
       // Persist new title to localstorage
@@ -85,7 +104,6 @@ export function deriveCellConversationTitleStore(
 }
 
 function makePrivateConversationTitle(profiles: ProfileExtended[]) {
-  console.log('makePrivateConversationTitle', profiles);
   let title;
   if (profiles.length === 2) {
     // Full name of the one other person in the chat
@@ -97,11 +115,11 @@ function makePrivateConversationTitle(profiles: ProfileExtended[]) {
       .map((p) => p.profile.fields.firstName)
       .join(" & ");
   } else {
-    // First names of all participants, excluding self
-    title = profiles
-      .slice(1)
+    // First names of first 3 participants, then number of additional participants, excluding self
+    title = `${profiles
+      .slice(1, 4)
       .map((p) => p.profile.fields.firstName)
-      .join(", ");
+      .join(", ")} + ${profiles.length - 4} Others`;
   }
 
   return title;

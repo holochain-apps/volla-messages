@@ -166,7 +166,7 @@ export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
   return [bytes.slice(0, 39), bytes.slice(39)];
 }
 
-export function isSameDay(d1: Date, d2?: Date) {
+export function isSameDay(d1: Date, d2?: Date): boolean {
   if (d2 === undefined) return false;
 
   return (
@@ -174,4 +174,10 @@ export function isSameDay(d1: Date, d2?: Date) {
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
   );
+}
+
+export function isWithinFiveMinutes(d1: Date, d2?: Date): boolean {
+  if (d2 === undefined) return false;
+
+  return Math.abs(d1.getTime() - d2.getTime()) <= 5 * 60 * 1000;
 }
