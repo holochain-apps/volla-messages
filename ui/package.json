@@ -17,9 +17,9 @@
   "dependencies": {
     "@buildyourwebapp/tauri-plugin-sharesheet": "0.0.1",
     "@holochain-open-dev/elements": "^0.400.0-dev.3",
-    "@holochain-open-dev/file-storage": "^0.400.0-dev.1",
+    "@holochain-open-dev/file-storage": "^0.300.0-dev.0",
     "@holochain-open-dev/utils": "^0.400.0-dev.4",
-    "@holochain/client": "^0.18.0-dev.13",
+    "@holochain/client": "^0.17.1",
     "@lightningrodlabs/we-applet": "^0.17.0-dev.2",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@svelte-put/clickoutside": "^3.0.2",
