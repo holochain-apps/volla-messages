@@ -212,7 +212,7 @@ export function deriveAgentContactStore(
 ) {
   const { subscribe } = derived(
     contactStore,
-    ($contactStore) => $contactStore.data[agentPubKeyB64]
+    ($contactStore) => $contactStore.data[agentPubKeyB64],
   );
 
   return {
