@@ -71,28 +71,6 @@ export function isMobile(): boolean {
   return val === "android" || val === "ios";
 }
 
-/**
- * Convert file to data url
- *
- * @param file
- * @returns
- */
-export async function fileToDataUrl(file: File): Promise<string> {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-
-  return new Promise((resolve, reject) => {
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject("Failed to convert File to Image: File contents are not a string");
-      }
-    };
-    reader.onerror = (e) => reject(`Failed to convert File to Image: ${e}`);
-  });
-}
-
 function setLightDarkMode(value: boolean) {
   const elemHtmlClasses = document.documentElement.classList;
   const classDark = `dark`;

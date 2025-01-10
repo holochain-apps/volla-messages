@@ -43,6 +43,18 @@
     {#each messages as [actionHashB64, messageExtended], i (actionHashB64)}
       {@const prevMessageExtended = i === 0 ? undefined : messages[i - 1][1]}
 
+      {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
+        <li class="my-4">
+          <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
+            {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </div>
+        </li>
+      {/if}
+
       <BaseMessage
         {cellIdB64}
         message={messageExtended}
@@ -50,11 +62,6 @@
         showAuthor={prevMessageExtended === undefined ||
           messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
           !isWithinFiveMinutes(
-            new Date(messageExtended.timestamp / 1000),
-            new Date(prevMessageExtended.timestamp / 1000),
-          )}
-        showDate={prevMessageExtended === undefined ||
-          !isSameDay(
             new Date(messageExtended.timestamp / 1000),
             new Date(prevMessageExtended.timestamp / 1000),
           )}
