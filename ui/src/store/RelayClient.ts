@@ -291,11 +291,11 @@ export class RelayClient {
   }
 
   public async disableConversationCell(cell_id: CellId) {
-    return this.client.disableCloneCell({ clone_cell_id: cell_id });
+    return this.client.disableCloneCell({ clone_cell_id: cell_id[0] });
   }
 
   public async enableConversationCell(cell_id: CellId) {
-    return this.client.enableCloneCell({ clone_cell_id: cell_id });
+    return this.client.enableCloneCell({ clone_cell_id: cell_id[0] });
   }
 
   /**
