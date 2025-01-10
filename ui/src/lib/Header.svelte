@@ -16,7 +16,7 @@
 </script>
 
 <div class="flex w-full items-center">
-  <div class="flex-none">
+  <div class="min-w-14 flex-none">
     <slot name="left">
       {#if backUrl !== undefined || back}
         <ButtonIconBare
@@ -37,7 +37,7 @@
     </slot>
   </div>
 
-  <div class="flex-none">
+  <div class="min-w-14 flex-none">
     <slot name="right"></slot>
   </div>
 </div>

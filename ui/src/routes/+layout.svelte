@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppClient, CellId } from "@holochain/client";
+  import type { AgentPubKeyB64, AppClient, CellId } from "@holochain/client";
   import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
   import { onDestroy, onMount, setContext } from "svelte";
   import { t } from "$translations";
@@ -13,7 +13,12 @@
   import ProfileSetupName from "./ProfileSetupName.svelte";
   import ProfileSetupAvatar from "./ProfileSetupAvatar.svelte";
   import { createContactStore, type ContactStore } from "$store/ContactStore";
-  import { type ProfileStore, createProfileStore } from "$store/ProfileStore";
+  import {
+    type CellProfileStore,
+    type ProfileStore,
+    createProfileStore,
+    deriveCellProfileStore,
+  } from "$store/ProfileStore";
   import { encodeCellIdToBase64 } from "$lib/utils";
   import {
     createMergedProfileContactInviteStore,
@@ -24,21 +29,44 @@
     createConversationTitleStore,
     type ConversationTitleStore,
   } from "$store/ConversationTitleStore";
-  import type { CreateProfileInputUI } from "$lib/types";
+  import type { CellIdB64, CreateProfileInputUI } from "$lib/types";
   import { createInviteStore, type InviteStore } from "$store/InviteStore";
   import "../app.postcss";
+  import {
+    type ConversationLatestMessageStore,
+    createConversationLatestMessageStore,
+  } from "$store/ConversationLatestMessageStore";
+  import {
+    type ConversationMessageStore,
+    createConversationMessageStore,
+  } from "$store/ConversationMessageStore";
+  import { createInvitationStore, type InvitationStore } from "$store/InvitationStore";
+  import {
+    createMergedProfileContactInviteJoinedStore,
+    createMergedProfileContactInviteUnjoinedStore,
+    type MergedProfileContactInviteJoinedStore,
+    type MergedProfileContactInviteUnjoinedStore,
+  } from "$store/MergedProfileContactInviteJoinedStore";
 
   // Holochain client
   let client: AppClient;
   let provisionedRelayCellId: CellId;
+  let provisionedRelayCellIdB64: CellIdB64;
+  let myPubKeyB64: AgentPubKeyB64;
 
   // Frontend store singletons
   let profileStore: ProfileStore;
   let contactStore: ContactStore;
-  let mergedProfileContactStore: MergedProfileContactInviteStore;
+  let mergedProfileContactInviteStore: MergedProfileContactInviteStore;
   let conversationStore: ConversationStore;
   let conversationTitleStore: ConversationTitleStore;
+  let conversationMessageStore: ConversationMessageStore;
+  let conversationLatestMessageStore: ConversationLatestMessageStore;
   let inviteStore: InviteStore;
+  let invitationStore: InvitationStore;
+  let provisionedRelayCellProfileStore: CellProfileStore;
+  let mergedProfileContactInviteUnjoinedStore: MergedProfileContactInviteUnjoinedStore;
+  let mergedProfileContactInviteJoinedStore: MergedProfileContactInviteJoinedStore;
 
   // Is the holochain client connected?
   let isClientConnected = false;
@@ -57,12 +85,8 @@
   };
 
   $: myProfile =
-    profileStore &&
-    provisionedRelayCellId &&
-    $profileStore[encodeCellIdToBase64(provisionedRelayCellId)]
-      ? $profileStore[encodeCellIdToBase64(provisionedRelayCellId)][
-          encodeHashToBase64(client.myPubKey)
-        ]
+    provisionedRelayCellProfileStore && $provisionedRelayCellProfileStore.data[myPubKeyB64]
+      ? $provisionedRelayCellProfileStore.data[myPubKeyB64]
       : undefined;
   $: myProfileExists = myProfile !== undefined;
 
@@ -99,6 +123,7 @@
       if (provisionedRelayCellInfo === undefined)
         throw new Error("Failed to get CellInfo for cell 'relay'");
       provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
+      provisionedRelayCellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
 
       isClientConnected = true;
       console.log("Connected");
@@ -112,28 +137,54 @@
     try {
       // Setup stores
       const relayClient = new RelayClient(client, provisionedRelayCellId);
+      myPubKeyB64 = encodeHashToBase64(client.myPubKey);
       contactStore = createContactStore(relayClient);
       profileStore = createProfileStore(relayClient);
+      provisionedRelayCellProfileStore = deriveCellProfileStore(
+        profileStore,
+        provisionedRelayCellIdB64,
+      );
       inviteStore = createInviteStore();
-      mergedProfileContactStore = createMergedProfileContactInviteStore(
+      invitationStore = createInvitationStore();
+      mergedProfileContactInviteStore = createMergedProfileContactInviteStore(
         profileStore,
         contactStore,
         inviteStore,
       );
-      conversationStore = createConversationStore(relayClient, mergedProfileContactStore);
+      conversationStore = createConversationStore(relayClient);
+      conversationMessageStore = createConversationMessageStore(
+        relayClient,
+        conversationStore,
+        mergedProfileContactInviteStore,
+      );
+      conversationLatestMessageStore = createConversationLatestMessageStore(
+        conversationStore,
+        conversationMessageStore,
+      );
+      mergedProfileContactInviteUnjoinedStore = createMergedProfileContactInviteUnjoinedStore(
+        profileStore,
+        inviteStore,
+        mergedProfileContactInviteStore,
+      );
+      mergedProfileContactInviteJoinedStore = createMergedProfileContactInviteJoinedStore(
+        profileStore,
+        inviteStore,
+        mergedProfileContactInviteStore,
+      );
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
-        mergedProfileContactStore,
-        encodeHashToBase64(client.myPubKey),
+        mergedProfileContactInviteJoinedStore,
+        invitationStore,
       );
 
       // Initialize store data
       await contactStore.initialize();
       await profileStore.initialize();
       await conversationStore.initialize();
+      await conversationMessageStore.initialize();
 
       // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore);
+      createSignalHandler(relayClient, conversationStore, conversationMessageStore);
 
       isStoresSetup = true;
     } catch (e) {
@@ -158,24 +209,33 @@
 
   setContext("myPubKey", {
     getMyPubKey: () => client.myPubKey,
-    getMyPubKeyB64: () => encodeHashToBase64(client.myPubKey),
+    getMyPubKeyB64: () => myPubKeyB64,
   });
 
   setContext("provisionedRelayCellId", {
     getCellId: () => provisionedRelayCellId,
-    getCellIdB64: () => encodeCellIdToBase64(provisionedRelayCellId),
+    getCellIdB64: () => provisionedRelayCellIdB64,
   });
 
   setContext("profileStore", {
     getStore: () => profileStore,
+    getProvisionedRelayCellProfileStore: () => provisionedRelayCellProfileStore,
   });
 
   setContext("contactStore", {
     getStore: () => contactStore,
   });
 
-  setContext("mergedProfileContactStore", {
-    getStore: () => mergedProfileContactStore,
+  setContext("mergedProfileContactInviteStore", {
+    getStore: () => mergedProfileContactInviteStore,
+  });
+
+  setContext("mergedProfileContactInviteJoinedStore", {
+    getStore: () => mergedProfileContactInviteJoinedStore,
+  });
+
+  setContext("mergedProfileContactInviteUnjoinedStore", {
+    getStore: () => mergedProfileContactInviteUnjoinedStore,
   });
 
   setContext("conversationStore", {
@@ -186,8 +246,20 @@
     getStore: () => conversationTitleStore,
   });
 
+  setContext("conversationMessageStore", {
+    getStore: () => conversationMessageStore,
+  });
+
+  setContext("conversationLatestMessageStore", {
+    getStore: () => conversationLatestMessageStore,
+  });
+
   setContext("inviteStore", {
     getStore: () => inviteStore,
+  });
+
+  setContext("invitationStore", {
+    getStore: () => invitationStore,
   });
 </script>
 

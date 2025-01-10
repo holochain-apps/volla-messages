@@ -18,7 +18,7 @@
   ).getStore();
 
   $: hasArchivedConversations =
-    Object.values($conversationStore.conversations).filter((c) => !c.cellInfo.enabled).length > 0;
+    $conversationStore.list.filter(([, c]) => !c.cellInfo.enabled).length > 0;
 </script>
 
 <Header>
