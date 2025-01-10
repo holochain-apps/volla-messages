@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import ButtonInline from "$lib/ButtonInline.svelte";
-  import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
+  import { deriveAgentContactStore, type ContactStore } from "$store/ContactStore";
   import { t } from "$translations";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import Avatar from "$lib/Avatar.svelte";
@@ -12,7 +12,7 @@
   export let agentPubKeyB64: AgentPubKeyB64;
   export let selected: boolean = false;
 
-  $: contact = deriveOneContactStore(contactStore, agentPubKeyB64);
+  let contact = deriveAgentContactStore(contactStore, agentPubKeyB64);
 
   let hasAgentJoinedDht = false;
   onMount(async () => {

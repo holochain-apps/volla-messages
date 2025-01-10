@@ -2,28 +2,30 @@
   import { getContext } from "svelte";
   import ConversationSummary from "./ConversationSummary.svelte";
   import InputSearch from "$lib/InputSearch.svelte";
-  import { deriveConversationListStore, type ConversationStore } from "$store/ConversationStore";
-  import type { CellIdB64 } from "$lib/types";
+  import { type ConversationStore } from "$store/ConversationStore";
   import type { ConversationTitleStore } from "$store/ConversationTitleStore";
+  import type { ConversationLatestMessageStore } from "$store/ConversationLatestMessageStore";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
+  const conversationLatestMessageStore = getContext<{
+    getStore: () => ConversationLatestMessageStore;
+  }>("conversationLatestMessageStore").getStore();
   const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
     "conversationTitleStore",
   ).getStore();
 
   export let enabled: boolean;
 
-  let conversationList = deriveConversationListStore(conversationStore);
   let searchQuery = "";
 
   $: searchQueryNormalized = searchQuery.trim().toLocaleLowerCase();
-  $: conversationCellIdB64s = $conversationList
+  $: conversationCellIdB64s = $conversationLatestMessageStore.list
     .filter(
-      (c) =>
-        enabled === c[1].cellInfo.enabled &&
-        $conversationTitleStore[c[0]].toLocaleLowerCase().includes(searchQueryNormalized),
+      ([cellIdB64]) =>
+        enabled === $conversationStore.data[cellIdB64].cellInfo.enabled &&
+        $conversationTitleStore[cellIdB64].toLocaleLowerCase().includes(searchQueryNormalized),
     )
     .map((c) => c[0]);
 </script>

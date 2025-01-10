@@ -2,40 +2,47 @@
   import { decodeHashFromBase64, type AgentPubKeyB64, type CellId } from "@holochain/client";
   import { getContext } from "svelte";
   import "@holochain-open-dev/elements/dist/elements/holo-identicon.js";
-  import { encodeCellIdToBase64 } from "$lib/utils";
   import {
     deriveCellMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import { type CellIdB64 } from "./types";
 
-  const mergedProfileContactStore = getContext<{ getStore: () => MergedProfileContactInviteStore }>(
-    "mergedProfileContactStore",
-  ).getStore();
-  const provisionedRelayCellId = getContext<{ getCellId: () => CellId }>(
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
+  const provisionedRelayCellIdB64 = getContext<{ getCellIdB64: () => CellIdB64 }>(
     "provisionedRelayCellId",
-  ).getCellId();
+  ).getCellIdB64();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
-  export let cellIdB64: CellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
+  export let cellIdB64: CellIdB64 = provisionedRelayCellIdB64;
   export let agentPubKeyB64: AgentPubKeyB64;
 
   export let size: number = 32;
   export let namePosition = "row";
   export let moreClasses = "";
 
-  $: profiles = deriveCellMergedProfileContactInviteStore(mergedProfileContactStore, cellIdB64);
-  $: profileExtended = $profiles ? $profiles[agentPubKeyB64] : undefined;
-  $: title = profileExtended ? profileExtended.profile.nickname : "";
+  let profiles = deriveCellMergedProfileContactInviteStore(
+    mergedProfileContactInviteStore,
+    cellIdB64,
+    myPubKeyB64,
+  );
+
+  $: profile = $profiles.data[agentPubKeyB64];
+  $: title = profile ? profile.profile.nickname : "";
 </script>
 
 <div class="avatar-{namePosition} {moreClasses}" {title}>
-  {#if profileExtended && profileExtended.profile.fields.avatar}
+  {#if profile && profile.profile.fields.avatar}
     <div
       class="flex h-[150px] w-[150px] items-center justify-center overflow-hidden rounded-full"
       style="width: {size}px; height: {size}px"
     >
       <img
-        src={profileExtended.profile.fields.avatar}
+        src={profile.profile.fields.avatar}
         alt="avatar"
         width={size}
         height={size}

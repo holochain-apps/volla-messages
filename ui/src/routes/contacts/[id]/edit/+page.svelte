@@ -8,15 +8,17 @@
   import { goto } from "$app/navigation";
   import { type Contact } from "$lib/types";
   import { getContext } from "svelte";
-  import { deriveOneContactStore, type ContactStore } from "$store/ContactStore";
+  import { deriveAgentContactStore, type ContactStore } from "$store/ContactStore";
   import { decodeHashFromBase64, encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import { get } from "svelte/store";
   import toast from "svelte-french-toast";
   import { page } from "$app/stores";
 
-  const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
+  const allContactsStore = getContext<{ getStore: () => ContactStore }>(
+    "allContactsStore",
+  ).getStore();
 
-  let contact = deriveOneContactStore(contactStore, $page.params.id);
+  let contact = deriveAgentContactStore(allContactsStore, $page.params.id);
   let newContact = get(contact).contact;
   let saving = false;
 
