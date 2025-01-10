@@ -26,7 +26,6 @@
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
-  export let showDate: boolean = false;
 
   let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
     mergedProfileContactInviteStore,
@@ -37,18 +36,6 @@
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
   $: authorNickname = $mergedProfileContact.data[message.authorAgentPubKeyB64].profile.nickname;
 </script>
-
-{#if showDate}
-  <li class="mb-2 mt-auto">
-    <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
-      {new Date(message.timestamp / 1000).toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })}
-    </div>
-  </li>
-{/if}
 
 <button
   class="message-content mt-3 block w-full border-0 text-left
