@@ -4,8 +4,6 @@ import { type MergedProfileContactInviteStore } from "./MergedProfileContactInvi
 import { Privacy, type CellIdB64, type ProfileExtended } from "$lib/types";
 import { persisted } from "./generic/GenericPersistedStore";
 import type { GenericKeyValueStoreData } from "./generic/GenericKeyValueStore";
-import type { InvitationStore } from "./InvitationStore";
-import type { MergedProfileContactInviteJoinedStore } from "./MergedProfileContactInviteJoinedStore";
 
 export interface ConversationTitleStore {
   subscribe: (
@@ -18,13 +16,12 @@ export interface ConversationTitleStore {
 export function createConversationTitleStore(
   conversationStore: ConversationStore,
   mergedProfileContactInviteStore: MergedProfileContactInviteStore,
-  invitationStore: InvitationStore,
 ): ConversationTitleStore {
   const persistedData = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
   const data = derived(
-    [conversationStore, mergedProfileContactInviteStore, invitationStore],
-    ([$conversationStore, $mergedProfileContactInviteStore, $invitationStore]) => {
+    [conversationStore, mergedProfileContactInviteStore],
+    ([$conversationStore, $mergedProfileContactInviteStore]) => {
       const newVal = Object.fromEntries(
         $conversationStore.list
           .map(([cellIdB64, conversation]) => {
@@ -46,19 +43,6 @@ export function createConversationTitleStore(
             // If we have a Config, use that title
             else if (conversation.config !== undefined) {
               title = conversation.config.title;
-            }
-            // If we have an Invitation saved to localstorage, use that title
-            else if ($invitationStore[cellIdB64] !== undefined) {
-              title = $invitationStore[cellIdB64].title;
-            }
-            // If it is public and there are other profiles, generate a title from the profile names
-            else if (
-              $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
-              Object.keys($mergedProfileContactInviteStore.data[cellIdB64]).length > 1
-            ) {
-              title = makePrivateConversationTitle(
-                Object.values($mergedProfileContactInviteStore.data[cellIdB64] || {}),
-              );
             }
             // If we have a previous title saved to localstorage, use that
             // Localstorage persistance is necessary for disabled conversations as we cannot access the cell's data

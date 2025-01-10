@@ -40,7 +40,6 @@
     type ConversationMessageStore,
     createConversationMessageStore,
   } from "$store/ConversationMessageStore";
-  import { createInvitationStore, type InvitationStore } from "$store/InvitationStore";
   import {
     createMergedProfileContactInviteJoinedStore,
     createMergedProfileContactInviteUnjoinedStore,
@@ -63,7 +62,6 @@
   let conversationMessageStore: ConversationMessageStore;
   let conversationLatestMessageStore: ConversationLatestMessageStore;
   let inviteStore: InviteStore;
-  let invitationStore: InvitationStore;
   let provisionedRelayCellProfileStore: CellProfileStore;
   let mergedProfileContactInviteUnjoinedStore: MergedProfileContactInviteUnjoinedStore;
   let mergedProfileContactInviteJoinedStore: MergedProfileContactInviteJoinedStore;
@@ -145,7 +143,6 @@
         provisionedRelayCellIdB64,
       );
       inviteStore = createInviteStore();
-      invitationStore = createInvitationStore();
       mergedProfileContactInviteStore = createMergedProfileContactInviteStore(
         profileStore,
         contactStore,
@@ -174,7 +171,6 @@
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactInviteStore,
-        invitationStore,
       );
 
       // Initialize store data
@@ -256,10 +252,6 @@
 
   setContext("inviteStore", {
     getStore: () => inviteStore,
-  });
-
-  setContext("invitationStore", {
-    getStore: () => invitationStore,
   });
 </script>
 
