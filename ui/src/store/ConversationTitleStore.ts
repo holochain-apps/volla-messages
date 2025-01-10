@@ -17,47 +17,61 @@ export interface ConversationTitleStore {
 
 export function createConversationTitleStore(
   conversationStore: ConversationStore,
-  mergedProfileContactJoinedStore: MergedProfileContactInviteJoinedStore,
+  mergedProfileContactInviteStore: MergedProfileContactInviteStore,
   invitationStore: InvitationStore,
 ): ConversationTitleStore {
   const persistedData = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
   const data = derived(
-    [conversationStore, mergedProfileContactJoinedStore, invitationStore],
-    ([$conversationStore, $mergedProfileContactJoinedStore, $invitationStore]) => {
+    [conversationStore, mergedProfileContactInviteStore, invitationStore],
+    ([$conversationStore, $mergedProfileContactInviteStore, $invitationStore]) => {
       const newVal = Object.fromEntries(
         $conversationStore.list
           .map(([cellIdB64, conversation]) => {
             const previousTitle = get(persistedData)[cellIdB64];
-
             let title;
+
+            // Derive a title for the conversation
+
+            // If Private, and there are other profiles, generate a title from the profile names
             if (
               conversation.dnaProperties.privacy === Privacy.Private &&
-              $mergedProfileContactJoinedStore.data[cellIdB64] !== undefined
+              $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
+              Object.keys($mergedProfileContactInviteStore.data[cellIdB64]).length > 1
             ) {
-              // Private conversations have a title derived from the names of the participants, and my own name
               title = makePrivateConversationTitle(
-                Object.values($mergedProfileContactJoinedStore.data[cellIdB64] || {}),
+                Object.values($mergedProfileContactInviteStore.data[cellIdB64] || {}),
               );
-            } else if (
-              // Public conversations have title set in Config entry
-              conversation.dnaProperties.privacy === Privacy.Public &&
-              conversation.config
-            ) {
+            }
+            // If we have a Config, use that title
+            else if (conversation.config !== undefined) {
               title = conversation.config.title;
-            } else if (
-              previousTitle !== undefined &&
-              previousTitle !== "" &&
-              (!conversation.cellInfo.enabled ||
-                $mergedProfileContactJoinedStore.data[cellIdB64] === undefined ||
-                conversation.config === undefined ||
-                $invitationStore[cellIdB64] === undefined)
-            ) {
-              // We have a title saved, and we are not able to derive a title, so use the saved title
-              title = previousTitle;
-            } else if ($invitationStore[cellIdB64] !== undefined) {
-              // Any converastions I have joined via an Invitation, have a title in the invitation, which is persisted to localstorage
+            }
+            // If we have an Invitation saved to localstorage, use that title
+            else if ($invitationStore[cellIdB64] !== undefined) {
               title = $invitationStore[cellIdB64].title;
+            }
+            // If it is public and there are other profiles, generate a title from the profile names
+            else if (
+              $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
+              Object.keys($mergedProfileContactInviteStore.data[cellIdB64]).length > 1
+            ) {
+              title = makePrivateConversationTitle(
+                Object.values($mergedProfileContactInviteStore.data[cellIdB64] || {}),
+              );
+            }
+            // If we have a previous title saved to localstorage, use that
+            // Localstorage persistance is necessary for disabled conversations as we cannot access the cell's data
+            else if (
+              previousTitle !== undefined &&
+              previousTitle !== null &&
+              previousTitle !== ""
+            ) {
+              title = previousTitle;
+            }
+            // If we cannot derive a title, and we don't have one saved, use the cellInfo cell name
+            else {
+              title = conversation.cellInfo.name;
             }
 
             return [cellIdB64, title];
@@ -101,11 +115,11 @@ function makePrivateConversationTitle(profiles: ProfileExtended[]) {
       .map((p) => p.profile.fields.firstName)
       .join(" & ");
   } else {
-    // First names of all participants, excluding self
-    title = profiles
-      .slice(1)
+    // First names of first 3 participants, then number of additional participants, excluding self
+    title = `${profiles
+      .slice(1, 4)
       .map((p) => p.profile.fields.firstName)
-      .join(", ");
+      .join(", ")} + ${profiles.length - 4} Others`;
   }
 
   return title;
