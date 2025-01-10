@@ -32,11 +32,10 @@
   );
 
   $: profile = $profiles.data[agentPubKeyB64];
-  $: title = profile ? profile.profile.nickname : "";
 </script>
 
-<div class="avatar-{namePosition} {moreClasses}" {title}>
-  {#if profile && profile.profile.fields.avatar}
+<div class="avatar-{namePosition} {moreClasses}">
+  {#if profile?.profile.fields.avatar}
     <div
       class="flex h-[150px] w-[150px] items-center justify-center overflow-hidden rounded-full"
       style="width: {size}px; height: {size}px"
