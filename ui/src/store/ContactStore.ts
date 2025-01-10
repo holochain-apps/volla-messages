@@ -202,7 +202,7 @@ export function createContactStore(client: RelayClient): ContactStore {
 /**
  * Creates a derived store for a single contact from the main contact store
  *
- * @param allContactsStore - The main contact store instance
+ * @param contactStore - The main contact store instance
  * @param agentPubKeyB64 - The base64 encoded public key of the agent
  * @returns An object with methods to update, check DHT status, get profile data and subscribe to contact changes
  */
@@ -212,7 +212,7 @@ export function deriveAgentContactStore(
 ) {
   const { subscribe } = derived(
     contactStore,
-    ($allContactsStore) => $allContactsStore.data[agentPubKeyB64],
+    ($contactStore) => $contactStore.data[agentPubKeyB64]
   );
 
   return {

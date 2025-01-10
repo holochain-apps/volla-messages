@@ -173,7 +173,7 @@
       );
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
-        mergedProfileContactInviteJoinedStore,
+        mergedProfileContactInviteStore,
         invitationStore,
       );
 
