@@ -83,6 +83,7 @@
    */
   async function loadProfiles() {
     await profiles.load();
+    clearTimeout(agentTimeout);
 
     if ($joined.count < 2) {
       agentTimeout = setTimeout(() => {
@@ -103,6 +104,7 @@
    */
   async function loadConfig() {
     await conversation.loadConfig();
+    clearTimeout(configTimeout);
 
     if ($conversation.config === undefined) {
       configTimeout = setTimeout(() => {
@@ -119,7 +121,8 @@
    * Fetch messages from current bucket every 2s, until any messages are received.
    */
   async function loadMessages() {
-    await messages.loadMessagesInCurrentBucket();
+    await messages.loadMessagesInCurrentBucketTargetCount();
+    clearTimeout(messageTimeout);
 
     if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
@@ -150,7 +153,7 @@
 
     const atTop = conversationContainerRef.scrollTop < SCROLL_TOP_THRESHOLD;
     if (!scrollAtTop && atTop) {
-      messages.loadMessagesInPreviousBucket();
+      messages.loadMessagesInPreviousBucketTargetCount();
     }
     scrollAtTop = atTop;
     scrollAtBottom =
