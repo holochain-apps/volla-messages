@@ -2,47 +2,28 @@
   import Avatar from "$lib/Avatar.svelte";
   import type { CellIdB64 } from "$lib/types";
   import { type ConversationStore, deriveCellConversationStore } from "$store/ConversationStore";
-  import {
-    type MergedProfileContactInviteStore,
-    deriveCellMergedProfileContactInviteStore,
-  } from "$store/MergedProfileContactInviteStore";
   import { t } from "$translations";
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { getContext } from "svelte";
+  import AgentNickname from "$lib/AgentNickname.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
   ).getStore();
-  const mergedProfileContactInviteStore = getContext<{
-    getStore: () => MergedProfileContactInviteStore;
-  }>("mergedProfileContactInviteStore").getStore();
-  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
-    "myPubKey",
-  ).getMyPubKeyB64();
 
   export let cellIdB64: CellIdB64;
   export let agentPubKeyB64: AgentPubKeyB64;
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
-  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactInviteStore,
-    cellIdB64,
-    myPubKeyB64,
-  );
 
   $: isAdmin = agentPubKeyB64 === $conversation.dnaProperties.progenitor;
-  $: isMe = agentPubKeyB64 === myPubKeyB64;
 </script>
 
 <li class="mb-4 flex flex-row items-center px-2 text-xl">
   <Avatar {cellIdB64} {agentPubKeyB64} size={38} />
 
   <span class="ml-4 flex-1 text-sm font-bold">
-    {#if isMe}
-      {$t("common.you")}
-    {:else if $mergedProfileContact.data[agentPubKeyB64] !== undefined}
-      {$mergedProfileContact.data[agentPubKeyB64].profile.nickname}
-    {/if}
+    <AgentNickname {cellIdB64} {agentPubKeyB64} />
   </span>
 
   {#if isAdmin}
