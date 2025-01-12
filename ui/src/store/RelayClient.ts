@@ -320,7 +320,7 @@ export class RelayClient {
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "create_contact",
-      payload, 
+      payload,
     });
   }
 
