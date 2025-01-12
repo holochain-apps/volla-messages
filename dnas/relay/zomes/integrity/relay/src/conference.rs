@@ -1,7 +1,6 @@
 use hdi::prelude::*;
 
-#[hdk_entry_helper]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug, SerializedBytes)]
 pub struct ConferenceRoom {
     pub initiator: AgentPubKey,
     pub participants: Vec<AgentPubKey>,
@@ -10,8 +9,7 @@ pub struct ConferenceRoom {
     pub room_id: String,
 }
 
-#[hdk_entry_helper]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug, SerializedBytes)]
 pub struct SignalPayload {
     pub room_id: String,
     pub from: AgentPubKey,
