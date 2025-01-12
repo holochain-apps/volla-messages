@@ -1,10 +1,11 @@
 <script lang="ts">
   import Button from "$lib/Button.svelte";
   import { createEventDispatcher } from "svelte";
+  import { t } from "$translations";
 
   export let open = false;
   export let title: string;
-  export let actionButtonLabel = "Confirm";
+  export let actionButtonLabel = $t("common.confirm");
 
   const dispatch = createEventDispatcher();
 
@@ -34,7 +35,7 @@
         <slot />
       </div>
       <div class="flex justify-end space-x-4">
-        <Button variant="outline" on:click={handleCancel}>Cancel</Button>
+        <Button variant="outline" on:click={handleCancel}>{$t("common.cancel")}</Button>
         <Button on:click={handleConfirm}>{actionButtonLabel}</Button>
       </div>
     </div>

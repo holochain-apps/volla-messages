@@ -153,25 +153,21 @@
         {/if}
       {/if}
       <Button
-        color="danger"
         icon="delete"
+        loading={isDeletingContact}
         on:click={() => (showDeleteDialog = true)}
         disabled={isDeletingContact}
       >
-        {isDeletingContact ? "Deleting..." : "Delete Contact"}
+        {$t("common.delete_contact")}
       </Button>
     </div>
-  </div>
-{:else}
-  <div class="flex h-64 items-center justify-center">
-    <p class="text-lg text-gray-600">Contact not found</p>
   </div>
 {/if}
 
 <Dialog
   bind:open={showDeleteDialog}
-  title="Delete Contact"
-  actionButtonLabel={isDeletingContact ? "Deleting..." : "Delete"}
+  title={$t("common.delete_contact_title")}
+  actionButtonLabel={$t("common.delete")}
   on:confirm={handleDeleteContact}
 >
   <p>{$t("common.delete_contact_dialog_message")}</p>
