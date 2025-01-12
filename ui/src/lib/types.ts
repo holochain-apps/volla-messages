@@ -12,6 +12,7 @@ import type {
   DeleteLink,
   MembraneProof,
   ClonedCell,
+  DnaHash,
 } from "@holochain/client";
 
 /**
@@ -303,7 +304,7 @@ export interface CreateConferenceInput {
 }
 
 export interface JoinConferenceInput {
-  room_id: ActionHash;
+  room_id: DnaHash;
 }
 
 export interface SignalInput {
