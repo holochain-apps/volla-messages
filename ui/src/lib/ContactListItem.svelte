@@ -6,12 +6,10 @@
   import type { AgentPubKeyB64 } from "@holochain/client";
   import Avatar from "$lib/Avatar.svelte";
   import { getContext, onDestroy, onMount } from "svelte";
-  import toast from "svelte-french-toast";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import { deriveCellProfileStore, type ProfileStore } from "$store/ProfileStore";
   import { encodeCellIdToBase64 } from "./utils";
   import { POLLING_INTERVAL_SLOW } from "$config";
-  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
@@ -49,15 +47,6 @@
     loadProfiles();
   });
 
-  async function handleDelete(event: MouseEvent) {
-    try {
-      event.stopPropagation();
-      await contact.delete();
-    } catch (err) {
-      console.error(err);
-      toast.error($t("common.delete_contact_error"));
-    }
-  }
   onDestroy(() => clearInterval(pollInterval));
 </script>
 
@@ -89,11 +78,6 @@
       </ButtonInline>
     {:else}
       <span class="text-primary-500 text-lg font-extrabold">+</span>
-      <ButtonIconBare
-        icon="delete"
-        on:click={handleDelete}
-        moreClasses="h-5 w-5 text-primary-500 transition-opacity hover:opacity-75"
-      />
     {/if}
   </div>
 </button>
