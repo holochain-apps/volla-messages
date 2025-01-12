@@ -81,8 +81,8 @@
 
     try {
       await contact.delete();
-      toast.success("Contact deleted successfully");
-      await goto("/create", { replaceState: true });
+      toast.success($t("common.delete_contact_success"));
+      await goto("/create");
     } catch (err) {
       console.error("Error deleting contact:", err);
       toast.error($t("common.delete_contact_error"));
@@ -174,5 +174,5 @@
   actionButtonLabel={isDeletingContact ? "Deleting..." : "Delete"}
   on:confirm={handleDeleteContact}
 >
-  <p>Are you sure you want to delete this contact? This action cannot be undone.</p>
+  <p>{$t("common.delete_contact_dialog_message")}</p>
 </Dialog>

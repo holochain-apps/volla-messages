@@ -27,6 +27,8 @@
   "create_new_contact": "Create New Contact",
   "created": "Created: {{date:date;}}",
   "delete_contact_error": "Error deleting contact",
+  "delete_contact_success": "Contact deleted successfully",
+  "delete_contact_dialog_message": "Are you sure you want to delete this contact? This action cannot be undone",
   "download": "Download",
   "download_file_error": "Failed to download file",
   "download_file_success": "File downloaded successfully",
