@@ -13,24 +13,16 @@ pub enum SignalData {
     ConferenceRecord(ConferenceRecord),
 }
 
-// #[hdk_extern]
-// fn recv_remote_signal(message_record: MessageRecord) -> ExternResult<()> {
-//     let info: CallInfo = call_info()?;
-//     let message = message_record.message.unwrap();
-//     let signal = Signal::Message {
-//         action: message_record.signed_action.clone(),
-//         message,
-//         from: info.provenance,
-//     };
-//     emit_signal(signal)
-// }
-
 #[hdk_extern]
 fn recv_remote_signal(signal_data: SignalData) -> ExternResult<()> {
     match signal_data {
         SignalData::MessageRecord(message_record) => {
             let info: CallInfo = call_info()?;
-            let message = message_record.message.unwrap();
+            let message = message_record
+                .message
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Message field was None".into()
+                )))?;
             let signal = Signal::Message {
                 action: message_record.signed_action.clone(),
                 message,
@@ -39,10 +31,27 @@ fn recv_remote_signal(signal_data: SignalData) -> ExternResult<()> {
             emit_signal(signal)
         }
         SignalData::ConferenceRecord(conference_record) => {
-            let room = conference_record.room.unwrap();
-            let room_id = conference_record.room_id.unwrap();
-            let agent = conference_record.agent.unwrap();
-            let signal_payload = conference_record.signal_payload.unwrap();
+            let room = conference_record
+                .room
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Room field was None".into()
+                )))?;
+            let room_id = conference_record
+                .room_id
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Room ID field was None".into()
+                )))?;
+            let agent = conference_record
+                .agent
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Agent field was None".into()
+                )))?;
+            let signal_payload =
+                conference_record
+                    .signal_payload
+                    .ok_or(wasm_error!(WasmErrorInner::Guest(
+                        "Signal payload field was None".into()
+                    )))?;
 
             // Emitting appropriate signal based on the conference record type
             match conference_record.signal_type {
