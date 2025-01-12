@@ -22,8 +22,6 @@ pub enum EntryTypes {
     Config(Config),
     Message(Message),
     Contact(Contact),
-    ConferenceRoom(ConferenceRoom),
-    SignalPayload(SignalPayload),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -133,8 +131,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 EntryTypes::Contact(contact) => {
                     validate_create_contact(EntryCreationAction::Create(action), contact)
                 }
-                EntryTypes::ConferenceRoom(conference_room) => todo!(),
-                EntryTypes::SignalPayload(signal_payload) => todo!(),
             },
             OpEntry::UpdateEntry {
                 app_entry, action, ..
@@ -148,8 +144,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 EntryTypes::Contact(contact) => {
                     validate_create_contact(EntryCreationAction::Update(action), contact)
                 }
-                EntryTypes::ConferenceRoom(conference_room) => todo!(),
-                EntryTypes::SignalPayload(signal_payload) => todo!(),
             },
             _ => Ok(ValidateCallbackResult::Valid),
         },
@@ -244,8 +238,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                     original_action,
                     original_message,
                 ),
-                EntryTypes::ConferenceRoom(conference_room) => todo!(),
-                EntryTypes::SignalPayload(signal_payload) => todo!(),
                 EntryTypes::Config(_original_config) => {
                     return Ok(ValidateCallbackResult::Invalid(
                         "Cannot delete Config Entry".to_string(),
@@ -345,8 +337,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 EntryTypes::Contact(contact) => {
                     validate_create_contact(EntryCreationAction::Create(action), contact)
                 }
-                EntryTypes::ConferenceRoom(conference_room) => todo!(),
-                EntryTypes::SignalPayload(signal_payload) => todo!(),
             },
             OpRecord::UpdateEntry {
                 original_action_hash,
@@ -419,8 +409,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             Ok(result)
                         }
                     }
-                    EntryTypes::ConferenceRoom(conference_room) => todo!(),
-                    EntryTypes::SignalPayload(signal_payload) => todo!(),
                     EntryTypes::Contact(contact) => {
                         let result = validate_create_contact(
                             EntryCreationAction::Update(action.clone()),
@@ -517,8 +505,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                     EntryTypes::Contact(original_contact) => {
                         validate_delete_contact(action, original_action, original_contact)
                     }
-                    EntryTypes::ConferenceRoom(conference_room) => todo!(),
-                    EntryTypes::SignalPayload(signal_payload) => todo!(),
                 }
             }
             OpRecord::CreateLink {
