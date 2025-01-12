@@ -28,6 +28,7 @@
     type MergedProfileContactInviteJoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
+  import SvgIcon from "$lib/SvgIcon.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -39,12 +40,12 @@
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  const conversationTitleStore = getContext<{ getStore: () => ConversationTitleStore }>(
-    "conversationTitleStore",
-  ).getStore();
-  const conversationMessageStore = getContext<{ getStore: () => ConversationMessageStore }>(
-    "conversationMessageStore",
-  ).getStore();
+  const conversationTitleStore = getContext<{
+    getStore: () => ConversationTitleStore;
+  }>("conversationTitleStore").getStore();
+  const conversationMessageStore = getContext<{
+    getStore: () => ConversationMessageStore;
+  }>("conversationMessageStore").getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let messages = deriveCellConversationMessageStore(conversationMessageStore, $page.params.id);
@@ -64,6 +65,8 @@
   let scrollAtBottom = true;
   let scrollAtTop = false;
   let sending = false;
+  let loadingMessagesNew = false;
+  let loadingMessagesOld = false;
 
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
@@ -121,8 +124,8 @@
    * Fetch messages from current bucket every 2s, until any messages are received.
    */
   async function loadMessages() {
-    await messages.loadMessagesInCurrentBucketTargetCount();
     clearTimeout(messageTimeout);
+    await loadMessagesInCurrentBucket();
 
     if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
@@ -141,6 +144,30 @@
     loadMessages();
   };
 
+  async function loadMessagesInPreviousBucket() {
+    if (loadingMessagesOld || loadingMessagesNew) return;
+
+    loadingMessagesOld = true;
+    try {
+      await messages.loadMessagesInPreviousBucketTargetCount();
+    } catch (e) {
+      console.error(e);
+    }
+    loadingMessagesOld = false;
+  }
+
+  async function loadMessagesInCurrentBucket() {
+    if (loadingMessagesOld || loadingMessagesNew) return;
+    console.log("loadMessagesInCurrentBucket");
+    loadingMessagesNew = true;
+    try {
+      await messages.loadMessagesInCurrentBucketTargetCount();
+    } catch (e) {
+      console.error(e);
+    }
+    loadingMessagesNew = false;
+  }
+
   function _handleResize() {
     if (!scrollAtBottom) return;
 
@@ -153,7 +180,7 @@
 
     const atTop = conversationContainerRef.scrollTop < SCROLL_TOP_THRESHOLD;
     if (!scrollAtTop && atTop) {
-      messages.loadMessagesInPreviousBucketTargetCount();
+      loadMessagesInPreviousBucket();
     }
     scrollAtTop = atTop;
     scrollAtBottom =
@@ -261,7 +288,17 @@
       <ConversationEmpty cellIdB64={$page.params.id} />
     {:else}
       <!-- Display conversation messages -->
+      {#if loadingMessagesOld}
+        <div class="flex items-center justify-center">
+          <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
+        </div>
+      {/if}
       <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
+      {#if loadingMessagesNew}
+        <div class="flex items-center justify-center">
+          <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
+        </div>
+      {/if}
     {/if}
   </div>
 </div>

@@ -12,8 +12,13 @@ import {
 import { encodeCellIdToBase64, decodeCellIdFromBase64, enqueueNotification } from "$lib/utils";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { EntryRecord } from "@holochain-open-dev/utils";
-import { decodeHashFromBase64, encodeHashToBase64, type CellId } from "@holochain/client";
-import { difference, sortBy } from "lodash-es";
+import {
+  decodeHashFromBase64,
+  encodeHashToBase64,
+  type ActionHashB64,
+  type CellId,
+} from "@holochain/client";
+import { difference, flatten, range, sortBy, sum } from "lodash-es";
 import type { ConversationStore } from "./ConversationStore";
 import {
   createGenericKeyKeyValueStore,
@@ -32,8 +37,18 @@ import type { FileStore } from "./FileStore";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
-  loadMessagesInCurrentBucketTargetCount: (key1: CellIdB64) => Promise<void>;
-  loadMessagesInPreviousBucketTargetCount: (key1: CellIdB64) => Promise<void>;
+  loadMessagesInCurrentBucketTargetCount: (
+    key1: CellIdB64,
+    targetCount?: number,
+    bucketChunkSize?: number,
+    maxBucketsToFetch?: number,
+  ) => Promise<number>;
+  loadMessagesInPreviousBucketTargetCount: (
+    key1: CellIdB64,
+    targetCount?: number,
+    bucketChunkSize?: number,
+    maxBucketsToFetch?: number,
+  ) => Promise<number>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
 }
@@ -91,10 +106,13 @@ export function createConversationMessageStore(
     );
     messages.set(messagesData);
 
-    // Load first bucket of messages
+    // Load a target count of 1 message, starting at current bucket
+    //
+    // This gives us a "latest message" to display on the Conversations list page,
+    // without attempting to load so much up front that it slows down app startup.
     await Promise.allSettled(
       cellInfos.map(async (cellInfo) =>
-        loadMessagesInCurrentBucketTargetCount(encodeCellIdToBase64(cellInfo.cell_id)),
+        loadMessagesInCurrentBucketTargetCount(encodeCellIdToBase64(cellInfo.cell_id), 1, 5, 50),
       ),
     );
   }
@@ -159,37 +177,27 @@ export function createConversationMessageStore(
   }
 
   /**
-   * Load messages, starting at the given bucket and working bakckwards,
-   * until at least a targetCount have been fetched.
-   *
-   * @param key1 CellIdB64
-   * @returns
-   */
-  async function _loadMessagesFromBucketTargetCount(
-    key1: CellIdB64,
-    bucket: number,
-    targetCount: number = TARGET_MESSAGES_COUNT,
-  ) {
-    let count = 0;
-    while (count <= targetCount && bucket >= 0) {
-      count = await _loadMessagesInBucket(key1, bucket);
-      console.log("loadmessagesfrombucket", count, bucket);
-
-      bucket -= 1;
-    }
-  }
-
-  /**
    * Load messages, starting at the current bucket and working bakckwards,
    * until at least a targetCount have been fetched.
    *
    * @param key1 CellIdB64
    * @returns
    */
-  async function loadMessagesInCurrentBucketTargetCount(key1: CellIdB64) {
+  async function loadMessagesInCurrentBucketTargetCount(
+    key1: CellIdB64,
+    targetCount = TARGET_MESSAGES_COUNT,
+    bucketChunkSize: number = 3,
+    maxBucketsToFetch?: number,
+  ): Promise<number> {
     let bucket = conversationStore.getBucket(key1, new Date().getTime());
 
-    return _loadMessagesFromBucketTargetCount(key1, bucket);
+    return _loadMessagesFromBucketTargetCount(
+      key1,
+      bucket,
+      targetCount,
+      bucketChunkSize,
+      maxBucketsToFetch,
+    );
   }
 
   /**
@@ -199,14 +207,25 @@ export function createConversationMessageStore(
    * @param key1 CellIdB64
    * @returns
    */
-  async function loadMessagesInPreviousBucketTargetCount(key1: CellIdB64) {
+  async function loadMessagesInPreviousBucketTargetCount(
+    key1: CellIdB64,
+    targetCount = TARGET_MESSAGES_COUNT,
+    bucketChunkSize: number = 3,
+    maxBucketsToFetch?: number,
+  ): Promise<number> {
     const messagesSorted = sortBy(Object.entries(get(messages).data[key1] || {}), [
       ([, m]) => -1 * m.timestamp,
     ]);
     const oldestMessageLoaded = messagesSorted[messagesSorted.length - 1];
-    if (oldestMessageLoaded === undefined) return;
+    if (oldestMessageLoaded === undefined) return 0;
 
-    return _loadMessagesFromBucketTargetCount(key1, oldestMessageLoaded[1].message.bucket - 1);
+    return _loadMessagesFromBucketTargetCount(
+      key1,
+      oldestMessageLoaded[1].message.bucket - 1,
+      targetCount,
+      bucketChunkSize,
+      maxBucketsToFetch,
+    );
   }
 
   async function handleMessageSignalReceived(key1: CellIdB64, signal: MessageSignal) {
@@ -238,28 +257,121 @@ export function createConversationMessageStore(
     _triggerMessageNotification(messageExtended, fromProfile);
   }
 
-  async function _loadMessagesInBucket(key1: CellIdB64, bucket: number): Promise<number> {
+  /**
+   * Main function for fetching and loads messages
+   *
+   * @param key1 CellIdB64
+   * @param bucket Bucket to start from
+   * @param targetCount Target number of messages to fetch
+   * @returns
+   */
+  async function _loadMessagesFromBucketTargetCount(
+    key1: CellIdB64,
+    bucket: number,
+    targetCount: number = TARGET_MESSAGES_COUNT,
+    bucketChunkSize: number = 3,
+    maxBucketsToFetch?: number,
+  ): Promise<number> {
+    // Fetch the list of buckets that contain the target count
+    // This step is split out so that buckets can be fetched in chunks, in parallel
+    const bucketsToFetch = await _fetchBucketsTargetCount(
+      key1,
+      bucket,
+      targetCount,
+      bucketChunkSize,
+      maxBucketsToFetch,
+    );
+    const actionHashB64s = flatten(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s));
+
+    // Filter only messages we are not storing already
+    const missingActionHashB64s = await _filterMissingMessages(key1, actionHashB64s);
+
+    // Fetch and save missing message data to store
+    const count = await _loadMessages(key1, missingActionHashB64s);
+
+    return count;
+  }
+
+  /**
+   * Fetch bucket's ActionHashes, starting at the given bucket and working bakckwards,
+   * until at least a targetCount of ActionHashes have been received.
+   *
+   * @param key1 CellIdB64
+   * @returns
+   */
+  async function _fetchBucketsTargetCount(
+    key1: CellIdB64,
+    bucket: number,
+    targetCount: number = TARGET_MESSAGES_COUNT,
+    bucketChunkSize: number = 3,
+    maxBucketsToFetch?: number,
+  ): Promise<{ bucket: number; actionHashB64s: ActionHashB64[] }[]> {
+    const cellId = decodeCellIdFromBase64(key1);
+
+    let bucketsToFetch: { bucket: number; actionHashB64s: ActionHashB64[] }[] = [];
+    while (
+      // We have not reached the target count
+      sum(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s.length)) <= targetCount &&
+      // There are still buckets available to fetch
+      bucket >= 0 &&
+      // We have not fetched more than our maximum allowed
+      (maxBucketsToFetch === undefined || bucketsToFetch.length <= maxBucketsToFetch)
+    ) {
+      // Fetch message hashes for a chunk of buckets
+      const bucketsChunk = range(bucket, bucket - bucketChunkSize).filter((b) => b >= 0);
+      bucketsToFetch = [
+        ...bucketsToFetch,
+        ...(await Promise.all(
+          bucketsChunk.map(async (b) => ({
+            bucket: b,
+            actionHashB64s: (
+              await client.getMessageHashes(cellId, {
+                bucket: b,
+                count: 0,
+              })
+            ).map((a) => encodeHashToBase64(a)),
+          })),
+        )),
+      ];
+      bucket -= 1;
+    }
+
+    // Remove extra buckets that put us beyond our targetCount
+    // This is a necessary step because we are fetching buckets in chunks.
+    // And thus we may have overshot our target with the last chunk.
+    while (
+      // If we can remove the last bucket and are still above the targetCount,
+      // then remove the last bucket
+      sum(bucketsToFetch.slice(0, -1).map(({ actionHashB64s }) => actionHashB64s.length)) >
+      targetCount
+    ) {
+      bucketsToFetch.pop();
+    }
+
+    return bucketsToFetch;
+  }
+
+  /**
+   * Determine which messages we are currently missing
+
+   * @param key1 
+   * @param actionHashB64s 
+   * @returns ActionHashB64[] of missing messages
+   */
+  async function _filterMissingMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]) {
     const m = get(messages).data[key1];
 
-    // Fetch message hashes from bucket
-    const cellId = decodeCellIdFromBase64(key1);
-    const actionHashB64s = (
-      await client.getMessageHashes(cellId, {
-        bucket,
-        count: 0,
-      })
-    ).map((h) => encodeHashToBase64(h));
-
-    // Determine which messages we are currently missing
     const storedActionHashB64s = Object.keys(m || {});
-    const missingActionHashs = difference(actionHashB64s, storedActionHashB64s).map((h) =>
-      decodeHashFromBase64(h),
-    );
+    return difference(actionHashB64s, storedActionHashB64s);
+  }
+
+  async function _loadMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]): Promise<number> {
+    const cellId = decodeCellIdFromBase64(key1);
 
     // Fetch missing messages
     const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
       cellId,
-      missingActionHashs,
+      actionHashB64s.map((a) => decodeHashFromBase64(a)),
     );
 
     // Transform Messages into MessageExtendeds
@@ -345,10 +457,18 @@ export function createConversationMessageStore(
 export interface CellConversationMessageStore
   extends GenericKeyValueStoreReadable<MessageExtended> {
   initialize: () => Promise<void>;
-  loadMessagesInCurrentBucketTargetCount: (key1: CellIdB64, targetCount: number) => Promise<void>;
-  loadMessagesInPreviousBucketTargetCount: (key1: CellIdB64) => Promise<void>;
-  sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
-  handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
+  loadMessagesInCurrentBucketTargetCount: (
+    targetCount?: number,
+    bucketChunkSize?: number,
+    maxBucketsToFetch?: number,
+  ) => Promise<number>;
+  loadMessagesInPreviousBucketTargetCount: (
+    targetCount?: number,
+    bucketChunkSize?: number,
+    maxBucketsToFetch?: number,
+  ) => Promise<number>;
+  sendMessage: (content: string, files: LocalFile[]) => Promise<void>;
+  handleMessageSignalReceived: (signal: MessageSignal) => Promise<void>;
 }
 
 export function deriveCellConversationMessageStore(
@@ -359,10 +479,28 @@ export function deriveCellConversationMessageStore(
 
   return {
     ...data,
-    loadMessagesInCurrentBucketTargetCount: () =>
-      conversationMessageStore.loadMessagesInCurrentBucketTargetCount(key),
-    loadMessagesInPreviousBucketTargetCount: () =>
-      conversationMessageStore.loadMessagesInPreviousBucketTargetCount(key),
+    loadMessagesInCurrentBucketTargetCount: (
+      targetCount?: number,
+      bucketChunkSize?: number,
+      maxBucketsToFetch?: number,
+    ) =>
+      conversationMessageStore.loadMessagesInCurrentBucketTargetCount(
+        key,
+        targetCount,
+        bucketChunkSize,
+        maxBucketsToFetch,
+      ),
+    loadMessagesInPreviousBucketTargetCount: (
+      targetCount?: number,
+      bucketChunkSize?: number,
+      maxBucketsToFetch?: number,
+    ) =>
+      conversationMessageStore.loadMessagesInPreviousBucketTargetCount(
+        key,
+        targetCount,
+        bucketChunkSize,
+        maxBucketsToFetch,
+      ),
     sendMessage: (content: string, files: LocalFile[]) =>
       conversationMessageStore.sendMessage(key, content, files),
     handleMessageSignalReceived: (signal: MessageSignal) =>
