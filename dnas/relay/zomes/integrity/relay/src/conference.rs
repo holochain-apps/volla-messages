@@ -2,10 +2,7 @@ use hdi::prelude::*;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug, SerializedBytes)]
 pub struct ConferenceRoom {
-    pub initiator: AgentPubKey,
     pub participants: Vec<AgentPubKey>,
-    pub created_at: Timestamp,
-    pub title: String,
     pub room_id: String,
 }
 

@@ -4,12 +4,12 @@ use relay_integrity::*;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateConferenceInput {
     pub participants: Vec<AgentPubKey>,
-    pub title: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JoinConferenceInput {
     pub room_id: String,
+    pub participants: Vec<AgentPubKey>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,56 +25,43 @@ pub fn create_conference(input: CreateConferenceInput) -> ExternResult<String> {
     let agent_info = agent_info()?;
     let dna_info = dna_info()?;
 
-    let room_id = dna_info.hash.to_string();
+    let room_id = format!("room_{}", dna_info.hash.to_string());
 
     let conference = ConferenceRoom {
-        initiator: agent_info.agent_latest_pubkey.clone(),
         participants: input.participants.clone(),
-        created_at: sys_time()?,
-        title: input.title,
         room_id: room_id.clone(),
     };
 
-    let peers = get_active_agents()?;
-    let online_participants: Vec<AgentPubKey> = input
-        .participants
-        .into_iter()
-        .filter(|p| peers.contains(p))
-        .collect();
+    debug!("create_conference: {:?}", conference);
 
-    if !online_participants.is_empty() {
-        let _ = send_remote_signal(
-            ConferenceRecord {
-                room: Some(conference),
-                agent: Some(agent_info.agent_latest_pubkey),
-                room_id: None,
-                signal_type: ConferenceSignalType::Invite,
-                signal_payload: None,
-            },
-            online_participants,
-        );
-    }
+    let _ = send_remote_signal(
+        ConferenceRecord {
+            room: Some(conference),
+            agent: Some(agent_info.agent_latest_pubkey),
+            room_id: None,
+            signal_type: ConferenceSignalType::Invite,
+            signal_payload: None,
+        },
+        input.participants,
+    );
 
     Ok(room_id)
 }
 
 #[hdk_extern]
-pub fn join_conference(room_id: String) -> ExternResult<()> {
+pub fn join_conference(input: JoinConferenceInput) -> ExternResult<()> {
     let agent_info = agent_info()?;
-    let peers = get_active_agents()?;
 
-    if !peers.is_empty() {
-        let _ = send_remote_signal(
-            ConferenceRecord {
-                room: None,
-                room_id: Some(room_id.to_string()),
-                agent: Some(agent_info.agent_latest_pubkey),
-                signal_type: ConferenceSignalType::Join,
-                signal_payload: None,
-            },
-            peers,
-        );
-    }
+    let _ = send_remote_signal(
+        ConferenceRecord {
+            room: None,
+            room_id: Some(input.room_id),
+            agent: Some(agent_info.agent_latest_pubkey),
+            signal_type: ConferenceSignalType::Join,
+            signal_payload: None,
+        },
+        input.participants,
+    );
 
     Ok(())
 }
@@ -85,48 +72,42 @@ pub fn send_signal(input: SignalInput) -> ExternResult<()> {
     let dna_info = dna_info()?;
 
     let signal_payload = SignalPayload {
-        room_id: dna_info.hash.to_string(),
+        room_id: input.room_id.clone(),
         from: agent_info.agent_latest_pubkey,
         to: input.target.clone(),
         payload_type: input.payload_type,
         data: input.data,
     };
 
-    let peers = get_active_agents()?;
-    if peers.contains(&input.target) {
-        let _ = send_remote_signal(
-            ConferenceRecord {
-                room: None,
-                room_id: None,
-                agent: None,
-                signal_type: ConferenceSignalType::WebRTC,
-                signal_payload: Some(signal_payload),
-            },
-            vec![input.target],
-        );
-    }
+    let _ = send_remote_signal(
+        ConferenceRecord {
+            room: None,
+            room_id: None,
+            agent: None,
+            signal_type: ConferenceSignalType::WebRTC,
+            signal_payload: Some(signal_payload),
+        },
+        vec![input.target],
+    );
 
     Ok(())
 }
 
 #[hdk_extern]
-pub fn leave_conference(_room_id: String) -> ExternResult<()> {
+pub fn leave_conference(room_id: String) -> ExternResult<()> {
     let agent_info = agent_info()?;
     let dna_info = dna_info()?;
 
-    let peers = get_active_agents()?;
-    if !peers.is_empty() {
-        let _ = send_remote_signal(
-            ConferenceRecord {
-                room: None,
-                room_id: Some(dna_info.hash.to_string()),
-                agent: Some(agent_info.agent_latest_pubkey),
-                signal_type: ConferenceSignalType::Leave,
-                signal_payload: None,
-            },
-            peers,
-        );
-    }
+    let _ = send_remote_signal(
+        ConferenceRecord {
+            room: None,
+            room_id: Some(room_id),
+            agent: Some(agent_info.agent_latest_pubkey),
+            signal_type: ConferenceSignalType::Leave,
+            signal_payload: None,
+        },
+        Vec::new(),
+    );
 
     Ok(())
 }
