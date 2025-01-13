@@ -10,7 +10,6 @@
 
   export let participants: AgentPubKeyB64[] = [];
   export let isGroupCall: boolean = false;
-  export let title: string = "";
   export let onClose: () => void;
 
   const conferenceStore = getContext<{ getStore: () => ConferenceStore }>(
@@ -33,9 +32,9 @@
     const initializeConference = async () => {
       try {
         console.log("Creating conference with participants:", participants);
-        roomId = await conferenceStore.createConference(title, participants);
+        roomId = await conferenceStore.createConference(participants);
         console.log("Conference room ID:", roomId);
-        await conferenceStore.joinConference(roomId);
+        await conferenceStore.joinConference(roomId, participants);
         console.log("Joined conference room:", roomId);
         await conferenceStore.initializeWebRTC(roomId);
 
@@ -128,11 +127,7 @@
   $: gridColumns = isGroupCall ? Math.ceil(Math.sqrt(participants.length + 1)) : 1;
 </script>
 
-<main
-  role="application"
-  aria-label="Video conference {title}"
-  class="fixed inset-0 flex flex-col bg-black"
->
+<main role="application" aria-label="Video conference" class="fixed inset-0 flex flex-col bg-black">
   <div
     bind:this={interactionContainer}
     class="relative flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"

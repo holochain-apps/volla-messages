@@ -14,8 +14,8 @@ import {
   CallSignalType,
 } from "$lib/types";
 export interface ConferenceStore {
-  createConference: (title: string, participants: AgentPubKeyB64[]) => Promise<string>;
-  joinConference: (roomId: string) => Promise<void>;
+  createConference: (participants: AgentPubKeyB64[]) => Promise<string>;
+  joinConference: (roomId: string, participants: AgentPubKeyB64[]) => Promise<void>;
   leaveConference: (roomId: string) => Promise<void>;
   sendSignal: (roomId: string, target: AgentPubKeyB64, type: CallSignalType, data: string) => Promise<void>;
   handleSignalReceived: (roomId: string, signal: SignalPayload) => Promise<void>;
@@ -43,18 +43,16 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     ]
   };
 
-  async function createConference(title: string, participants: AgentPubKeyB64[]): Promise<string> {
+  async function createConference(participants: AgentPubKeyB64[]): Promise<string> {
     console.log("Creating conference with participants", participants);
     const participantsEncoded = participants.map(p => decodeHashFromBase64(p));
     console.log("Decoded participants", participantsEncoded);
-    const roomId = await client.createConference(title, participantsEncoded);
+    const roomId = await client.createConference(participantsEncoded);
+    console.log("Created conference with room id", roomId);
     if (!roomId) throw new Error("Failed to decode conference room entry");
 
     const room: ConferenceRoom = {
-      initiator: client.client.myPubKey,
       participants: participantsEncoded,
-      created_at: Date.now(),
-      title,
       room_id: roomId
     };
 
@@ -74,13 +72,32 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     return room.room_id;
   }
 
-  async function joinConference(roomId: string): Promise<void> {
-    await client.joinConference(roomId);
-    // Updating the conference state to mark as joined
-    conferences.updateKeyValue(roomId, (conf) => ({
-      ...conf,
-      isInitiator: false
-    }));
+  async function joinConference(roomId: string, participants: AgentPubKeyB64[]): Promise<void> {
+    console.log("Joining conference with room id", roomId);
+    
+    // Create initial state before joining
+    const state: ConferenceState = {
+      room: {
+        room_id: roomId,
+        participants: participants.map(p => decodeHashFromBase64(p))
+      },
+      participants: new Map(
+        participants.map(p => [p, {
+          publicKey: p,
+          isConnected: false
+        }])
+      ),
+      isInitiator: false,
+      ended: false
+    };
+    
+    conferences.setKeyValue(roomId, state);
+    
+    // Join the conference
+    await client.joinConference(
+      roomId,
+      participants.map(p => decodeHashFromBase64(p))
+    );
   }
 
   async function leaveConference(roomId: string): Promise<void> {

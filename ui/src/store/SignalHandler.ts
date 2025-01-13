@@ -1,4 +1,4 @@
-import { type Signal, SignalType } from "@holochain/client";
+import { encodeHashToBase64, type Signal, SignalType } from "@holochain/client";
 import { RelayClient } from "$store/RelayClient";
 import { 
   type RelaySignal, 
@@ -63,7 +63,8 @@ export function createSignalHandler(
     switch (signal.type) {
       case "ConferenceInvite": {
         const roomId = signal.room.room_id;
-        conferenceStore.joinConference(roomId)
+        const participants = signal.room.participants.map(p => encodeHashToBase64(p));
+        conferenceStore.joinConference(roomId, participants)
           .then(() => conferenceStore.initializeWebRTC(roomId))
           .catch(error => console.error("Failed to join conference:", error));
         break;

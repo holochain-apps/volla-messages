@@ -251,12 +251,7 @@
 </script>
 
 {#if showConference}
-  <Conference
-    {participants}
-    isGroupCall={isGroupChat}
-    title={$conversationTitle}
-    onClose={handleCallEnd}
-  />
+  <Conference {participants} isGroupCall={isGroupChat} onClose={handleCallEnd} />
 {:else}
   <Header backUrl="/conversations">
     <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">

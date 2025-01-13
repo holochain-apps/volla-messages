@@ -277,11 +277,8 @@ export interface FileExtended {
 /* Conference */
 
 export interface ConferenceRoom {
-  initiator: AgentPubKey;
-  participants: AgentPubKey[];
-  created_at: number;
-  title: string;
   room_id: string;
+  participants: AgentPubKey[];
 }
 
 export interface SignalPayload {
@@ -300,11 +297,11 @@ export enum CallSignalType {
 
 export interface CreateConferenceInput {
   participants: AgentPubKey[];
-  title: string;
 }
 
 export interface JoinConferenceInput {
   room_id: string;
+  participants: AgentPubKey[];
 }
 
 export interface SignalInput {
@@ -316,7 +313,12 @@ export interface SignalInput {
 
 export interface ConferenceState {
   room: ConferenceRoom;
-  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
+  participants: Map<AgentPubKeyB64, {
+    publicKey: AgentPubKeyB64;
+    isConnected: boolean;
+    peerConnection?: RTCPeerConnection;
+    stream?: MediaStream;
+  }>;
   localStream?: MediaStream;
   isInitiator: boolean;
   ended: boolean;

@@ -340,10 +340,9 @@ export class RelayClient {
 
   /********** Conference **********/
 
-  public async createConference(title: string, participants: AgentPubKey[]): Promise<string> {
+  public async createConference(participants: AgentPubKey[]): Promise<string> {
     const payload: CreateConferenceInput = {
       participants,
-      title
     };
   
     const roomId = await this.client.callZome({
@@ -356,10 +355,13 @@ export class RelayClient {
     return roomId;
   }
 
-  public async joinConference(roomId: string): Promise<void> {
+  public async joinConference(room_id: string, participants: AgentPubKey[]): Promise<void> {
     const payload: JoinConferenceInput = {
-      room_id: roomId
+      room_id,
+      participants
     };
+
+    console.log("Starting to join conference with room id", room_id);
 
     await this.client.callZome({
       role_name: ROLE_NAME,
