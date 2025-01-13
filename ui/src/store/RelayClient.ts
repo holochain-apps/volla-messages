@@ -340,23 +340,23 @@ export class RelayClient {
 
   /********** Conference **********/
 
-  public async createConference(title: string, participants: AgentPubKey[]): Promise<EntryRecord<ConferenceRoom>> {
+  public async createConference(title: string, participants: AgentPubKey[]): Promise<string> {
     const payload: CreateConferenceInput = {
       participants,
       title
     };
-
-    const record = await this.client.callZome({
+  
+    const roomId = await this.client.callZome({
       role_name: ROLE_NAME,
       zome_name: ZOME_NAME,
       fn_name: "create_conference",
       payload
     });
-
-    return new EntryRecord(record);
+  
+    return roomId;
   }
 
-  public async joinConference(roomId: ActionHash): Promise<void> {
+  public async joinConference(roomId: string): Promise<void> {
     const payload: JoinConferenceInput = {
       room_id: roomId
     };
@@ -369,7 +369,7 @@ export class RelayClient {
     });
   }
 
-  public async leaveConference(roomId: ActionHash): Promise<void> {
+  public async leaveConference(roomId: string): Promise<void> {
     await this.client.callZome({
       role_name: ROLE_NAME,
       zome_name: ZOME_NAME,

@@ -286,8 +286,8 @@ export interface ConferenceRoom {
 
 export interface SignalPayload {
   room_id: string;
-  from: AgentPubKey;
-  to: AgentPubKey;
+  from: AgentPubKeyB64;
+  to: AgentPubKeyB64;
   payload_type: CallSignalType;
   data: string;
 }
@@ -304,7 +304,7 @@ export interface CreateConferenceInput {
 }
 
 export interface JoinConferenceInput {
-  room_id: DnaHash;
+  room_id: string;
 }
 
 export interface SignalInput {
@@ -316,14 +316,14 @@ export interface SignalInput {
 
 export interface ConferenceState {
   room: ConferenceRoom;
-  participants: Map<AgentPubKey, ConferenceParticipant>;
+  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
   localStream?: MediaStream;
   isInitiator: boolean;
   ended: boolean;
 }
 
 export interface ConferenceParticipant {
-  publicKey: AgentPubKey;
+  publicKey: AgentPubKeyB64;
   peerConnection?: RTCPeerConnection;
   stream?: MediaStream;
   isConnected: boolean;

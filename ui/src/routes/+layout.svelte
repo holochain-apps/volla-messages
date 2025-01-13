@@ -185,7 +185,6 @@
       await profileStore.initialize();
       await conversationStore.initialize();
       await conversationMessageStore.initialize();
-      await conferenceStore.initialize();
 
       // Initialize signal handler
       createSignalHandler(
