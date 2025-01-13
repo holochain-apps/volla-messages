@@ -199,7 +199,7 @@ export function createConversationStore(client: RelayClient): ConversationStore 
         networkSeed: cellInfo.dna_modifiers.network_seed,
         privacy: dnaProperties.privacy,
         progenitor: decodeHashFromBase64(dnaProperties.progenitor),
-        title: config ? config.title : "...",
+        title: config ? config.title : cellInfo.name,
       };
       publicInviteCode = Base64.fromUint8Array(encode(invitation));
     }
