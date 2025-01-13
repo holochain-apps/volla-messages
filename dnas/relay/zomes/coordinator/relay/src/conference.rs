@@ -9,7 +9,7 @@ pub struct CreateConferenceInput {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JoinConferenceInput {
-    pub room_id: ActionHash,
+    pub room_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,18 +21,18 @@ pub struct SignalInput {
 }
 
 #[hdk_extern]
-pub fn create_conference(input: CreateConferenceInput) -> ExternResult<DnaHash> {
+pub fn create_conference(input: CreateConferenceInput) -> ExternResult<String> {
     let agent_info = agent_info()?;
     let dna_info = dna_info()?;
 
-    let room_id = dna_info.hash;
+    let room_id = dna_info.hash.to_string();
 
     let conference = ConferenceRoom {
         initiator: agent_info.agent_latest_pubkey.clone(),
         participants: input.participants.clone(),
         created_at: sys_time()?,
         title: input.title,
-        room_id: room_id.to_string(),
+        room_id: room_id.clone(),
     };
 
     let peers = get_active_agents()?;
