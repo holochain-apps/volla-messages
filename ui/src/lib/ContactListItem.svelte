@@ -63,7 +63,7 @@
         : ''}"
     >
       {$contact.fullName}
-      {#if hasAgentJoinedDht}
+      {#if !hasAgentJoinedDht}
         <span class="text-secondary-400 ml-1 text-xs">{$t("common.unconfirmed")}</span>
       {/if}
     </p>
