@@ -59,7 +59,7 @@ pub fn create_conference(input: CreateConferenceInput) -> ExternResult<String> {
 }
 
 #[hdk_extern]
-pub fn join_conference(room_id: DnaHash) -> ExternResult<()> {
+pub fn join_conference(room_id: String) -> ExternResult<()> {
     let agent_info = agent_info()?;
     let peers = get_active_agents()?;
 
@@ -110,7 +110,7 @@ pub fn send_signal(input: SignalInput) -> ExternResult<()> {
 }
 
 #[hdk_extern]
-pub fn leave_conference(_room_id: DnaHash) -> ExternResult<()> {
+pub fn leave_conference(_room_id: String) -> ExternResult<()> {
     let agent_info = agent_info()?;
     let dna_info = dna_info()?;
 
