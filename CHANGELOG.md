@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - Fix: Display "unconfirmed" label for contacts that have not yet joined their private conversation.
+- Fix: In public converastion invitations, use the cell name as the conversation title when convesation config is not available.
 
 ## [0.7.5] - 2025-01-10
 
