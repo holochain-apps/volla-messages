@@ -7,7 +7,7 @@
   export let title: string;
   export let actionButtonLabel = $t("common.confirm");
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{ confirm: null; cancel: null }>();
 
   function handleConfirm() {
     dispatch("confirm");
@@ -21,7 +21,7 @@
 </script>
 
 {#if open}
-  <div class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-0">
     <div
       class="fixed inset-0 bg-black bg-opacity-50"
       role="button"
@@ -34,9 +34,13 @@
       <div class="mb-6">
         <slot />
       </div>
-      <div class="flex justify-end space-x-4">
-        <Button variant="outline" on:click={handleCancel}>{$t("common.cancel")}</Button>
-        <Button on:click={handleConfirm}>{actionButtonLabel}</Button>
+      <div class="flex justify-center gap-4">
+        <Button moreClasses="px-3 text-sm sm:px-4 sm:text-base" on:click={handleCancel}>
+          {$t("common.cancel")}
+        </Button>
+        <Button moreClasses="px-3 text-sm sm:px-4 sm:text-base" on:click={handleConfirm}>
+          {actionButtonLabel}
+        </Button>
       </div>
     </div>
   </div>
