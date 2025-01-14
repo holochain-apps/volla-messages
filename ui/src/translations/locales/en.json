@@ -31,7 +31,6 @@
   "delete_contact": "Delete Contact",
   "delete_contact_error": "Error deleting contact",
   "delete_contact_success": "Contact deleted successfully",
-  "delete_contact_title": "Delete Contact",
   "delete_contact_dialog_message": "Are you sure you want to delete this contact? This action cannot be undone",
   "download": "Download",
   "download_file_error": "Failed to download file",
