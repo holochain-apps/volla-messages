@@ -83,13 +83,12 @@ export function createContactStore(client: RelayClient): ContactStore {
   async function deleteContact(agentPubKeyB64: AgentPubKeyB64) {
     const contact = contacts.getKeyValue(agentPubKeyB64);
     await client.deleteContact(contact.originalActionHash);
-    // Updates the local stores
-    contacts.removeKeyValue(agentPubKeyB64);
     cellIds.update((d) => {
       const updated = { ...d };
       delete updated[agentPubKeyB64];
       return updated;
     });
+    contacts.removeKeyValue(agentPubKeyB64);
   }
 
   /**
