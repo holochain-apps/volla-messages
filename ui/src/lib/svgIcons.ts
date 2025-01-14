@@ -8,7 +8,7 @@
  * 1. Ensure the svg string does NOT contain the properties: "fill", "stroke", "width", or "height"
  *     If it does, delete them.
  * 2. For fill based icons, add the following properties to the svg element: fill="currentColor" width="100%" height="100%"
- * 3. For stroke based icons, add the following properties to the svg element: stroke="currentColor"
+ * 3. For stroke based icons, add the following properties to the svg element: stroke="currentColor" width="100%" height="100%"
  */
 
 export const svgIcons: { [key: string]: string } = {
