@@ -34,7 +34,6 @@
     "myPubKey",
   ).getMyPubKeyB64();
 
-  let isLoading = true;
   let isDeletingContact = false;
 
   $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
@@ -59,15 +58,11 @@
   async function loadProfiles() {
     if (!profiles) return;
 
-    try {
-      await profiles.load();
-      if (!hasAgentJoinedDht) {
-        pollInterval = setTimeout(() => {
-          loadProfiles();
-        }, POLLING_INTERVAL_SLOW);
-      }
-    } finally {
-      isLoading = false;
+    await profiles.load();
+    if (!hasAgentJoinedDht) {
+      pollInterval = setTimeout(() => {
+        loadProfiles();
+      }, POLLING_INTERVAL_SLOW);
     }
   }
 
@@ -98,11 +93,7 @@
 
 <Header back />
 
-{#if isLoading}
-  <div class="flex h-64 items-center justify-center">
-    <div class="h-12 w-12 animate-spin rounded-full border-b-2 border-gray-900"></div>
-  </div>
-{:else if $contact}
+{#if $contact}
   <div class="flex flex-col items-center justify-center space-y-20">
     <div class="flex flex-1 flex-col items-center space-y-4">
       <Avatar agentPubKeyB64={$contact.publicKeyB64} size={128} />
@@ -161,7 +152,7 @@
 
 <Dialog
   bind:open={showDeleteDialog}
-  title={$t("common.delete_contact_title")}
+  title={$t("common.delete_contact")}
   actionButtonLabel={$t("common.delete")}
   on:confirm={handleDeleteContact}
 >
