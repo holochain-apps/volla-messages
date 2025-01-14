@@ -40,16 +40,14 @@
   $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
 
   let contact = deriveAgentContactStore(contactStore, $page.params.id);
-  let conversation: ReturnType<typeof deriveCellConversationStore> | undefined;
-  let profiles: ReturnType<typeof deriveCellProfileStore> | undefined;
-
-  $: if ($contact && $contact.cellId) {
-    conversation = deriveCellConversationStore(
-      conversationStore,
-      encodeCellIdToBase64($contact.cellId),
-    );
-    profiles = deriveCellProfileStore(profileStore, encodeCellIdToBase64($contact.cellId));
-  }
+  let conversation =
+    $contact.cellId !== undefined
+      ? deriveCellConversationStore(conversationStore, encodeCellIdToBase64($contact.cellId))
+      : undefined;
+  let profiles =
+    $contact.cellId !== undefined
+      ? deriveCellProfileStore(profileStore, encodeCellIdToBase64($contact.cellId))
+      : undefined;
 
   let showDeleteDialog = false;
 
@@ -77,7 +75,6 @@
     if (isDeletingContact) return;
 
     isDeletingContact = true;
-    showDeleteDialog = false;
 
     try {
       await contact.delete();
@@ -86,10 +83,8 @@
     } catch (err) {
       console.error("Error deleting contact:", err);
       toast.error($t("common.delete_contact_error"));
-      showDeleteDialog = false;
-    } finally {
-      isDeletingContact = false;
     }
+    isDeletingContact = false;
   }
 
   onMount(() => {
