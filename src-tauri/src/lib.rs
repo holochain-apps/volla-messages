@@ -1,18 +1,20 @@
 use holochain_types::prelude::AppBundle;
 use lair_keystore::dependencies::sodoken::{BufRead, BufWrite};
 use std::path::PathBuf;
-use std::time::{UNIX_EPOCH, SystemTime};
-use tauri::{AppHandle, Listener};
+use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(desktop)]
 use tauri::Manager;
-use tauri_plugin_holochain::{GossipArcClamp, HolochainExt, HolochainPluginConfig, WANNetworkConfig};
+use tauri::{AppHandle, Listener};
+use tauri_plugin_holochain::{
+    GossipArcClamp, HolochainExt, HolochainPluginConfig, WANNetworkConfig,
+};
 
 const APP_ID: &'static str = "volla-messages";
 const SIGNAL_URL: &'static str = "wss://sbd.holo.host";
 const BOOTSTRAP_URL: &'static str = "https://bootstrap-0.infra.holochain.org";
 static ICE_URLS: &'static [&str] = &[
     "stun:stun-0.main.infra.holo.host:443",
-    "stun:stun-1.main.infra.holo.host:443"
+    "stun:stun-1.main.infra.holo.host:443",
 ];
 
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
@@ -35,16 +37,19 @@ pub fn run() {
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Warn)
                 .build(),
-        )
-        .plugin(tauri_plugin_holochain::async_init(
-            vec_to_locked(vec![]).expect("Can't build passphrase"),
-            HolochainPluginConfig::new(holochain_dir(), wan_network_config()).gossip_arc_clamp(GossipArcClamp::Full),
-        ));
+        );
     #[cfg(mobile)]
     {
         builder = builder.plugin(tauri_plugin_sharesheet::init());
     }
+
+    #[cfg(feature = "holochain_bundled")]
     builder
+        .plugin(tauri_plugin_holochain::async_init(
+            vec_to_locked(vec![]).expect("Can't build passphrase"),
+            HolochainPluginConfig::new(holochain_dir(), wan_network_config())
+                .gossip_arc_clamp(GossipArcClamp::Full),
+        ))
         .setup(|app| {
             let handle = app.handle().clone();
             let handle_fail: AppHandle = app.handle().clone();
@@ -87,7 +92,8 @@ pub fn run() {
                         // It is necessary to load this after we have created the new 'main' webview
                         //  which will be calling into it
                         #[cfg(mobile)]
-                        handle.plugin(tauri_plugin_barcode_scanner::init())
+                        handle
+                            .plugin(tauri_plugin_barcode_scanner::init())
                             .expect("Failed to initiailze tauri_plugin_barcode_scanner");
                     });
                 });
@@ -152,7 +158,7 @@ fn wan_network_config() -> Option<WANNetworkConfig> {
         Some(WANNetworkConfig {
             signal_url: url2::url2!("{}", SIGNAL_URL),
             bootstrap_url: url2::url2!("{}", BOOTSTRAP_URL),
-            ice_servers_urls: ICE_URLS.into_iter().map(|v| url2::url2!("{}", v)).collect()
+            ice_servers_urls: ICE_URLS.into_iter().map(|v| url2::url2!("{}", v)).collect(),
         })
     }
 }
