@@ -1,55 +1,67 @@
 <script lang="ts">
-	import { ProfilesStore } from '@holochain-open-dev/profiles';
-  import "@holochain-open-dev/profiles/dist/elements/create-profile.js";
-	import { modeCurrent } from '@skeletonlabs/skeleton';
-	import { getContext } from 'svelte';
-	import { goto } from '$app/navigation';
-	import Header from '$lib/Header.svelte';
-	import SvgIcon from '$lib/SvgIcon.svelte';
-	import { t } from '$lib/translations';
-	import { RelayStore } from '$store/RelayStore';
+  import { getContext, onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import Avatar from "$lib/Avatar.svelte";
+  import Header from "$lib/Header.svelte";
+  import SvgIcon from "$lib/SvgIcon.svelte";
+  import { t } from "$translations";
+  import type { AgentPubKeyB64 } from "@holochain/client";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import ButtonSquare from "$lib/ButtonSquare.svelte";
+  import type { ConversationStore } from "$store/ConversationStore";
 
-	const profilesContext: { getStore: () => ProfilesStore } = getContext('profiles')
-	let profilesStore = profilesContext.getStore()
-	$: prof = profilesStore ? profilesStore.myProfile : undefined
-	$: loggedIn = $prof && $prof.status == "complete" && $prof.value !== undefined
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
 
-	const relayStoreContext: { getStore: () => RelayStore } = getContext('relayStore')
-	let relayStore = relayStoreContext.getStore()
-
-	$: if (loggedIn) {
-		if (relayStore.conversationsData.length > 0) {
-			goto('/conversations')
-		}
-		goto('/welcome')
-	}
+  onMount(() => {
+    if ($conversationStore.count > 0) {
+      goto("/conversations");
+    }
+  });
 </script>
 
 <Header>
+  <button slot="left" on:click={() => goto("/account")} class="p-4">
+    <Avatar size={24} agentPubKeyB64={myPubKeyB64} />
+  </button>
+
+  <ButtonIconBare
+    slot="right"
+    icon="plusCircle"
+    iconSize={24}
+    on:click={() => goto("/create")}
+    moreClasses="text-primary-600"
+    moreClassesButton="p-4"
+  />
 </Header>
 
-{#if !loggedIn}
-	<div class='flex flex-col items-center justify-center grow'>
-		<img src="/icon.png" alt="Icon" width='58' class='mb-4' />
-		<h1 class="text-2xl font-bold">{$t('common.app_name')}</h1>
-		<span class='text-xs flex mt-3'>v{__APP_VERSION__}<SvgIcon icon='betaTag' size='24' moreClasses='ml-1' color={$modeCurrent ? '#000' : '#fff'} /></span>
-		<p class='mt-10'>{$t('common.tagline')}</p>
-	</div>
-	{#if $prof && $prof.status === 'pending'}
-		<div class="flex flex-col items-center justify-center">
-			<p class="mb-8">{$t('connecting_to_holochain')}</p>
-		</div>
-	{:else if $prof && $prof.status === 'error'}
-		<div class="flex flex-col items-center justify-center">
-			<p class="text-2xl">{$t("common.profile_error")}: {$prof.error}</p>
-		</div>
-	{:else}
-		<a class='variant-filled-tertiary dark:variant-filled-tertiary rounded-full flex items-center px-6 py-3 mb-8' href="/register">
-			<SvgIcon icon='lock' size='24' color='%23fd3524' /> <span class='ml-2'>{$t('common.create_an_account')}</span>
-		</a>
-	{/if}
-	<div class="flex flex-col items-center justify-center pb-10">
-		<p class='text-xs mb-2'>{$t('common.secured_by')}</p>
-		<img class='max-w-52'src={$modeCurrent ? '/holochain-charcoal.png' : '/holochain-white.png'} alt="holochain" />
-	</div>
-{/if}
+<div class="mx-auto flex w-full grow flex-col items-center justify-center px-10 text-center">
+  <SvgIcon icon="hand" moreClasses="w-[48px] h-[48px] text-primary-600" />
+  <h1 class="h1 mb-4 mt-12">{$t("common.welcome")}</h1>
+  <p class="mb-4">{$t("common.welcome_text_1")}</p>
+  <p>{$t("common.welcome_text_2")}</p>
+</div>
+
+<div class="mb-8 flex w-full justify-between gap-4 px-4 sm:px-12">
+  <ButtonSquare
+    on:click={() => goto("/conversations/join")}
+    icon="ticket"
+    label={$t("common.use_invite_code")}
+  />
+
+  <ButtonSquare
+    on:click={() => goto("/contacts/new")}
+    icon="newPerson"
+    label={$t("common.new_contact")}
+  />
+
+  <ButtonSquare
+    on:click={() => goto("/conversations/new")}
+    icon="people"
+    label={$t("common.new_group")}
+  />
+</div>

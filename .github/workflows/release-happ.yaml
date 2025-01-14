@@ -53,7 +53,7 @@ jobs:
           allowUpdates: true
           artifacts: "workdir/relay.happ"
           body: "See assets below to download and install this version."
-          name: Relay hApp v${{ steps.version.outputs.APP_VERSION }}
+          name: Volla Messages hApp v${{ steps.version.outputs.APP_VERSION }}
           tag: happ-v${{ steps.version.outputs.APP_VERSION }}
           prerelease: true
           draft: false

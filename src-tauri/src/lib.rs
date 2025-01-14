@@ -1,26 +1,23 @@
 use holochain_types::prelude::AppBundle;
 use lair_keystore::dependencies::sodoken::{BufRead, BufWrite};
+use log::info;
 use std::path::PathBuf;
-use std::time::UNIX_EPOCH;
-use std::{collections::HashMap, time::SystemTime};
-use tauri::{AppHandle, Listener, WebviewWindowBuilder};
+use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(desktop)]
 use tauri::Manager;
-
-#[cfg(feature="holochain_bundled")]
+use tauri::{AppHandle, Listener, WebviewWindowBuilder};
+#[cfg(feature = "holochain_bundled")]
 use tauri_plugin_holochain::{HolochainExt, HolochainPluginConfig, WANNetworkConfig};
-
-use log::info;
 
 const APP_ID: &'static str = "volla-messages";
 const SIGNAL_URL: &'static str = "wss://sbd.holo.host";
 const BOOTSTRAP_URL: &'static str = "https://bootstrap-0.infra.holochain.org";
 static ICE_URLS: &'static [&str] = &[
     "stun:stun-0.main.infra.holo.host:443",
-    "stun:stun-1.main.infra.holo.host:443"
+    "stun:stun-1.main.infra.holo.host:443",
 ];
 
-#[cfg(feature="holochain_bundled")]
+#[cfg(feature = "holochain_bundled")]
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
     let bytes = include_bytes!("../../workdir/relay.happ");
     let bundle = AppBundle::decode(bytes)?;
@@ -35,81 +32,85 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Warn)
                 .build(),
-        );
-
-    // Bundle a holochain conductor in the app itself.
-    #[cfg(feature="holochain_bundled")]
+        )
+        .plugin(tauri_plugin_holochain::async_init(
+            vec_to_locked(vec![]).expect("Can't build passphrase"),
+            HolochainPluginConfig::new(holochain_dir(), wan_network_config())
+                .gossip_arc_clamp(GossipArcClamp::Full),
+        ));
+    #[cfg(mobile)]
     {
-        builder = builder
-            .plugin(tauri_plugin_holochain::async_init(
-                vec_to_locked(vec![]).expect("Can't build passphrase"),
-                HolochainPluginConfig::new(holochain_dir(), wan_network_config()),
-            ))
-            .setup(|app| {
-                println!("setup 1");
+        builder = builder.setup(|app| {
+            println!("setup 1");
 
-                let splashscreen_window = WebviewWindowBuilder::new(
-                    app, 
-                    "splashscreen", 
-                    tauri::WebviewUrl::App("splashscreen.html".into())
-                )
-                .build()
-                .expect("Failed to build splashscreen");
+            let splashscreen_window = WebviewWindowBuilder::new(
+                app,
+                "splashscreen",
+                tauri::WebviewUrl::App("splashscreen.html".into()),
+            )
+            .build()
+            .expect("Failed to build splashscreen");
 
-                let handle = app.handle().clone();
-                let handle_fail: AppHandle = app.handle().clone();
-                app.handle()
-                    .listen("holochain://setup-failed", move |_event| {
-                        println!("setup 2");
+            let handle = app.handle().clone();
+            let handle_fail: AppHandle = app.handle().clone();
+            app.handle()
+                .listen("holochain://setup-failed", move |_event| {
+                    println!("setup 2");
 
-                        handle_fail.exit(1);
+                    handle_fail.exit(1);
+                });
+            app.handle()
+                .listen("holochain://setup-completed", move |_event| {
+                    println!("setup 3");
+
+                    let handle = handle.clone();
+                    tauri::async_runtime::spawn(async move {
+                        setup(handle.clone()).await.expect("Failed to setup");
+                        println!("setup 4");
+
+                        let mut window = handle
+                            .holochain()
+                            .expect("Failed to get holochain")
+                            .main_window_builder(
+                                String::from("main"),
+                                false,
+                                Some(APP_ID.into()),
+                                None,
+                            )
+                            .await
+                            .expect("Failed to build window")
+                            //.title("Volla Messages")
+                            .build()
+                            .expect("Failed to open main window");
+
+                        println!("setup 5");
+                        post_setup(handle.clone()).expect("Failed to complete post setup.");
+                        println!("setup 6");
                     });
-                app.handle()
-                    .listen("holochain://setup-completed", move |_event| {
-                        println!("setup 3");
+                });
 
-                        let handle = handle.clone();
-                        tauri::async_runtime::spawn(async move {
-                            setup(handle.clone()).await.expect("Failed to setup");
-                            println!("setup 4");
-
-                            let mut window = handle
-                                .holochain()
-                                .expect("Failed to get holochain")
-                                .main_window_builder(
-                                    String::from("main"),
-                                    false,
-                                    Some(APP_ID.into()),
-                                    None,
-                                )
-                                .await
-                                .expect("Failed to build window")
-                                //.title("Volla Messages")
-                                .build()
-                                .expect("Failed to open main window");
-                            
-                            println!("setup 5");
-                            post_setup(handle.clone()).expect("Failed to complete post setup.");
-                            println!("setup 6");
-
-                        });
-                    });
-    
-                Ok(())
-            });
+            Ok(())
+        });
     }
 
     // Do not bundle a holochain conductor.
     // Instead, rely on the holochain service being available on the device.
     // Only android mobile target is supported.
-    #[cfg(all(mobile, target_os="android", feature="holochain_service", not(feature="holochain_bundled")))]
+    #[cfg(all(
+        mobile,
+        target_os = "android",
+        feature = "holochain_service",
+        not(feature = "holochain_bundled")
+    ))]
     {
-        use tauri_plugin_holochain_service_consumer::InstallAppRequestArgs;
         use tauri_plugin_holochain_service_consumer::HolochainServiceConsumerExt;
+        use tauri_plugin_holochain_service_consumer::InstallAppRequestArgs;
 
         builder = builder
             .plugin(tauri_plugin_sharesheet::init())
@@ -118,13 +119,10 @@ pub fn run() {
                 println!("setup holochain_service 1");
                 let handle = app.handle().clone();
 
-                let main_window = WebviewWindowBuilder::new(
-                    app, 
-                    "main", 
-                    tauri::WebviewUrl::App("".into())
-                )
-                .build()
-                .expect("Failed to bbuild main window");
+                let main_window =
+                    WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("".into()))
+                        .build()
+                        .expect("Failed to bbuild main window");
                 post_setup(app.handle().clone()).expect("Failed to complete post setup.");
 
                 Ok(())
@@ -144,7 +142,7 @@ pub fn run() {
 //       - And do so if it is
 //
 // You can modify this function to suit your needs if they become more complex
-#[cfg(feature="holochain_bundled")]
+#[cfg(feature = "holochain_bundled")]
 async fn setup(handle: AppHandle) -> anyhow::Result<()> {
     let admin_ws = handle.holochain()?.admin_websocket().await?;
 
@@ -169,7 +167,6 @@ async fn setup(handle: AppHandle) -> anyhow::Result<()> {
             .install_app(
                 String::from(APP_ID),
                 happ_bundle()?,
-                HashMap::new(),
                 None,
                 None,
                 Some(random_seed),
@@ -185,15 +182,18 @@ async fn setup(handle: AppHandle) -> anyhow::Result<()> {
 }
 
 /// Steps to take after setup hash completed and main window has been created
-#[cfg(any(feature="holochain_bundled", feature="holochain_service"))]
+#[cfg(any(feature = "holochain_bundled", feature = "holochain_service"))]
 fn post_setup(handle: AppHandle) -> anyhow::Result<()> {
     // Close the splashscreen and display the main window
     // Tauri only supports closing windows on desktop.
     // On mobile, the new window simply overlaps the old one.
     #[cfg(desktop)]
     {
-        handle.get_webview_window("splashscreen")
-            .ok_or(anyhow::anyhow!("Failed to get webview window 'splashscreen'"))?
+        handle
+            .get_webview_window("splashscreen")
+            .ok_or(anyhow::anyhow!(
+                "Failed to get webview window 'splashscreen'"
+            ))?
             .close()?;
     }
 
@@ -207,7 +207,7 @@ fn post_setup(handle: AppHandle) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature="holochain_bundled")]
+#[cfg(feature = "holochain_bundled")]
 fn wan_network_config() -> Option<WANNetworkConfig> {
     // Resolved at compile time to be able to point to local services
     if tauri::is_dev() {
@@ -216,12 +216,12 @@ fn wan_network_config() -> Option<WANNetworkConfig> {
         Some(WANNetworkConfig {
             signal_url: url2::url2!("{}", SIGNAL_URL),
             bootstrap_url: url2::url2!("{}", BOOTSTRAP_URL),
-            ice_servers_urls: ICE_URLS.into_iter().map(|v| url2::url2!("{}", v)).collect()
+            ice_servers_urls: ICE_URLS.into_iter().map(|v| url2::url2!("{}", v)).collect(),
         })
     }
 }
 
-#[cfg(feature="holochain_bundled")]
+#[cfg(feature = "holochain_bundled")]
 fn holochain_dir() -> PathBuf {
     if tauri::is_dev() {
         #[cfg(target_os = "android")]
@@ -259,7 +259,7 @@ fn holochain_dir() -> PathBuf {
     }
 }
 
-#[cfg(feature="holochain_bundled")]
+#[cfg(feature = "holochain_bundled")]
 fn vec_to_locked(mut pass_tmp: Vec<u8>) -> std::io::Result<BufRead> {
     match BufWrite::new_mem_locked(pass_tmp.len()) {
         Err(e) => {
@@ -277,7 +277,7 @@ fn vec_to_locked(mut pass_tmp: Vec<u8>) -> std::io::Result<BufRead> {
     }
 }
 
-#[cfg(feature="holochain_bundled")]
+#[cfg(feature = "holochain_bundled")]
 fn get_version() -> String {
     let semver = std::env!("CARGO_PKG_VERSION");
 

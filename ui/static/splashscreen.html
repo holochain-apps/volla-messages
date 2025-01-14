@@ -1,89 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
 
-		<style type="text/css">
-			body {
-				background-color: white;
-				height:98vh;
-				overflow: hidden;
-				font-family: NotoSans, ui-sans-serif, system-ui;
-			}
+    <style type="text/css">
+      body {
+        background-color: white;
+        height: 98vh;
+        overflow: hidden;
+        font-family: NotoSans, ui-sans-serif, system-ui;
+      }
 
-			.container {
-				height:100%;
-				display:flex;
-				justify-content: center;
-				align-items: center;
-				flex-direction: column;
-				overflow: hidden;
-			}
+      .container {
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-			.startingUp {
-				color: black;
-			}
+      .startingUp {
+        color: black;
+      }
 
-			.relayTitle {
-				margin-top: 10px;
-			}
+      .relayTitle {
+        margin-top: 10px;
+      }
 
-			.relayTitle path {
-				fill: black;
-			}
+      .relayTitle path {
+        fill: black;
+      }
 
-			h1 {
-				font-size: 24px;
-				font-weight: 550;
-				font-family: NotoSans, ui-sans-serif, system-ui;
-				margin-bottom: 40px;
-			}
+      h1 {
+        font-size: 24px;
+        font-weight: 550;
+        font-family: NotoSans, ui-sans-serif, system-ui;
+        margin-bottom: 40px;
+      }
 
-			.betaTag {
-				margin-left: 5px;
-			}
-			.betaText {
-				color: black;
-				border: 1px solid black;
-				border-radius: 2px;
-				font-size: 45%;
-				padding: 2px;
-				margin-bottom: 5px;
-				margin-left: 3px;
-			}
+      .betaTag {
+        margin-left: 5px;
+      }
+      .betaText {
+        color: black;
+        border: 1px solid black;
+        border-radius: 2px;
+        font-size: 45%;
+        padding: 2px;
+        margin-bottom: 5px;
+        margin-left: 3px;
+      }
 
-			@media (prefers-color-scheme: dark) {
-				body {
-					background-color: black;
-				}
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: black;
+        }
 
-				.startingUp {
-					color: white;
-				}
-				.relayTitle path {
-					fill: white
-				}
-				.betaTag path {
-					fill: white;
-				}
-				.betaText {
-					color: white;
-					border-color: white;
-				}
-				h1 {
-					color: white;
-				}
-			}
+        .startingUp {
+          color: white;
+        }
+        .relayTitle path {
+          fill: white;
+        }
+        .betaTag path {
+          fill: white;
+        }
+        .betaText {
+          color: white;
+          border-color: white;
+        }
+        h1 {
+          color: white;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img src="/app-logo.png" width="58" />
+      <h1>Volla Messages <span class="betaText">Beta</span></h1>
 
-		</style>
-	</head>
-	<body>
-		<div class="container">
-			<img src="./icon.png" width='58' >
-			<h1 >Volla Messages <span class="betaText">Beta</span></h1>
-			
-			<p class='startingUp'>Starting up...</p>
-		</div>
-	</body>
+      <p class="startingUp">Starting up...</p>
+    </div>
+  </body>
 </html>

@@ -22,6 +22,8 @@
     "shell:default",
     "holochain-service-consumer:default",
     "barcode-scanner:default",
-    "os:allow-platform"
+    "os:allow-platform",
+    "dialog:allow-save",
+    "fs:write-all"
   ]
 }

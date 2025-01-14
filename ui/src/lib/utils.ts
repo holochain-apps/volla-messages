@@ -1,168 +1,161 @@
-import DOMPurify from 'dompurify';
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 import { shareText as sharesheetShareText } from "@buildyourwebapp/tauri-plugin-sharesheet";
-import { type Image } from '../types';
-import { platform } from '@tauri-apps/plugin-os';
+import { platform } from "@tauri-apps/plugin-os";
+import { setModeCurrent } from "@skeletonlabs/skeleton";
+import { open } from "@tauri-apps/plugin-shell";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { Base64 } from "js-base64";
+import type { CellId } from "@holochain/client";
+import type { CellIdB64 } from "./types";
 
-export const MIN_TITLE_LENGTH = 3;
+/**
+ * Share text via sharesheet
+ *
+ * @param text
+ * @returns
+ */
+export function shareText(text: string): Promise<void> {
+  if (!isMobile()) throw Error("Sharesheet is only supported on mobile");
 
-export function sanitizeHTML(html: string) {
-  return DOMPurify.sanitize(html);
+  const normalized = text.trim();
+  if (normalized.length === 0) throw Error("Text is empty");
+
+  return sharesheetShareText(normalized);
 }
 
-export function linkify(text: string) {
-  const urlPattern = /(?:https?:(?:\/\/)?)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
-  return text.replace(urlPattern, (match) => {
-      // XXX: not quite sure why this is needed, but if i dont do this sveltekit navigates internally and externally at the same time
-    const href = match.includes('://') ? match : `https://${match}`
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${match}</a>`
-  })
+/**
+ * Copy text to clipboard
+ *
+ * @param text
+ * @returns
+ */
+export function copyToClipboard(text: string): Promise<void> {
+  const normalized = text.trim();
+  if (normalized.length === 0) throw Error("Text is empty");
+
+  return writeText(text);
 }
 
-export function shareText(text: string | Promise<string>) {
-  if (typeof text === 'string') {
-    if (text && text.trim().length > 0) {
-      return sharesheetShareText(text);
-    }
-  } else {
-    return text.then(t => sharesheetShareText(t));
-  }
-}
-
-export function copyToClipboard(text: string | Promise<string>) {
-  // @ts-ignore
-  // if (window.__TAURI_PLUGIN_CLIPBOARD_MANAGER__) return window.__TAURI_PLUGIN_CLIPBOARD_MANAGER__.writeText(text);
-  // return writeText(text);
-  if (typeof text === 'string') {
-    if (text && text.trim().length > 0) {
-      console.log("Copying to clipboard", text);
-      return navigator.clipboard.writeText(text);
-    }
-  } else {
-    if (typeof ClipboardItem && navigator.clipboard.write) {
-      const item = new ClipboardItem({ "text/plain": text.then(t => {
-        console.log("Copying to clipboard", t)
-        return new Blob([t], { type: "text/plain" })
-      })})
-      return navigator.clipboard.write([item])
-    } else {
-      console.log("Copying to clipboard", text);
-      return text.then(t => navigator.clipboard.writeText(t));
-    }
-  }
-}
-
-// Crop avatar image and return a base64 bytes string of its content
-export function resizeAndExportAvatar(img: HTMLImageElement) {
-  const MAX_WIDTH = 300;
-  const MAX_HEIGHT = 300;
-
-  let width = img.width;
-  let height = img.height;
-
-  // Change the resizing logic
-  if (width > height) {
-    if (width > MAX_WIDTH) {
-      height = height * (MAX_WIDTH / width);
-      width = MAX_WIDTH;
-    }
-  } else {
-    if (height > MAX_HEIGHT) {
-      width = width * (MAX_HEIGHT / height);
-      height = MAX_HEIGHT;
-    }
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-  ctx.drawImage(img, 0, 0, width, height);
-
-  // return the .toDataURL of the temp canvas
-  return canvas.toDataURL();
-}
-
-export function handleFileChange(event: Event, callback: (imageData:string)=> void) {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    const file = input.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (e: ProgressEvent<FileReader>): void => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const imageData = resizeAndExportAvatar(img)
-        callback(imageData)
-      };
-      img.src = e.target?.result as string;
-    };
-
-    reader.onerror = (e): void => {
-      console.error('Error reading file:', e);
-      reader.abort();
-    };
-
-    reader.readAsDataURL(file);
-  }
-}
-
-async function checkPermission() {
-  if (!(await isPermissionGranted())) {
-    return (await requestPermission()) === 'granted';
-  }
-  return true;
-}
-
+/**
+ * Send a system notification
+ * If permissions have not been granted for sending notifications, request them.
+ *
+ * @param title
+ * @param body
+ */
 export async function enqueueNotification(title: string, body: string) {
-  if (!(await checkPermission())) {
-    return;
+  try {
+    const hasPermission = await isPermissionGranted();
+    if (!hasPermission) {
+      const permission = await requestPermission();
+      if (permission !== "granted") throw new Error("Permission to create notifications denied");
+    }
+
+    sendNotification({ title, body });
+  } catch (e) {
+    console.error("Failed to enqueue notification", e);
   }
-  sendNotification({ title, body });
 }
 
-export function isLinux(): boolean {
-  return platform() === 'linux';
+/**
+ * Is app running on mobile?
+ *
+ * @returns
+ */
+export function isMobile(): boolean {
+  const val = platform();
+  return val === "android" || val === "ios";
 }
 
-export function isWindows(): boolean {
-  return platform() === 'windows';
+function setLightDarkMode(value: boolean) {
+  const elemHtmlClasses = document.documentElement.classList;
+  const classDark = `dark`;
+  value === true ? elemHtmlClasses.remove(classDark) : elemHtmlClasses.add(classDark);
+  setModeCurrent(value);
 }
 
-export function isMacOS(): boolean {
-  return platform() === 'macos';
+/**
+ * Toggle dark mode to mirror system settings.
+ * We are not using skeleton's autoModeWatcher() because it doesn't update modeCurrent.
+ * @param value
+ */
+
+export function initLightDarkModeSwitcher() {
+  const mql = window.matchMedia("(prefers-color-scheme: light)");
+
+  setLightDarkMode(mql.matches);
+  mql.onchange = () => {
+    setLightDarkMode(mql.matches);
+  };
 }
 
-export function isDesktop() : boolean {
-  return isMacOS() || isLinux() || isWindows()
+/**
+ * Ensure that external links are opened with the system default browser or mail client.
+ *
+ * @param e: click event
+ * @returns
+ */
+export function handleLinkClick(e: MouseEvent) {
+  // Abort if clicked element is not a link
+  const anchor = (e.target as HTMLElement).closest("a[href]") as HTMLAnchorElement;
+  if (!anchor || anchor?.href.startsWith(window.location.origin)) return;
+
+  // Handle external links using Tauri's API
+  e.preventDefault();
+  e.stopPropagation();
+  open(anchor.getAttribute("href") as string);
 }
 
-export function isAndroid() : boolean {
-  return platform() === 'android';
+/**
+ * Convert a base64 encoded data URI to a Uint8Array of the decoded bytes.
+ *
+ * @param dataURI
+ * @returns
+ */
+export function convertDataURIToUint8Array(dataURI: string): Uint8Array {
+  const BASE64_MARKER = ";base64,";
+  const base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+  const base64 = dataURI.substring(base64Index);
+  const raw = window.atob(base64);
+  const array = new Uint8Array(new ArrayBuffer(raw.length));
+
+  for (let i = 0; i < raw.length; i++) {
+    array[i] = raw.charCodeAt(i);
+  }
+
+  return array;
 }
 
-export function isIOS() : boolean {
-  return platform() === 'ios';
+export function makeFullName(firstName: string, lastName?: string): string {
+  const hasLastName = lastName !== undefined && lastName.length > 0;
+  return `${firstName}${hasLastName ? " " + lastName : ""}`;
 }
 
-export function isMobile() : boolean {
-  return isAndroid() || isIOS()
+export function encodeCellIdToBase64(cellId: CellId): CellIdB64 {
+  return Base64.fromUint8Array(new Uint8Array([...cellId[0], ...cellId[1]]), true);
 }
 
-export async function fileToDataUrl(file: File): Promise<string> {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
+export function decodeCellIdFromBase64(base64: CellIdB64): CellId {
+  const bytes = Base64.toUint8Array(base64);
+  return [bytes.slice(0, 39), bytes.slice(39)];
+}
 
-  return new Promise((resolve, reject) => {
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result)
-      } else {
-        reject("Failed to convert File to Image: File contents are not a string");
-      }
-    };
-    reader.onerror = (e) => reject(`Failed to convert File to Image: ${e}`);
-  });
+export function isSameDay(d1: Date, d2?: Date): boolean {
+  if (d2 === undefined) return false;
+
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
+export function isWithinFiveMinutes(d1: Date, d2?: Date): boolean {
+  if (d2 === undefined) return false;
+
+  return Math.abs(d1.getTime() - d2.getTime()) <= 5 * 60 * 1000;
 }

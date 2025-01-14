@@ -1,8 +1,0 @@
-{
-  "no_contacts_header": "Sie haben noch keine Kontakte hinzugefügt.",
-  "no_contacts_text": "Es gibt noch niemanden, mit dem Sie chatten können! Fügen Sie Ihre vertrauenswürdigen Freunde und Familienmitglieder hinzu, indem Sie ihren Volla Messages-Kontaktcode anfordern, den Sie in ihrem persönlichen Profil in der Volla Messages-App finden.",
-  "open_conversation": "{{existingConversation; true:Open; false:Create;}} Konversation",
-  "page_title": "Erstellen",
-  "search_placeholder": "Namen oder Kontakt-Code suchen",
-  "view": "Ansehen"
-}

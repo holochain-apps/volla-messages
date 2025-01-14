@@ -41,7 +41,7 @@ The `.happ` release that is downloaded with this script can be changed in the `s
 
 ## License
 
-[Volla Licence 1.0](https://github.com/holochain-apps/relay/blob/main/LICENSE.txt)
+[Volla Licence 1.0](https://github.com/holochain-apps/volla-messages/blob/main/LICENSE.txt)
 
 Copyright (C) 2023, Holochain Foundation
 

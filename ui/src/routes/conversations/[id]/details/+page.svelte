@@ -1,211 +1,199 @@
 <script lang="ts">
-  import { modeCurrent } from '@skeletonlabs/skeleton';
-  import { getContext } from 'svelte';
-  import { encodeHashToBase64 } from '@holochain/client';
-  import { page } from '$app/stores';
-  import Avatar from '$lib/Avatar.svelte';
-  import Header from '$lib/Header.svelte';
+  import { getContext } from "svelte";
+  import { type AgentPubKeyB64 } from "@holochain/client";
+  import { page } from "$app/stores";
+  import Header from "$lib/Header.svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { t } from '$lib/translations';
-  import { copyToClipboard, handleFileChange, isMobile, MIN_TITLE_LENGTH, shareText } from '$lib/utils';
-  import type { RelayStore } from '$store/RelayStore';
-  import { Privacy, type Config } from '../../../../types';
-  import Button from '$lib/Button.svelte';
+  import { t } from "$translations";
+  import { Privacy } from "$lib/types";
+  import { goto } from "$app/navigation";
+  import ButtonsCopyShareInline from "$lib/ButtonsCopyShareInline.svelte";
+  import TitleInput from "./TitleInput.svelte";
+  import ButtonIconBare from "$lib/ButtonIconBare.svelte";
+  import InputImageAvatar from "$lib/InputImageAvatar.svelte";
+  import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import {
+    deriveCellMergedProfileContactInviteStore,
+    type MergedProfileContactInviteStore,
+  } from "$store/MergedProfileContactInviteStore";
+  import MemberListItem from "./MemberListItem.svelte";
+  import PrivateConversationImage from "../PrivateConversationImage.svelte";
+  import { type CellProfileStore } from "$store/ProfileStore";
+  import {
+    type ConversationTitleStore,
+    deriveCellConversationTitleStore,
+  } from "$store/ConversationTitleStore";
+  import {
+    deriveCellMergedProfileContactInviteJoinedStore,
+    deriveCellMergedProfileContactInviteUnjoinedStore,
+    type MergedProfileContactInviteJoinedStore,
+    type MergedProfileContactInviteUnjoinedStore,
+  } from "$store/MergedProfileContactInviteJoinedStore";
 
-  // Silly hack to get around issues with typescript in sveltekit-i18n
-  const tAny = t as any
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
+  const mergedProfileContactInviteStore = getContext<{
+    getStore: () => MergedProfileContactInviteStore;
+  }>("mergedProfileContactInviteStore").getStore();
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+  const provisionedRelayCellProfileStore = getContext<{
+    getProvisionedRelayCellProfileStore: () => CellProfileStore;
+  }>("profileStore").getProvisionedRelayCellProfileStore();
+  const conversationTitleStore = getContext<{
+    getStore: () => ConversationTitleStore;
+  }>("conversationTitleStore").getStore();
+  const mergedProfileContactInviteJoinedStore = getContext<{
+    getStore: () => MergedProfileContactInviteJoinedStore;
+  }>("mergedProfileContactInviteJoinedStore").getStore();
+  const mergedProfileContactInviteUnjoinedStore = getContext<{
+    getStore: () => MergedProfileContactInviteUnjoinedStore;
+  }>("mergedProfileContactInviteUnjoinedStore").getStore();
 
-  $: conversationId = $page.params.id;
-  const relayStoreContext: { getStore: () => RelayStore } = getContext('relayStore')
-  let relayStore = relayStoreContext.getStore()
-  const myPublicKey64 = relayStore.client.myPubKeyB64
-  $: conversation = relayStore.getConversation(conversationId)
+  let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
+  let conversationTitle = deriveCellConversationTitleStore(conversationTitleStore, $page.params.id);
+  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
+    mergedProfileContactInviteStore,
+    $page.params.id,
+    myPubKeyB64,
+  );
+  let joined = deriveCellMergedProfileContactInviteJoinedStore(
+    mergedProfileContactInviteJoinedStore,
+    $page.params.id,
+  );
+  let unjoined = deriveCellMergedProfileContactInviteUnjoinedStore(
+    mergedProfileContactInviteUnjoinedStore,
+    $page.params.id,
+  );
+
+  $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
+  $: invitationTitle =
+    $joined.count <= 2
+      ? `${myProfile.profile.nickname}`
+      : `${myProfile.profile.nickname} + ${$mergedProfileContact.count - 1}`;
 
   // used for editing Group conversation details
-  $: image = conversation ? conversation.data?.config.image : undefined
-  $: title = conversation ? conversation.data?.config.title : undefined
+  let image = $conversation.config?.image || "";
+  let title = $conversationTitle || "";
+  let editingTitle = false;
 
-  let editingTitle = false
-  let titleElem: HTMLInputElement
+  $: iAmProgenitor = myPubKeyB64 === $conversation.dnaProperties.progenitor;
 
-  const saveTitle = async () => {
-    if (conversation && titleElem.value) {
-      await updateConfig({ image: image || conversation?.data?.config.image, title: titleElem.value.trim() })
-      title = titleElem.value
-      editingTitle = false
-    }
-  }
+  const saveTitle = async (newTitle: string) => {
+    conversation.updateConfig({ title: newTitle.trim(), image });
+    title = newTitle.trim();
+    editingTitle = false;
+  };
 
-  const cancelEditTitle = () => {
-    editingTitle = false
-    title = conversation?.data?.config.title
-  }
-
-  const updateConfig = async (config: Config) => {
-    if (!conversation) return
-    await conversation.updateConfig(config)
-    image = config.image
-    title = config.title
-  }
+  const saveImage = async (newImage: string) => {
+    conversation.updateConfig({
+      title: $conversationTitle || "",
+      image: newImage,
+    });
+    image = newImage;
+  };
 </script>
 
-<Header>
-  <a class='absolute pr-5 z-10' href={`/conversations/${conversationId}`}><SvgIcon icon='caretLeft' color={$modeCurrent ? '%232e2e2e' : 'white'} size='10' /></a>
-  {#if conversation}
-    <h1 class="flex-1 grow text-center">{#if conversation.data.privacy === Privacy.Public}{$t('conversations.group_details')}{:else}{conversation.title}{/if}</h1>
-    {#if conversation.data.privacy === Privacy.Private && encodeHashToBase64(conversation.data.progenitor) === relayStore.client.myPubKeyB64}
-      <a class='absolute right-5' href="/conversations/{conversation.data.id}/invite"><SvgIcon icon='addPerson' color='white' /></a>
+<Header backUrl={`/conversations/${$page.params.id}`}>
+  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
+    {$conversationTitle}
+  </h1>
+
+  <div slot="right">
+    {#if $conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
+      <ButtonIconBare
+        moreClasses="h-[24px] w-[24px]"
+        moreClassesButton="p-4"
+        icon="addPerson"
+        on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
+      />
     {/if}
-  {/if}
+  </div>
 </Header>
 
-{#if conversation}
-  {@const numMembers = Object.values(conversation.data.agentProfiles).length}
+<div class="relative mx-auto flex w-full flex-1 flex-col items-center overflow-hidden pt-6">
+  {#if $conversation.dnaProperties.privacy === Privacy.Private}
+    <PrivateConversationImage cellIdB64={$page.params.id} />
+  {:else}
+    <InputImageAvatar value={image} on:change={(e) => saveImage(e.detail)} />
+  {/if}
 
-  <div class="container mx-auto flex items-center flex-col flex-1 overflow-hidden relative w-full pt-10">
-    {#if conversation.privacy === Privacy.Private}
-      <div class='flex gap-4 items-center justify-center'>
-        {#each conversation.allMembers.slice(0, 2) as contact, i}
-          {#if contact}
-            <Avatar image={contact.avatar} agentPubKey={contact.publicKeyB64} size={120} moreClasses='mb-5' />
-          {/if}
-        {/each}
-        {#if conversation.allMembers.length > 2}
-          <div class='w-10 h-10 min-h-10 mb-5 rounded-full variant-filled-tertiary flex items-center justify-center'>
-            <span class='text-xl'>+{(conversation.allMembers.length - 2)}</span>
-          </div>
-        {/if}
-      </div>
-    {:else}
-      <!-- Hidden file input -->
-      <input type="file" id="avatarInput" accept="image/jpeg, image/png, image/gif" class='hidden'
-        on:change={(event) => handleFileChange(event,
-          (imageData) => {
-            updateConfig({ image: imageData, title: title || conversation.data?.config.title })
-          }
-        )}
+  <div class="flex items-center justify-center space-x-2">
+    {#if editingTitle}
+      <TitleInput
+        initialValue={title}
+        on:save={(e) => saveTitle(e.detail)}
+        on:cancel={() => (editingTitle = false)}
       />
-      {#if image}
-        <div style="position:relative">
-          <img src={image} alt='Group' class='w-32 h-32 min-h-32 mb-5 rounded-full object-cover' />
-          <label for="avatarInput"
-            class='rounded-full w-12 h-12 pl-1 bottom-5 right-0 bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 absolute flex items-center justify-center cursor-pointer'
-          >
-            <SvgIcon icon='image' color={$modeCurrent ? '%232e2e2e' : 'white'} />
-          </label>
-        </div>
-      {:else}
-        <label for="avatarInput"
-          class='rounded-full w-32 h-32 min-h-32 rounded-full bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-500 dark:hover:bg-secondary-400 flex items-center justify-center cursor-pointer'
-        >
-          <SvgIcon icon='image' size='44' color={$modeCurrent ? '%232e2e2e' : 'white'} />
-        </label>
+    {:else}
+      <h1 class="break-all text-3xl">
+        {title}
+      </h1>
+
+      <!-- Don't let the user edit the title unless we actually have the conversation Config (with a prior user-created title) -->
+      {#if $conversation.dnaProperties.privacy === Privacy.Public && $conversation.config !== undefined}
+        <ButtonIconBare
+          on:click={() => (editingTitle = true)}
+          icon="write"
+          moreClasses="text-gray-500"
+        />
       {/if}
     {/if}
-    {#if editingTitle}
-      <div class="flex flex-row items-center justify-center flex-wrap">
-        <input
-          autofocus
-          class='grow text-3xl text-center bg-surface-900 border-none outline-none focus:outline-none pl-0.5 pt-0 focus:ring-0'
-          type='text'
-          placeholder={$t('conversations.enter_name_here')}
-          name='title'
-          bind:this={titleElem}
-          value={title}
-          minlength={MIN_TITLE_LENGTH}
-          on:keydown={(event) => {
-            if (event.key === 'Enter') saveTitle();
-            if (event.key === 'Escape') cancelEditTitle();
-          }}
-        />
-        <div class="flex flex-none items-center justify-center">
-          <Button
-            moreClasses="h-6 w-6 rounded-md py-0 !px-0 mb-0 mr-2 bg-primary-100 flex items-center justify-center"
-            onClick={() => saveTitle()}
-          >
-            <SvgIcon icon='checkMark' color='%23FD3524' size='12' />
-          </Button>
-          <Button
-            moreClasses="h-6 w-6 !px-0 py-0 mb-0 rounded-md bg-surface-400 flex items-center justify-center"
-            onClick={() => cancelEditTitle()}
-          >
-            <SvgIcon icon='x' color='gray' size='12' />
-          </Button>
-        </div>
-      </div>
-    {:else}
-      <div class="flex">
-        <h1 class='text-3xl mb-1 mr-1 break-all'>
-          {title}
-        </h1>
-        {#if conversation.privacy !== Privacy.Private}
-          <button on:click={() => editingTitle = true}>
-            <SvgIcon icon='write' size='24' color='gray' moreClasses='cursor-pointer' />
-          </button>
-        {/if}
-      </div>
-    {/if}
-    <p class='text-sm'>{$tAny('conversations.created', { date: conversation.created })}</p>
-    <p class='text-sm'>{$tAny('conversations.num_members', { count: numMembers })}</p>
+  </div>
 
-    <div class="container mx-auto flex flex-col px-4 overflow-y-auto">
-      <ul class="flex-1 mt-10">
-        {#if conversation.privacy === Privacy.Public}
-          <li class='text-xl flex flex-row mb-2 items-center rounded-full variant-filled-primary p-2'>
-            <span class='rounded-full bg-surface-500 w-10 h-10 inline-block flex items-center justify-center'>
-              <SvgIcon icon='addPerson' size='24' color='%23FD3524'/>
-            </span>
-            <span class='ml-4 text-sm font-bold flex-1'>{$t('conversations.add_members')}</span>
-            <button class='rounded-full bg-surface-500 text-secondary-500 font-bold text-xs py-2 px-2 mr-1 flex items-center justify-center' on:click={() => copyToClipboard(conversation.publicInviteCode)}>
-              <SvgIcon icon='copy' size='14' color='%23FD3524' moreClasses='mr-2' />
-              {$t('conversations.copy_invite')}
-            </button>
-            {#if isMobile()}
-              <button class='rounded-full bg-surface-500 text-secondary-500 font-bold text-xs py-2 px-2 mr-1 flex items-center justify-center' on:click={() => shareText(conversation.publicInviteCode)}>
-                <SvgIcon icon='share' size='14' color='%23FD3524' moreClasses='mr-1' />
-              </button>
-            {/if}
-          </li>
-        {/if}
-        {#if conversation.invitedUnjoined.length > 0}
-          <h3 class='text-md mb-2 text-secondary-300 font-light'>{$t('conversations.unconfirmed_invitations')}</h3>
-          {#each conversation.invitedUnjoined as contact}
-            <li class='text-xl flex flex-row mb-4 px-2 items-center'>
-              <Avatar image={contact.avatar} agentPubKey={contact.publicKeyB64} size='38' moreClasses='-ml-30'/>
-              <span class='ml-4 text-sm flex-1'>{contact.firstName + ' ' + contact.lastName}</span>
-              <button class='rounded-2xl variant-filled-tertiary font-bold text-sm p-2 px-3 flex items-center justify-center' on:click={() => copyToClipboard(conversation.inviteCodeForAgent(contact.publicKeyB64)) }>
-                <SvgIcon icon='copy' size='18' color='%23FD3524' moreClasses='mr-2' />
-                {$t('conversations.copy_invite')}
-              </button>
-              {#if isMobile()}
-                <button class='rounded-2xl variant-filled-tertiary font-bold text-sm p-2 px-3 flex items-center justify-center' on:click={() => shareText(conversation.inviteCodeForAgent(contact.publicKeyB64)) }>
-                  <SvgIcon icon='share' size='18' color='%23FD3524' moreClasses='mr-2' />
-                </button>
-              {/if}
-            </li>
+  <p class="text-sm">
+    {$t("common.created", { date: $conversation.dnaProperties.created })}
+  </p>
+  <p class="text-sm">
+    {$t("common.num_members", { count: $joined.count })}
+  </p>
+
+  <div class="mx-auto flex w-full flex-col overflow-y-auto px-4">
+    <ul class="mt-10 flex-1">
+      {#if $conversation.dnaProperties.privacy === Privacy.Public && $conversation.publicInviteCode !== undefined}
+        <li class="variant-filled-primary mb-2 flex flex-row items-center rounded-full p-2 text-xl">
+          <span
+            class="bg-tertiary-500 inline-block flex h-10 w-10 items-center justify-center rounded-full"
+          >
+            <SvgIcon icon="addPerson" moreClasses="text-primary-600" />
+          </span>
+          <span class="ml-4 flex-1 text-sm font-bold">{$t("common.add_members")}</span>
+
+          <ButtonsCopyShareInline
+            text={$conversation.publicInviteCode}
+            copyLabel={$t("common.copy_invite")}
+            shareLabel={$t("common.share_invite_code")}
+          />
+        </li>
+      {:else}
+        {#if $unjoined.count > 0}
+          <h3 class="text-md text-secondary-300 mb-2 font-light">
+            {$t("common.unconfirmed_invitations")}
+          </h3>
+
+          {#each $unjoined.list as [agentPubKeyB64] (agentPubKeyB64)}
+            <MemberListItem cellIdB64={$page.params.id} {agentPubKeyB64}>
+              {#await conversation.makePrivateInviteCode(agentPubKeyB64, invitationTitle) then res}
+                <ButtonsCopyShareInline
+                  text={res}
+                  copyLabel={$t("common.copy_invite")}
+                  shareLabel={$t("common.share_invite_code")}
+                />
+              {/await}
+            </MemberListItem>
           {/each}
         {/if}
 
-        {#if conversation.privacy === Privacy.Private}
-          <h3 class='text-md mt-4 mb-2 text-secondary-300 font-light'>{$t('conversations.members')}</h3>
-        {/if}
-        <li class='text-xl flex flex-row mb-4 px-2 items-center'>
-          <Avatar agentPubKey={myPublicKey64} size='38' moreClasses='-ml-30'/>
-          <span class='ml-4 text-sm font-bold flex-1'>{$t('conversations.you')}</span>
-          {#if myPublicKey64 === encodeHashToBase64(conversation.data.progenitor)}
-            <span class='text-xs text-secondary-300 ml-2'>{$t('conversations.admin')}</span>
-          {/if}
-        </li>
-        {#each conversation.memberList() as contact}
-          <li class='text-xl flex flex-row mb-4 px-2 items-center'>
-            <Avatar image={contact.avatar} agentPubKey={contact.publicKeyB64} size='38' moreClasses='-ml-30'/>
-            <span class='ml-4 text-sm font-bold flex-1'>{contact.firstName + ' ' + contact.lastName}</span>
-            {#if contact.publicKeyB64 === encodeHashToBase64(conversation.data.progenitor)}
-              <span class='text-xs text-secondary-300 ml-2'>{$t('conversations.admin')}</span>
-            {/if}
-          </li>
-        {/each}
-      </ul>
-    </div>
+        <h3 class="text-md text-secondary-300 mb-2 mt-4 font-light">
+          {$t("common.members")}
+        </h3>
+      {/if}
+
+      {#each $joined.list as [publicKeyB64] (publicKeyB64)}
+        <MemberListItem cellIdB64={$page.params.id} agentPubKeyB64={publicKeyB64} />
+      {/each}
+    </ul>
   </div>
-{/if}
+</div>

@@ -4,15 +4,23 @@
 @tailwind variants;
 
 @font-face {
-  font-family: 'NotoSans';
-  src: url('/fonts/NotoSans-VariableFont_wdthwght.ttf');
+  font-family: "NotoSans";
+  src: url("/fonts/NotoSans-VariableFont_wdthwght.ttf");
 }
 
 body {
   font-weight: 400;
 }
 
-h1, .h1, h2, .h2, h3, .h3, strong, b, .font-bold {
+h1,
+.h1,
+h2,
+.h2,
+h3,
+.h3,
+strong,
+b,
+.font-bold {
   font-weight: 550;
 }
 
@@ -36,11 +44,11 @@ h1, .h1, h2, .h2, h3, .h3, strong, b, .font-bold {
 /* Legacy browsers with `::-webkit-scrollbar-*` support */
 @supports selector(::-webkit-scrollbar) {
   ::-webkit-scrollbar-track {
-    background: #ddd !important
+    background: #ddd !important;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #aaa !important;;
+    background: #aaa !important;
   }
 
   .dark ::-webkit-scrollbar-track {
@@ -71,4 +79,3 @@ input:focus {
   outline: none !important;
   box-shadow: none !important;
 }
-

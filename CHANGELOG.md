@@ -6,6 +6,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Fix: Display "unconfirmed" label for contacts that have not yet joined their private conversation.
+- Fix: In public converastion invitations, use the cell name as the conversation title when convesation config is not available.
+
+## [0.7.5] - 2025-01-10
+
+- Fix: Major refactoring of the frontend data stores for clarity, readability, maintainability, reducing bugs related to frontend state, following svelte conventions.
+- Fix: Major refactoring of the frontend components for clarity, readability, maintainability, removing duplicate code, avoiding overly complex implementations, ensuring consistent styling, fixing styling inconsistencies.
+- Fix: Refactoring of frontend types for consistency with the backend types, removing redundancy, clearer and consistent naming. Add types for function inputs and outputs
+- Fix: Modify app loading message to clarify when we are connecting to holochain versus initializing frontend stores.
+- Fix: One of the duplicate implementations of share code button didn't fire
+- Fix: Links in messages are now rendered as links even when missing the protocol prefix. Numbers with dots do not get rendered as links.
+- Chore: Cleanup of translations files, each locale has a single file, strings are ordered by key alphabetically, redundant and unused strings have been removed.
+- Chore: formatting of codebase
+- Feat: Minor improvements to styling in light and dark modes
+- Feat: Display loading indicator on Conversation page while fetching messages
+- Feat: Archiving conversations now disables the cell, unarchiving them re-enables the cell.
+- Feat: Messages can now include any file as an attachment, not just images
+- Feat: email addresses in messages are rendered as mailto: links
+
+## [0.7.4] - 2024-12-12
+
+- Feat: display success & error notices throughout the app when no other UI feedback is provided
+- Feat: download images from messages
+- Fix: disable change name submit button when first name is not valid length
+
+## [0.7.3] - 2024-11-23
+- Fix: Blank screen on Ubuntu 22.04 was not actually fixed in 0.7.1. Now it is fixed.
+
+## [0.7.2] - 2024-11-22
+- Fix: macOS x64 builds no longer crash on launch
+- Fix: Windows releases are now code signed
+
 ## [0.7.1] - 2024-11-12
 
 ### Added

@@ -1,74 +1,61 @@
 <script lang="ts">
-	import { decode } from '@msgpack/msgpack';
-  import { Base64 } from 'js-base64';
-  import { modeCurrent } from '@skeletonlabs/skeleton';
-  import { getContext } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { decode } from "@msgpack/msgpack";
+  import { Base64 } from "js-base64";
+  import { getContext } from "svelte";
+  import { goto } from "$app/navigation";
   import Button from "$lib/Button.svelte";
-  import Header from '$lib/Header.svelte';
-  import SvgIcon from '$lib/SvgIcon.svelte';
-  import { t } from '$lib/translations';
-  import { RelayClient } from '$store/RelayClient';
-  import { RelayStore } from '$store/RelayStore';
-  import type { Invitation } from '../../../types';
+  import Header from "$lib/Header.svelte";
+  import { t } from "$translations";
+  import type { Invitation } from "$lib/types";
+  import type { ConversationStore } from "$store/ConversationStore";
 
-	const relayClientContext: { getClient: () => RelayClient } = getContext('relayClient')
-	let relayClient = relayClientContext.getClient()
+  const conversationStore = getContext<{ getStore: () => ConversationStore }>(
+    "conversationStore",
+  ).getStore();
 
-  const relayStoreContext: { getStore: () => RelayStore } = getContext('relayStore')
-	let relayStore = relayStoreContext.getStore()
+  let inviteCode = "";
+  let joining = false;
+  let error = false;
 
-  let inviteCode = ''
-  let joining = false
-  let error = false
-
-  async function joinConversation(e: SubmitEvent) {
-    e.preventDefault();
-    joining = true
+  async function joinConversation() {
+    joining = true;
     try {
-      const msgpack = Base64.toUint8Array(inviteCode)
-      const invitation : Invitation = decode(msgpack) as Invitation;
-      const conversation = await relayStore.joinConversation(invitation)
-      if (conversation) {
-        goto(`/conversations/${conversation.data.id}`)
-        joining = false
-      } else {
-        console.error("Error joining conversation, couldn't create the conversation")
-        error = true
-        joining = false
-      }
-    } catch(e) {
-      error = true
-      joining = false
-      console.error("Error joining conversation", e)
+      const msgpack = Base64.toUint8Array(inviteCode);
+      const invitation: Invitation = decode(msgpack) as Invitation;
+      const cellIdB64 = await conversationStore.join(invitation);
+
+      goto(`/conversations/${cellIdB64}`);
+    } catch (e) {
+      error = true;
+      console.error("Error joining conversation", e);
     }
+
+    joining = false;
   }
 </script>
 
-<Header>
-  <button class='text-4xl pr-5 absolute z-10' on:click={() => history.back()}><SvgIcon icon='caretLeft' color={$modeCurrent ? '%232e2e2e' : 'white'} size='10' /></button>
-  <h1 class="flex-1 text-center">{$t('conversations.join_conversation')}</h1>
-</Header>
+<Header back title={$t("common.join_conversation")} />
 
-<form on:submit={joinConversation} class='contents'>
-  <div class="container mx-auto flex flex-col justify-center items-start grow px-10">
-    <h1 class='h1'>{$t('conversations.enter_invite_code')}</h1>
+<form on:submit|preventDefault={() => joinConversation()} class="contents">
+  <div class="mx-auto flex w-full grow flex-col items-start justify-center px-10">
+    <h1 class="h1">{$t("common.enter_invite_code")}</h1>
     <input
-      class='mt-2 bg-surface-900 border-none outline-none focus:outline-none pl-0.5 focus:ring-0 w-full text-ellipsis overflow-hidden'
-      type='text'
-      placeholder='e.g. hLBjb252ZXJzYXRpb25OYW1lq0...'
-      name='inviteCode'
+      class="bg-surface-900 mt-2 w-full overflow-hidden text-ellipsis border-none pl-0.5 outline-none focus:outline-none focus:ring-0"
+      type="text"
+      placeholder="e.g. hLBjb252ZXJzYXRpb25OYW1lq0..."
+      name="inviteCode"
       bind:value={inviteCode}
     />
     {#if error}
-      <p class='text-error-500 text-sm mt-2'>{$t('conversations.error_joining')}</p>
+      <p class="text-error-500 mt-2 text-sm">
+        {$t("common.error_joining")}
+      </p>
     {/if}
   </div>
 
-  <footer>
-    <Button disabled={!inviteCode || joining} moreClasses='variant-filled-tertiary'>
-      {#if joining}<SvgIcon icon='spinner' size='20' />{:else}<SvgIcon icon='newConversation' size='20' />{/if}
-      <strong class='ml-2'>{$t('conversations.join_conversation')}</strong>
+  <div class="my-8">
+    <Button disabled={!inviteCode || joining} loading={joining} icon="newConversation">
+      {$t("common.join_conversation")}
     </Button>
-  </footer>
+  </div>
 </form>

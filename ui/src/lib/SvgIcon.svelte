@@ -1,35 +1,11 @@
 <script lang="ts">
-  import { svgIcons } from "./svgIcons"
+  import { svgIcons } from "$lib/svgIcons";
 
-  export let icon: string
-  export let style: string = ""
-  export let color: string = "#FF3615"
-  export let size: string = "20"
-  export let moreClasses: string = ""
-
-  $:iconStr = () => {
-    let i = svgIcons[icon]
-    if (!i) console.error("missing icon for ", icon)
-    if (color) {
-      i = i.replace("<svg",`<svg fill="${color}" `)
-    }
-    return `data:image/svg+xml;charset=utf-8,${i.replace("#","%23")}`
-  }
-
-  style = style + ` width: ${size}px;`
+  export let icon: string;
+  export let moreClasses: string = "";
+  export let style: string = "";
 </script>
 
-<div class={`icon + ${moreClasses}`} style={style}>
-  <img width={size} height='auto' src={iconStr()} alt={icon}/>
+<div class="inline-block h-[24px] w-[24px] {moreClasses}" {style}>
+  {@html svgIcons[icon]}
 </div>
-
-<style>
-  .icon {
-    display: flex;
-  }
-
-  .icon img {
-    vertical-align: middle;
-    fill: #ffffff;
-  }
-</style>
