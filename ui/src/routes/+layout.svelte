@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { AgentPubKeyB64, AppClient, CellId } from "@holochain/client";
-  import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
+  import {
+    AppWebsocket,
+    CellType,
+    encodeHashToBase64,
+  } from "@holochain/client";
   import { onDestroy, onMount, setContext } from "svelte";
   import { t } from "$translations";
   import { createSignalHandler } from "$store/SignalHandler";
@@ -24,7 +28,10 @@
     createMergedProfileContactInviteStore,
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
-  import { createConversationStore, type ConversationStore } from "$store/ConversationStore";
+  import {
+    createConversationStore,
+    type ConversationStore,
+  } from "$store/ConversationStore";
   import {
     createConversationTitleStore,
     type ConversationTitleStore,
@@ -85,7 +92,8 @@
   };
 
   $: myProfile =
-    provisionedRelayCellProfileStore && $provisionedRelayCellProfileStore.data[myPubKeyB64]
+    provisionedRelayCellProfileStore &&
+    $provisionedRelayCellProfileStore.data[myPubKeyB64]
       ? $provisionedRelayCellProfileStore.data[myPubKeyB64]
       : undefined;
   $: myProfileExists = myProfile !== undefined;
@@ -110,7 +118,7 @@
         },
 
         // 5m timeout
-        5 * 60 * 1000,
+        5 * 60 * 1000
       );
       const appInfo = await client.appInfo();
       if (appInfo === null) throw new Error("Failed to get appInfo");
@@ -118,11 +126,12 @@
 
       // Get provisioned relay CellId
       const provisionedRelayCellInfo = appInfo.cell_info[ROLE_NAME].find(
-        (c) => CellType.Provisioned in c,
+        (c) => CellType.Provisioned in c
       );
       if (provisionedRelayCellInfo === undefined)
         throw new Error("Failed to get CellInfo for cell 'relay'");
-      provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
+      provisionedRelayCellId =
+        provisionedRelayCellInfo[CellType.Provisioned].cell_id;
       provisionedRelayCellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
 
       isClientConnected = true;
@@ -142,13 +151,13 @@
       profileStore = createProfileStore(relayClient);
       provisionedRelayCellProfileStore = deriveCellProfileStore(
         profileStore,
-        provisionedRelayCellIdB64,
+        provisionedRelayCellIdB64
       );
       inviteStore = createInviteStore();
       mergedProfileContactInviteStore = createMergedProfileContactInviteStore(
         profileStore,
         contactStore,
-        inviteStore,
+        inviteStore
       );
       conversationStore = createConversationStore(relayClient);
       fileStore = createFileStore(relayClient);
@@ -156,25 +165,27 @@
         relayClient,
         conversationStore,
         mergedProfileContactInviteStore,
-        fileStore,
+        fileStore
       );
       conversationLatestMessageStore = createConversationLatestMessageStore(
         conversationStore,
-        conversationMessageStore,
+        conversationMessageStore
       );
-      mergedProfileContactInviteUnjoinedStore = createMergedProfileContactInviteUnjoinedStore(
-        profileStore,
-        inviteStore,
-        mergedProfileContactInviteStore,
-      );
-      mergedProfileContactInviteJoinedStore = createMergedProfileContactInviteJoinedStore(
-        profileStore,
-        inviteStore,
-        mergedProfileContactInviteStore,
-      );
+      mergedProfileContactInviteUnjoinedStore =
+        createMergedProfileContactInviteUnjoinedStore(
+          profileStore,
+          inviteStore,
+          mergedProfileContactInviteStore
+        );
+      mergedProfileContactInviteJoinedStore =
+        createMergedProfileContactInviteJoinedStore(
+          profileStore,
+          inviteStore,
+          mergedProfileContactInviteStore
+        );
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
-        mergedProfileContactInviteStore,
+        mergedProfileContactInviteStore
       );
 
       // Initialize store data
@@ -184,7 +195,11 @@
       await conversationMessageStore.initialize();
 
       // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore, conversationMessageStore);
+      createSignalHandler(
+        relayClient,
+        conversationStore,
+        conversationMessageStore
+      );
 
       isStoresSetup = true;
     } catch (e) {

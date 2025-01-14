@@ -4995,67 +4995,47 @@
         {
           "description": "Default permissions for the plugin",
           "type": "string",
-          "const": "holochain:default"
+          "const": "holochain-service-consumer:default"
         },
         {
-          "description": "Enables the get_locales command without any pre-configured scope.",
+          "description": "Enables the app_websocket_auth command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-get-locales"
+          "const": "holochain-service-consumer:allow-app-websocket-auth"
         },
         {
-          "description": "Enables the get_runtime_info command without any pre-configured scope.",
+          "description": "Enables the install_app command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-get-runtime-info"
+          "const": "holochain-service-consumer:allow-install-app"
         },
         {
-          "description": "Enables the is_holochain_ready command without any pre-configured scope.",
+          "description": "Enables the is_app_installed command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-is-holochain-ready"
-        },
-        {
-          "description": "Enables the list_apps command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:allow-list-apps"
-        },
-        {
-          "description": "Enables the open_app command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:allow-open-app"
+          "const": "holochain-service-consumer:allow-is-app-installed"
         },
         {
           "description": "Enables the sign_zome_call command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-sign-zome-call"
+          "const": "holochain-service-consumer:allow-sign-zome-call"
         },
         {
-          "description": "Denies the get_locales command without any pre-configured scope.",
+          "description": "Denies the app_websocket_auth command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-get-locales"
+          "const": "holochain-service-consumer:deny-app-websocket-auth"
         },
         {
-          "description": "Denies the get_runtime_info command without any pre-configured scope.",
+          "description": "Denies the install_app command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-get-runtime-info"
+          "const": "holochain-service-consumer:deny-install-app"
         },
         {
-          "description": "Denies the is_holochain_ready command without any pre-configured scope.",
+          "description": "Denies the is_app_installed command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-is-holochain-ready"
-        },
-        {
-          "description": "Denies the list_apps command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:deny-list-apps"
-        },
-        {
-          "description": "Denies the open_app command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:deny-open-app"
+          "const": "holochain-service-consumer:deny-is-app-installed"
         },
         {
           "description": "Denies the sign_zome_call command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-sign-zome-call"
+          "const": "holochain-service-consumer:deny-sign-zome-call"
         },
         {
           "description": "Allows the log command",

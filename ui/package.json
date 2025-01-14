@@ -43,6 +43,7 @@
     "svelte-gestures": "^5.0.6",
     "svelte-qrcode-image": "^2.0.0-alpha.1",
     "sveltekit-i18n": "^2.4.2",
+    "tauri-plugin-holochain-service-consumer-api": "file:../../p2p-shipyard/crates/tauri-plugin-holochain-service-consumer",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

@@ -79,6 +79,14 @@ jobs:
       - release-tauri-app-linux
       - create-release
     runs-on: 'ubuntu-22.04' 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - features: 'holochain_service' # for 'lite' app that relies on a separate holochain service
+            label: lite
+          - features: 'holochain_bundled' # for 'rich' app with bundled holochain conductor
+            label: rich
     steps:
       - uses: actions/checkout@v3
 
@@ -118,7 +126,12 @@ jobs:
 
       - name: Build android APKs
         run: |
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64"
+          
+          # Build apk
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64 --release --features ${{ matrix.features }}"
+          
+          # Rename apk to include the feature build label
+          find src-tauri/gen/android/app/build/outputs/apk/*/release -type f -name "*.apk" -exec rename -v 's/release\/app/release\/app-${{ matrix.label }}/' {} \;
 
       - uses: AButler/upload-release-assets@v3.0
         with:
@@ -188,7 +201,7 @@ jobs:
           CertUtil -hashfile $BUNDLE_OUT_PATH_2 SHA256
 
           # Code sign the output bundles via azure key vault, following these instructions:
-          # https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/          dotnet tool install --global AzureSignTool
+          # https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/
           dotnet tool install --global AzureSignTool
           AzureSignTool sign -kvu "${{ secrets.AZURE_KEY_VAULT_URI }}" -kvi "${{ secrets.AZURE_CLIENT_ID }}" -kvt "${{ secrets.AZURE_TENANT_ID }}" -kvs "${{ secrets.AZURE_CLIENT_SECRET }}" -kvc ${{ secrets.AZURE_CERT_NAME }} -tr http://timestamp.digicert.com -v $BUNDLE_OUT_PATH_1
           AzureSignTool sign -kvu "${{ secrets.AZURE_KEY_VAULT_URI }}" -kvi "${{ secrets.AZURE_CLIENT_ID }}" -kvt "${{ secrets.AZURE_TENANT_ID }}" -kvs "${{ secrets.AZURE_CLIENT_SECRET }}" -kvc ${{ secrets.AZURE_CERT_NAME }} -tr http://timestamp.digicert.com -v $BUNDLE_OUT_PATH_2

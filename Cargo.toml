@@ -6,6 +6,7 @@ overflow-checks = false
 [profile.release]
 lto = true
 opt-level = "z"
+default-features = false
 
 [profile.release.build-override]
 opt-level = "z"
