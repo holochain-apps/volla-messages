@@ -5,7 +5,7 @@
   import { t } from "$translations";
   import { createSignalHandler } from "$store/SignalHandler";
   import toast, { Toaster } from "svelte-french-toast";
-  import { handleLinkClick, initLightDarkModeSwitcher } from "$lib/utils";
+  import { initLightDarkModeSwitcher } from "$lib/utils";
   import { RelayClient } from "$store/RelayClient";
   import AppLanding from "$lib/AppLanding.svelte";
   import { MIN_FIRST_NAME_LENGTH, ROLE_NAME, ZOME_NAME } from "$config";
@@ -195,17 +195,11 @@
 
   async function setupApp() {
     initLightDarkModeSwitcher();
-    document.addEventListener("click", handleLinkClick);
-
     await initHolochainClient();
     await initStores();
   }
 
   onMount(setupApp);
-
-  onDestroy(() => {
-    document.removeEventListener("click", handleLinkClick);
-  });
 
   setContext("myPubKey", {
     getMyPubKey: () => client.myPubKey,
