@@ -10,31 +10,29 @@
   import { clickoutside } from "@svelte-put/clickoutside";
   import MessageFilePreview from "./MessageFilePreview.svelte";
   import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
-  import {
-    deriveCellMergedProfileContactInviteStore,
-    type MergedProfileContactInviteStore,
-  } from "$store/MergedProfileContactInviteStore";
   import AgentNickname from "$lib/AgentNickname.svelte";
+  import { open } from "@tauri-apps/plugin-shell";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
-  const mergedProfileContactInviteStore = getContext<{
-    getStore: () => MergedProfileContactInviteStore;
-  }>("mergedProfileContactInviteStore").getStore();
 
   export let message: MessageExtended;
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
 
-  let mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-    mergedProfileContactInviteStore,
-    cellIdB64,
-    myPubKeyB64,
-  );
-
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
+
+  // Ensure that external links in message content are opened with the system default browser or mail client.
+  function handleMessageContentClick(e: MouseEvent) {
+    const anchor = (e.target as HTMLElement).closest("a[href]") as HTMLAnchorElement;
+    if (anchor === null || anchor.href.startsWith(window.location.origin)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    open(anchor.getAttribute("href") as string);
+  }
 </script>
 
 <button
@@ -65,7 +63,7 @@
     <div class="max-w-3/4 ml-3 w-auto {fromMe && 'items-end text-end'}">
       {#if showAuthor}
         <span class="flex items-baseline {fromMe && 'flex-row-reverse opacity-80'}">
-          <AgentNickname cellIdB64={cellIdB64} agentPubKeyB64={message.authorAgentPubKeyB64} />
+          <AgentNickname {cellIdB64} agentPubKeyB64={message.authorAgentPubKeyB64} />
           <span class="text-xxs mx-2">
             <Time timestamp={message.timestamp / 1000} format="h:mma" />
           </span>
@@ -81,14 +79,22 @@
         </div>
       {/each}
 
-      <div class="message w-full break-words font-light {fromMe && 'text-end'}">
+      <!-- 
+        These ignored a11y lints are a hacky workaround so that external links within the message content 
+        are handled by tauri-opener's openUrl() instead of opening within the tauri window.
+      -->
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div
+        class="message w-full break-words font-light {fromMe && 'text-end'}"
+        on:click={handleMessageContentClick}
+      >
         {@html DOMPurify.sanitize(
           linkifyStr(message.message.content, {
             defaultProtocol: "https",
             rel: {
               url: "noopener noreferrer",
             },
-            target: "_blank",
           }),
         )}
       </div>
