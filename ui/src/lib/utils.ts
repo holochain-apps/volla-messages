@@ -6,7 +6,6 @@ import {
 import { shareText as sharesheetShareText } from "@buildyourwebapp/tauri-plugin-sharesheet";
 import { platform } from "@tauri-apps/plugin-os";
 import { setModeCurrent } from "@skeletonlabs/skeleton";
-import { open } from "@tauri-apps/plugin-shell";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Base64 } from "js-base64";
 import type { CellId } from "@holochain/client";
@@ -91,23 +90,6 @@ export function initLightDarkModeSwitcher() {
   mql.onchange = () => {
     setLightDarkMode(mql.matches);
   };
-}
-
-/**
- * Ensure that external links are opened with the system default browser or mail client.
- *
- * @param e: click event
- * @returns
- */
-export function handleLinkClick(e: MouseEvent) {
-  // Abort if clicked element is not a link
-  const anchor = (e.target as HTMLElement).closest("a[href]") as HTMLAnchorElement;
-  if (!anchor || anchor?.href.startsWith(window.location.origin)) return;
-
-  // Handle external links using Tauri's API
-  e.preventDefault();
-  e.stopPropagation();
-  open(anchor.getAttribute("href") as string);
 }
 
 /**
