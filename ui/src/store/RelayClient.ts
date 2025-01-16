@@ -22,6 +22,11 @@ import type {
   MessageRecord,
   UpdateContactInput,
   Profile,
+  CreateConferenceInput,
+  JoinConferenceInput,
+  SignalInput,
+  CallSignalType,
+  ConferenceRoom,
   ProfileExtended,
   BucketInput,
   CreateConversationInput,
@@ -339,6 +344,69 @@ export class RelayClient {
       zome_name: ZOME_NAME,
       fn_name: "delete_contact",
       payload: originalContactHash,
+    });
+  }
+
+  /********** Conference **********/
+
+  public async createConference(participants: AgentPubKey[]): Promise<string> {
+    const payload: CreateConferenceInput = {
+      participants,
+    };
+  
+    const roomId = await this.client.callZome({
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
+      fn_name: "create_conference",
+      payload
+    });
+  
+    return roomId;
+  }
+
+  public async joinConference(room_id: string, participants: AgentPubKey[]): Promise<void> {
+    const payload: JoinConferenceInput = {
+      room_id,
+      participants
+    };
+
+    console.log("Starting to join conference with room id", room_id);
+
+    await this.client.callZome({
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
+      fn_name: "join_conference",
+      payload
+    });
+  }
+
+  public async leaveConference(roomId: string): Promise<void> {
+    await this.client.callZome({
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
+      fn_name: "leave_conference",
+      payload: roomId
+    });
+  }
+
+  public async sendSignal(
+    roomId: string,
+    target: AgentPubKey,
+    payloadType: CallSignalType,
+    data: string
+  ): Promise<void> {
+    const payload: SignalInput = {
+      room_id: roomId,
+      target,
+      payload_type: payloadType,
+      data
+    };
+
+    await this.client.callZome({
+      role_name: ROLE_NAME,
+      zome_name: ZOME_NAME,
+      fn_name: "send_signal",
+      payload
     });
   }
 }

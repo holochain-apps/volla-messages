@@ -12,6 +12,7 @@ import type {
   DeleteLink,
   MembraneProof,
   ClonedCell,
+  DnaHash,
 } from "@holochain/client";
 
 /**
@@ -54,7 +55,26 @@ export type RelaySignal =
       type: "LinkDeleted";
       action: SignedActionHashed<DeleteLink>;
       link_type: string;
-    };
+    }
+  | {
+      type: "ConferenceInvite";
+      room: ConferenceRoom;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceJoined";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceLeft";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "WebRTCSignal";
+      signal: SignalPayload;
+    }
 
 /**
  * Conversation Message File
@@ -252,4 +272,61 @@ export enum FileStatus {
 export interface FileExtended {
   file?: File;
   status: FileStatus;
+}
+
+/* Conference */
+
+export interface ConferenceRoom {
+  room_id: string;
+  participants: AgentPubKey[];
+}
+
+export interface SignalPayload {
+  room_id: string;
+  from: AgentPubKeyB64;
+  to: AgentPubKeyB64;
+  payload_type: CallSignalType;
+  data: string;
+}
+
+export enum CallSignalType {
+  Offer = "Offer",
+  Answer = "Answer",
+  IceCandidate = "IceCandidate"
+}
+
+export interface CreateConferenceInput {
+  participants: AgentPubKey[];
+}
+
+export interface JoinConferenceInput {
+  room_id: string;
+  participants: AgentPubKey[];
+}
+
+export interface SignalInput {
+  room_id: string;
+  target: AgentPubKey;
+  payload_type: CallSignalType;
+  data: string;
+}
+
+export interface ConferenceState {
+  room: ConferenceRoom;
+  participants: Map<AgentPubKeyB64, {
+    publicKey: AgentPubKeyB64;
+    isConnected: boolean;
+    peerConnection?: RTCPeerConnection;
+    stream?: MediaStream;
+  }>;
+  localStream?: MediaStream;
+  isInitiator: boolean;
+  ended: boolean;
+}
+
+export interface ConferenceParticipant {
+  publicKey: AgentPubKeyB64;
+  peerConnection?: RTCPeerConnection;
+  stream?: MediaStream;
+  isConnected: boolean;
 }

@@ -29,6 +29,7 @@
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import Conference from "../Conference.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -55,6 +56,7 @@
     mergedProfileContactInviteJoinedStore,
     $page.params.id,
   );
+  let participants: AgentPubKeyB64[] = [];
 
   let configTimeout: NodeJS.Timeout;
   let agentTimeout: NodeJS.Timeout;
@@ -67,11 +69,14 @@
   let sending = false;
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
+  let showConference = false;
 
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
 
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
+  $: isGroupChat = $joined.count > 2;
+  $: participants = $joined.list.map(([, profileExtended]) => profileExtended.publicKeyB64);
 
   // Reactive update to scroll to the bottom every time the messages update,
   // but only if the user is near the bottom already
@@ -212,6 +217,14 @@
     sending = false;
   }
 
+  function startCall() {
+    showConference = true;
+  }
+
+  function handleCallEnd() {
+    showConference = false;
+  }
+
   onMount(() => {
     conversationMessageInputRef.focus();
 
@@ -237,75 +250,86 @@
   });
 </script>
 
-<Header backUrl="/conversations">
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
-    {$conversationTitle}
-  </h1>
+{#if showConference}
+  <Conference {participants} isGroupCall={isGroupChat} onClose={handleCallEnd} />
+{:else}
+  <Header backUrl="/conversations">
+    <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
+      {$conversationTitle}
+    </h1>
 
-  <div class="flex items-center justify-center" slot="right">
-    <ButtonIconBare
-      moreClasses="!w-[18px] !h-auto"
-      moreClassesButton="p-4"
-      icon="gear"
-      on:click={() => goto(`/conversations/${$page.params.id}/details`)}
-    />
-
-    {#if $conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
+    <div class="flex items-center justify-center" slot="right">
       <ButtonIconBare
-        moreClasses="h-[24px] w-[24px]"
+        moreClasses="!w-[18px] !h-auto"
         moreClassesButton="p-4"
-        icon="addPerson"
-        on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
+        icon="video"
+        on:click={startCall}
       />
-    {/if}
-  </div>
-</Header>
 
-<div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
-  <div
-    class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
-    bind:this={conversationContainerRef}
-  >
-    {#if $conversation.dnaProperties.privacy === Privacy.Private}
-      <PrivateConversationImage cellIdB64={$page.params.id} />
-    {:else if $conversation.config?.image}
-      <img
-        src={$conversation.config.image}
-        alt="Conversation"
-        class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
+      <ButtonIconBare
+        moreClasses="!w-[18px] !h-auto"
+        moreClassesButton="p-4"
+        icon="gear"
+        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
       />
-    {/if}
 
-    <h1 class="b-1 break-all text-3xl">{$conversationTitle}</h1>
-
-    <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
-    <div class="text-left text-sm">
-      {$t("common.num_members", { count: $joined.count })}
+      {#if $conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
+        <ButtonIconBare
+          moreClasses="h-[24px] w-[24px]"
+          moreClassesButton="p-4"
+          icon="addPerson"
+          on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
+        />
+      {/if}
     </div>
+  </Header>
 
-    {#if $messages.count === 0 && iAmProgenitor && $joined.count === 1}
-      <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
-      <ConversationEmpty cellIdB64={$page.params.id} />
-    {:else}
-      <!-- Display conversation messages -->
-      {#if loadingMessagesOld}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
-        </div>
+  <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
+    <div
+      class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
+      bind:this={conversationContainerRef}
+    >
+      {#if $conversation.dnaProperties.privacy === Privacy.Private}
+        <PrivateConversationImage cellIdB64={$page.params.id} />
+      {:else if $conversation.config?.image}
+        <img
+          src={$conversation.config.image}
+          alt="Conversation"
+          class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
+        />
       {/if}
-      <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
-      {#if loadingMessagesNew}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
-        </div>
+
+      <h1 class="b-1 break-all text-3xl">{$conversationTitle}</h1>
+
+      <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
+      <div class="text-left text-sm">
+        {$t("common.num_members", { count: $joined.count })}
+      </div>
+
+      {#if $messages.count === 0 && iAmProgenitor && $joined.count === 1}
+        <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
+        <ConversationEmpty cellIdB64={$page.params.id} />
+      {:else}
+        <!-- Display conversation messages -->
+        {#if loadingMessagesOld}
+          <div class="flex items-center justify-center">
+            <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
+          </div>
+        {/if}
+        <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
+        {#if loadingMessagesNew}
+          <div class="flex items-center justify-center">
+            <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
+          </div>
+        {/if}
       {/if}
-    {/if}
+    </div>
   </div>
-</div>
 
-<ConversationMessageInput
-  bind:ref={conversationMessageInputRef}
-  disabled={sending}
-  loading={sending}
-  on:send={(e) => sendMessage(e.detail.text, e.detail.files)}
-/>
+  <ConversationMessageInput
+    bind:ref={conversationMessageInputRef}
+    disabled={sending}
+    loading={sending}
+    on:send={(e) => sendMessage(e.detail.text, e.detail.files)}
+  />
+{/if}
