@@ -338,6 +338,15 @@ export class RelayClient {
     });
   }
 
+  public async deleteContact(originalContactHash: ActionHash): Promise<ActionHash> {
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "delete_contact",
+      payload: originalContactHash,
+    });
+  }
+
   /********** Conference **********/
 
   public async createConference(participants: AgentPubKey[]): Promise<string> {
@@ -400,5 +409,4 @@ export class RelayClient {
       payload
     });
   }
-
 }

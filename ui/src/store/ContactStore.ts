@@ -20,6 +20,7 @@ export interface ContactStore {
   initialize: () => Promise<void>;
   create: (val: Contact, cellIdB64: CellIdB64) => Promise<void>;
   update: (key: AgentPubKeyB64, val: Contact) => Promise<void>;
+  delete: (agentPubKeyB64: AgentPubKeyB64) => Promise<void>;
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyValueStoreDataExtended<ContactExtended>>,
@@ -74,6 +75,20 @@ export function createContactStore(client: RelayClient): ContactStore {
       key,
       _makeContactExtendedFromRecord(record, prevContact.cellId, prevContact.originalActionHash),
     );
+  }
+
+  /**
+   * Delete a contact
+   */
+  async function deleteContact(agentPubKeyB64: AgentPubKeyB64) {
+    const contact = contacts.getKeyValue(agentPubKeyB64);
+    await client.deleteContact(contact.originalActionHash);
+    cellIds.update((d) => {
+      const updated = { ...d };
+      delete updated[agentPubKeyB64];
+      return updated;
+    });
+    contacts.removeKeyValue(agentPubKeyB64);
   }
 
   /**
@@ -157,6 +172,7 @@ export function createContactStore(client: RelayClient): ContactStore {
     initialize,
     create,
     update,
+    delete: deleteContact,
     subscribe: contacts.subscribe,
   };
 }
@@ -179,6 +195,7 @@ export function deriveAgentContactStore(
 
   return {
     update: (val: Contact) => contactStore.update(agentPubKeyB64, val),
+    delete: () => contactStore.delete(agentPubKeyB64),
     subscribe,
   };
 }
