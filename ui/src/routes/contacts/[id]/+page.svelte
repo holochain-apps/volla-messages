@@ -36,8 +36,6 @@
 
   let isDeletingContact = false;
 
-  $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
-
   let contact = deriveAgentContactStore(contactStore, $page.params.id);
   let conversation =
     $contact.cellId !== undefined
@@ -53,7 +51,8 @@
   let pollInterval: NodeJS.Timeout;
   $: hasAgentJoinedDht =
     profiles !== undefined &&
-    $profiles?.list.find(([key]) => key === $contact?.publicKeyB64) !== undefined;
+    $contact !== undefined &&
+    $profiles?.list.find(([key]) => key === $contact.publicKeyB64) !== undefined;
 
   async function loadProfiles() {
     if (!profiles) return;
@@ -70,11 +69,11 @@
     if (isDeletingContact) return;
 
     isDeletingContact = true;
-
     try {
       await contact.delete();
       toast.success($t("common.delete_contact_success"));
       await goto("/create");
+      showDeleteDialog = false;
     } catch (err) {
       console.error("Error deleting contact:", err);
       toast.error($t("common.delete_contact_error"));
@@ -138,12 +137,7 @@
           />
         {/if}
       {/if}
-      <Button
-        icon="delete"
-        loading={isDeletingContact}
-        on:click={() => (showDeleteDialog = true)}
-        disabled={isDeletingContact}
-      >
+      <Button icon="delete" on:click={() => (showDeleteDialog = true)} disabled={isDeletingContact}>
         {$t("common.delete_contact")}
       </Button>
     </div>
@@ -154,6 +148,8 @@
   bind:open={showDeleteDialog}
   title={$t("common.delete_contact")}
   actionButtonLabel={$t("common.delete")}
+  actionButtonIcon="delete"
+  loading={isDeletingContact}
   on:confirm={handleDeleteContact}
 >
   <p>{$t("common.delete_contact_dialog_message")}</p>

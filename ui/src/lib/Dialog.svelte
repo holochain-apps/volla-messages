@@ -5,18 +5,19 @@
 
   export let open = false;
   export let title: string;
+  export let loading: boolean = false;
   export let actionButtonLabel = $t("common.confirm");
+  export let actionButtonIcon: string | undefined = undefined;
 
   const dispatch = createEventDispatcher<{ confirm: null; cancel: null }>();
 
   function handleConfirm() {
     dispatch("confirm");
-    open = false;
   }
 
   function handleCancel() {
-    dispatch("cancel");
     open = false;
+    dispatch("cancel");
   }
 </script>
 
@@ -35,10 +36,20 @@
         <slot />
       </div>
       <div class="flex justify-center gap-4">
-        <Button moreClasses="px-3 text-sm sm:px-4 sm:text-base" on:click={handleCancel}>
+        <Button
+          moreClasses="px-3 text-sm sm:px-4 sm:text-base"
+          on:click={handleCancel}
+          disabled={loading}
+        >
           {$t("common.cancel")}
         </Button>
-        <Button moreClasses="px-3 text-sm sm:px-4 sm:text-base" on:click={handleConfirm}>
+        <Button
+          moreClasses="px-3 text-sm sm:px-4 sm:text-base"
+          on:click={handleConfirm}
+          {loading}
+          disabled={loading}
+          icon={actionButtonIcon}
+        >
           {actionButtonLabel}
         </Button>
       </div>
