@@ -19,7 +19,7 @@
   import type { AgentPubKeyB64 } from "@holochain/client";
   import { POLLING_INTERVAL_SLOW } from "$config";
   import NoticeContactNotJoined from "$lib/NoticeContactNotJoined.svelte";
-  import Dialog from "$lib/Dialog.svelte";
+  import DialogConfirm from "$lib/DialogConfirm.svelte";
   import toast from "svelte-french-toast";
 
   const contactStore = getContext<{ getStore: () => ContactStore }>("contactStore").getStore();
@@ -144,7 +144,7 @@
   </div>
 {/if}
 
-<Dialog
+<DialogConfirm
   bind:open={showDeleteDialog}
   title={$t("common.delete_contact")}
   actionButtonLabel={$t("common.delete")}
@@ -153,4 +153,4 @@
   on:confirm={handleDeleteContact}
 >
   <p>{$t("common.delete_contact_dialog_message")}</p>
-</Dialog>
+</DialogConfirm>
