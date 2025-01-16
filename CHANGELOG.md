@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fix: Display "unconfirmed" label for contacts that have not yet joined their private conversation.
 - Fix: In public converastion invitations, use the cell name as the conversation title when convesation config is not available.
+- Fix: Open external links in message content in system default browser or mail client.
 - Feat: Delete a contact by clicking the "Delete Contact" button on their page.
 
 ## [0.7.5] - 2025-01-10
