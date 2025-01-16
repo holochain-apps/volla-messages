@@ -47,6 +47,7 @@
     type MergedProfileContactInviteUnjoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { createFileStore, type FileStore } from "$store/FileStore";
+  import Dialog from "$lib/Dialog.svelte";
 
   // Holochain client
   let client: AppClient;
@@ -70,6 +71,7 @@
 
   // Is the holochain client connected?
   let isClientConnected = false;
+  let isClientConnectionFailed = false;
 
   // Are the frontend stores initialized?
   let isStoresSetup = false;
@@ -128,8 +130,10 @@
       isClientConnected = true;
       console.log("Connected");
     } catch (e) {
+      isClientConnectionFailed = true;
       console.error("Failed to init holochain", e);
       toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
+      throw e;
     }
   }
 
@@ -286,3 +290,13 @@
 </div>
 
 <Toaster position="bottom-end" />
+
+<Dialog title="Failed to Connect" open={isClientConnectionFailed}>
+  <p>Failed to connect to Holochain service.</p>
+  <br />
+  <p>Make sure the Holochain service is enabled before the app is launched.</p>
+
+  <div class="mt-8 flex items-center justify-center">
+    <Button on:click={() => window.location.reload()}>Relaunch App</Button>
+  </div>
+</Dialog>
