@@ -1,0 +1,11 @@
+{
+  "bundle": {
+    "icon": [
+      "icons/squiggle/32x32.png",
+      "icons/squiggle/128x128.png",
+      "icons/squiggle/128x128@2x.png",
+      "icons/squiggle/icon.icns",
+      "icons/squiggle/icon.ico"
+    ]
+  }
+}
