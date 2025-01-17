@@ -10471,6 +10471,7 @@ dependencies = [
  "tauri-plugin-os",
  "tauri-plugin-sharesheet",
  "tauri-plugin-shell",
+ "tauri-runtime",
  "tempdir",
  "url2",
  "uuid 1.12.0",

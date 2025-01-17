@@ -2678,6 +2678,11 @@
           "const": "core:webview:allow-reparent"
         },
         {
+          "description": "Enables the set_webview_background_color command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:allow-set-webview-background-color"
+        },
+        {
           "description": "Enables the set_webview_focus command without any pre-configured scope.",
           "type": "string",
           "const": "core:webview:allow-set-webview-focus"
@@ -2756,6 +2761,11 @@
           "description": "Denies the reparent command without any pre-configured scope.",
           "type": "string",
           "const": "core:webview:deny-reparent"
+        },
+        {
+          "description": "Denies the set_webview_background_color command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:deny-set-webview-background-color"
         },
         {
           "description": "Denies the set_webview_focus command without any pre-configured scope.",
@@ -2973,6 +2983,21 @@
           "const": "core:window:allow-set-always-on-top"
         },
         {
+          "description": "Enables the set_background_color command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-background-color"
+        },
+        {
+          "description": "Enables the set_badge_count command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-badge-count"
+        },
+        {
+          "description": "Enables the set_badge_label command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-badge-label"
+        },
+        {
           "description": "Enables the set_closable command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:allow-set-closable"
@@ -3056,6 +3081,11 @@
           "description": "Enables the set_minimizable command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:allow-set-minimizable"
+        },
+        {
+          "description": "Enables the set_overlay_icon command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-overlay-icon"
         },
         {
           "description": "Enables the set_position command without any pre-configured scope.",
@@ -3318,6 +3348,21 @@
           "const": "core:window:deny-set-always-on-top"
         },
         {
+          "description": "Denies the set_background_color command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-background-color"
+        },
+        {
+          "description": "Denies the set_badge_count command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-badge-count"
+        },
+        {
+          "description": "Denies the set_badge_label command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-badge-label"
+        },
+        {
           "description": "Denies the set_closable command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:deny-set-closable"
@@ -3401,6 +3446,11 @@
           "description": "Denies the set_minimizable command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:deny-set-minimizable"
+        },
+        {
+          "description": "Denies the set_overlay_icon command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-overlay-icon"
         },
         {
           "description": "Denies the set_position command without any pre-configured scope.",
@@ -4995,67 +5045,47 @@
         {
           "description": "Default permissions for the plugin",
           "type": "string",
-          "const": "holochain:default"
+          "const": "holochain-service-consumer:default"
         },
         {
-          "description": "Enables the get_locales command without any pre-configured scope.",
+          "description": "Enables the app_websocket_auth command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-get-locales"
+          "const": "holochain-service-consumer:allow-app-websocket-auth"
         },
         {
-          "description": "Enables the get_runtime_info command without any pre-configured scope.",
+          "description": "Enables the install_app command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-get-runtime-info"
+          "const": "holochain-service-consumer:allow-install-app"
         },
         {
-          "description": "Enables the is_holochain_ready command without any pre-configured scope.",
+          "description": "Enables the is_app_installed command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-is-holochain-ready"
-        },
-        {
-          "description": "Enables the list_apps command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:allow-list-apps"
-        },
-        {
-          "description": "Enables the open_app command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:allow-open-app"
+          "const": "holochain-service-consumer:allow-is-app-installed"
         },
         {
           "description": "Enables the sign_zome_call command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:allow-sign-zome-call"
+          "const": "holochain-service-consumer:allow-sign-zome-call"
         },
         {
-          "description": "Denies the get_locales command without any pre-configured scope.",
+          "description": "Denies the app_websocket_auth command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-get-locales"
+          "const": "holochain-service-consumer:deny-app-websocket-auth"
         },
         {
-          "description": "Denies the get_runtime_info command without any pre-configured scope.",
+          "description": "Denies the install_app command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-get-runtime-info"
+          "const": "holochain-service-consumer:deny-install-app"
         },
         {
-          "description": "Denies the is_holochain_ready command without any pre-configured scope.",
+          "description": "Denies the is_app_installed command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-is-holochain-ready"
-        },
-        {
-          "description": "Denies the list_apps command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:deny-list-apps"
-        },
-        {
-          "description": "Denies the open_app command without any pre-configured scope.",
-          "type": "string",
-          "const": "holochain:deny-open-app"
+          "const": "holochain-service-consumer:deny-is-app-installed"
         },
         {
           "description": "Denies the sign_zome_call command without any pre-configured scope.",
           "type": "string",
-          "const": "holochain:deny-sign-zome-call"
+          "const": "holochain-service-consumer:deny-sign-zome-call"
         },
         {
           "description": "Allows the log command",

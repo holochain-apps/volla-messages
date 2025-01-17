@@ -19,6 +19,7 @@ tauri-build = { version = "2.0.3", default-features = false , features = [] }
 
 [dependencies]
 tauri = "2.2.2"
+tauri-runtime = {version = "2.2.2", optional = true}
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/p2p-shipyard", branch = "main-0.4", optional = true }
 tauri-plugin-holochain-service-consumer = { path = "../../p2p-shipyard/crates/tauri-plugin-holochain-service-consumer", optional = true }
 
@@ -46,5 +47,5 @@ uuid = { version = "1.12.0", features = ["v4", "fast-rng"] }
 [features]
 default = []
 
-holochain_bundled = ["dep:tauri-plugin-holochain"]
+holochain_bundled = ["dep:tauri-plugin-holochain", "dep:tauri-runtime"]
 holochain_service = ["dep:tauri-plugin-holochain-service-consumer"]
