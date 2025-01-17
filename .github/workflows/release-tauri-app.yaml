@@ -18,7 +18,12 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: "Volla Messages ${{ github.ref_name }}"
-          body: "See the assets to download this version and install.\nAndroid releases are split into "rich" and "lite" builds, where the "rich" build includes a bundled holochain conductor, and the "lite" build requires the Holochain Android Runtime app is installed as well."
+          body: |
+            See the assets to download this version and install.
+
+            Android builds are distinguished as either 'rich' or 'lite':
+            - The 'rich' build includes a bundled holochain conductor. It can be used on any Android device.
+            - The 'lite' build relies on the holochain conductor provided by the Holochain Android Runtime app, which will be bundled with Volla OS.
           prerelease: true
           draft: true
 
