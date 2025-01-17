@@ -4220,7 +4220,7 @@ dependencies = [
  "httpdate",
  "itoa 1.0.11",
  "pin-project-lite",
- "socket2 0.5.7",
+ "socket2 0.4.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -9275,6 +9275,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-holochain-service-consumer"
 version = "0.1.0"
+source = "git+https://github.com/mattyg/p2p-shipyard?branch=feat/foreground-service#8e0e1858de3454fe7f49b70fac13e5f97f52508f"
 dependencies = [
  "bytes",
  "serde",
