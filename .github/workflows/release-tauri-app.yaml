@@ -150,8 +150,7 @@ jobs:
     environment: Relay Release
     runs-on: windows-latest
     steps:
-      - run: |
-        git config --system core.longpaths true
+      - run: git config --system core.longpaths true
 
       - uses: actions/checkout@v3
 
