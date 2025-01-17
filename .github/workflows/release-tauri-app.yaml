@@ -23,7 +23,7 @@ jobs:
 
             Android builds are distinguished as either 'rich' or 'lite':
             - The 'rich' build includes a bundled holochain conductor. It can be used on any Android device.
-            - The 'lite' build relies on the holochain conductor provided by the Holochain Android Runtime app, which will be bundled with Volla OS.
+            - The 'lite' build relies on the holochain conductor provided by the [Android Service Runtime app](https://github.com/holochain/android-service-runtime),. The Android Service Runtime app can be installed on any Android device, and will be preinstalled with Volla OS.
           prerelease: true
           draft: true
 
@@ -133,7 +133,7 @@ jobs:
         run: |
           
           # Build apk
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64 --release --features ${{ matrix.feature }}"
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64 --release --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
           
           # Rename apk to include the feature build label
           find src-tauri/gen/android/app/build/outputs/apk/*/release -type f -name "*.apk" -exec rename -v 's/release\/app/release\/app-${{ matrix.label }}/' {} \;
@@ -276,4 +276,4 @@ jobs:
 
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose --config src-tauri/tauri.${{ matrix.feature }}.conf.json
+          args: --verbose
