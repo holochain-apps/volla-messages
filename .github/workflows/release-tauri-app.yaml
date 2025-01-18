@@ -131,25 +131,18 @@ jobs:
 
       - name: Build android APK (aarch64)
         run: |
+          cargo clean
           nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
 
       - name: Build android APK (i684)
-        run: |          
+        run: |
+          cargo clean
           nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target i686 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
       
       - name: Build android APK (x86_64)
         run: |
-          df -h
-          free -h
           cargo clean
-
-          df -h
-          free -h
-
           nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target x86_64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
-
-          df -h
-          free -h
 
       - name: Rename android APKs
         run: |
