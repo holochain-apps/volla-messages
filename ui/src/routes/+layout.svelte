@@ -292,7 +292,7 @@
 <Toaster position="bottom-end" />
 
 <Dialog title="Failed to Connect" open={isClientConnectionFailed}>
-  <p>Failed to connect to Holochain service.</p>
+  <p>Failed to connect to Holochain.</p>
 
   <div class="mt-8 flex items-center justify-center">
     <Button on:click={() => window.location.reload()}>Relaunch App</Button>
