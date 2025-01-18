@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AgentPubKeyB64, AppClient, CellId } from "@holochain/client";
   import { AppWebsocket, CellType, encodeHashToBase64 } from "@holochain/client";
-  import { onDestroy, onMount, setContext } from "svelte";
+  import { onMount, setContext } from "svelte";
   import { t } from "$translations";
   import { createSignalHandler } from "$store/SignalHandler";
   import toast, { Toaster } from "svelte-french-toast";
@@ -293,8 +293,6 @@
 
 <Dialog title="Failed to Connect" open={isClientConnectionFailed}>
   <p>Failed to connect to Holochain service.</p>
-  <br />
-  <p>Make sure the Holochain service is enabled before the app is launched.</p>
 
   <div class="mt-8 flex items-center justify-center">
     <Button on:click={() => window.location.reload()}>Relaunch App</Button>
