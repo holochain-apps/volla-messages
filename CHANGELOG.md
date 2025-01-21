@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feat: Delete a contact by clicking the "Delete Contact" button on their page.
 - Feat: Added 2 features: Feature `holochain_bundled` bundles a holochain conductor with the app (the previous behavior). Feature `holochain_service` relies on a holochain conductor provided by the Android Service Runtime app.
 - Feat: CI builds a "rich" and "lite" version of the android app, where the "rich" version uses feature `holochain_bundled`, and the "lite" version uses feature `holochain_service`.
+- Fix: Use uuid network seed for provisioned cell, instead of system timestamp.
 
 ## [0.7.5] - 2025-01-10
 
