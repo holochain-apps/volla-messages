@@ -2,11 +2,11 @@ use crate::config::{APP_ID, HAPP_BUNDLE_BYTES};
 use holochain_types::prelude::AppBundle;
 use lair_keystore::dependencies::sodoken::{BufRead, BufWrite};
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Builder, EventLoopMessage, Listener, Manager, Runtime};
 use tauri_plugin_holochain::{
     GossipArcClamp, HolochainExt, HolochainPluginConfig, WANNetworkConfig,
 };
+use uuid::Uuid;
 
 const SIGNAL_URL: &'static str = "wss://sbd.holo.host";
 const BOOTSTRAP_URL: &'static str = "https://bootstrap-0.infra.holochain.org";
@@ -108,11 +108,6 @@ async fn setup<R: Runtime>(handle: AppHandle<R>) -> anyhow::Result<()> {
         .find(|app| app.installed_app_id.as_str().eq(APP_ID))
         .is_none()
     {
-        // we do this because we don't want to join everybody into the same dht!
-        let random_seed = format!(
-            "{}",
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros()
-        );
         handle
             .holochain()?
             .install_app(
@@ -120,7 +115,8 @@ async fn setup<R: Runtime>(handle: AppHandle<R>) -> anyhow::Result<()> {
                 happ_bundle()?,
                 None,
                 None,
-                Some(random_seed),
+                // Generate a random network seed so every user has their own private DHT for storing contacts
+                Some(Uuid::new_v4().to_string()),
             )
             .await?;
     } else {
