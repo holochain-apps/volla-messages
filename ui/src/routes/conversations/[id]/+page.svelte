@@ -29,6 +29,7 @@
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import Dialog from "$lib/Dialog.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -84,6 +85,33 @@
   /**
    * Fetch agent profiles every 2s, until at least 2 profiles are received.
    */
+
+  let deleteDialog = {
+    open: false,
+    messageHash: "",
+    loading: false,
+  };
+
+  async function handleDeleteMessage(event: CustomEvent<{ messageHash: string }>) {
+    deleteDialog.messageHash = event.detail.messageHash;
+    deleteDialog.open = true;
+  }
+
+  async function confirmDelete() {
+    deleteDialog.loading = true;
+    try {
+      console.log(deleteDialog.messageHash);
+      await messages.deleteMessageByContent($page.params.id, deleteDialog.messageHash);
+      toast.success($t("messages.delete_success"));
+    } catch (e) {
+      console.error(e);
+      toast.error($t("messages.delete_error"));
+    }
+    deleteDialog.loading = false;
+    deleteDialog.open = false;
+    deleteDialog.messageHash = "";
+  }
+
   async function loadProfiles() {
     await profiles.load();
     clearTimeout(agentTimeout);
@@ -293,7 +321,11 @@
           <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
         </div>
       {/if}
-      <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
+      <ConversationMessages
+        cellIdB64={$page.params.id}
+        messages={$messages.list}
+        on:delete={handleDeleteMessage}
+      />
       {#if loadingMessagesNew}
         <div class="flex items-center justify-center">
           <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
@@ -309,3 +341,14 @@
   loading={sending}
   on:send={(e) => sendMessage(e.detail.text, e.detail.files)}
 />
+
+<Dialog
+  bind:open={deleteDialog.open}
+  title="delete"
+  actionButtonLabel={$t("common.delete")}
+  actionButtonIcon="delete"
+  loading={deleteDialog.loading}
+  on:confirm={confirmDelete}
+>
+  <p>delete</p>
+</Dialog>

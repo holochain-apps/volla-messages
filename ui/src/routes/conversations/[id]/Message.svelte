@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { getContext } from "svelte";
-  import { Alignment, type CellIdB64, type MessageExtended } from "$lib/types";
+  import { createEventDispatcher, getContext } from "svelte";
+  import {
+    Alignment,
+    type CellIdB64,
+    type MessageExtended,
+    type MessageExtendedWithDeletion,
+  } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
@@ -12,17 +17,23 @@
   import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
+  import { t } from "$translations";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
 
-  export let message: MessageExtended;
+  export let message: MessageExtendedWithDeletion;
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
+  $: isDeleted = message.isDeleted || false;
+
+  const dispatch = createEventDispatcher<{
+    delete: { messageHash: string };
+  }>();
 
   // Ensure that external links in message content are opened with the system default browser or mail client.
   function handleMessageContentClick(e: MouseEvent) {
@@ -70,14 +81,16 @@
         </span>
       {/if}
 
-      {#each message.message.images as file}
-        <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-          <MessageFilePreview
-            entryHashB64={encodeHashToBase64(file.storage_entry_hash)}
-            align={fromMe ? Alignment.Right : Alignment.Left}
-          />
-        </div>
-      {/each}
+      {#if !isDeleted}
+        {#each message.message.images as file}
+          <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
+            <MessageFilePreview
+              entryHashB64={encodeHashToBase64(file.storage_entry_hash)}
+              align={fromMe ? Alignment.Right : Alignment.Left}
+            />
+          </div>
+        {/each}
+      {/if}
 
       <!-- 
         These ignored a11y lints are a workaround, because we cannot
@@ -86,8 +99,12 @@
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div
-        class="message w-full break-words font-light {fromMe && 'text-end'}"
+        class="message w-full break-words font-light {fromMe && 'text-end'} {isDeleted &&
+          'italic text-gray-500'}"
         on:click={handleMessageContentClick}
+        on:keydown={(e) => e.key === "Enter" && handleMessageContentClick(e)}
+        role="button"
+        tabindex="0"
       >
         {@html DOMPurify.sanitize(
           linkifyStr(message.message.content, {
@@ -101,8 +118,8 @@
     </div>
   </div>
 
-  {#if isSelected}
-    <MessageActions {message} on:unselect />
+  {#if isSelected && !isDeleted}
+    <MessageActions {message} on:unselect on:delete={(e) => dispatch("delete", e.detail)} />
   {/if}
 </button>
 

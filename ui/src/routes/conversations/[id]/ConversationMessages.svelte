@@ -1,13 +1,18 @@
 <script lang="ts">
   import { isMobile, isSameDay, isWithinFiveMinutes } from "$lib/utils";
   import type { ActionHashB64, AgentPubKeyB64 } from "@holochain/client";
-  import type { MessageExtended, CellIdB64 } from "$lib/types";
+  import type { MessageExtended, CellIdB64, MessageExtendedWithDeletion } from "$lib/types";
   import BaseMessage from "./Message.svelte";
+  import { createEventDispatcher } from "svelte";
 
-  export let messages: [ActionHashB64, MessageExtended][];
+  export let messages: [ActionHashB64, MessageExtendedWithDeletion][];
   export let cellIdB64: CellIdB64;
 
   let selected: ActionHashB64 | undefined;
+
+  const dispatch = createEventDispatcher<{
+    delete: { messageHash: string };
+  }>();
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
     // prevent clickoutside event from firing at the same time
@@ -68,6 +73,7 @@
         on:press={() => handlePress(actionHashB64)}
         on:click={(e) => handleClick(e, actionHashB64)}
         on:clickoutside={handleClickOutside}
+        on:delete={(e) => dispatch("delete", e.detail)}
       />
     {/each}
   </ul>
