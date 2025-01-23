@@ -100,12 +100,11 @@
   async function confirmDelete() {
     deleteDialog.loading = true;
     try {
-      console.log(deleteDialog.messageHash);
       await messages.deleteMessageByContent($page.params.id, deleteDialog.messageHash);
-      toast.success($t("messages.delete_success"));
-    } catch (e) {
-      console.error(e);
-      toast.error($t("messages.delete_error"));
+      toast.success($t("messages.delete_message_success"));
+    } catch (err) {
+      console.error(err);
+      toast.error($t("messages.delete_message_error"));
     }
     deleteDialog.loading = false;
     deleteDialog.open = false;
