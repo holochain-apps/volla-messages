@@ -29,7 +29,7 @@
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import Dialog from "$lib/Dialog.svelte";
+  import DialogConfirm from "$lib/DialogConfirm.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -342,13 +342,13 @@
   on:send={(e) => sendMessage(e.detail.text, e.detail.files)}
 />
 
-<Dialog
+<DialogConfirm
   bind:open={deleteDialog.open}
-  title="delete"
+  title={$t("common.delete_message")}
   actionButtonLabel={$t("common.delete")}
   actionButtonIcon="delete"
   loading={deleteDialog.loading}
   on:confirm={confirmDelete}
 >
-  <p>delete</p>
-</Dialog>
+  <p>{$t("common.delete_message_dialog_message")}</p>
+</DialogConfirm>
