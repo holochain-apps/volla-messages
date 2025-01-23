@@ -85,6 +85,11 @@ export interface MessageExtended {
   timestamp: number;
 }
 
+export interface MessageExtendedWithDeletion extends MessageExtended {
+  isDeleted?: boolean;
+  deletedAt?: number;
+}
+
 export interface MessageRecord {
   original_action: ActionHash;
   signed_action: SignedActionHashed;
