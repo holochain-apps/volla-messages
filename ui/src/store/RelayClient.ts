@@ -254,7 +254,6 @@ export class RelayClient {
 
   public async getDeleteStatus(cellId: CellId, messageHash: ActionHash): Promise<{
     isDeleted: boolean;
-    deletedAt?: number;
   }> {
     const deletedAction = await this.client.callZome({
       cell_id: cellId,
@@ -269,7 +268,6 @@ export class RelayClient {
 
     return {
       isDeleted: true,
-      deletedAt: deletedAction.action().timestamp,
     };
   }
 
