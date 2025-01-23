@@ -18,7 +18,12 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: "Volla Messages ${{ github.ref_name }}"
-          body: "See the assets to download this version and install."
+          body: |
+            See the assets to download this version and install.
+
+            Android builds are distinguished as either 'rich' or 'lite':
+            - The 'rich' build includes a bundled holochain conductor. It can be used on any Android device.
+            - The 'lite' build relies on the holochain conductor provided by the [Android Service Runtime app](https://github.com/holochain/android-service-runtime),. The Android Service Runtime app can be installed on any Android device, and will be preinstalled with Volla OS.
           prerelease: true
           draft: true
 
@@ -70,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose
+          args: --verbose --features holochain_bundled
 
   release-tauri-app-android:
     permissions: write-all
@@ -79,6 +84,14 @@ jobs:
       - release-tauri-app-linux
       - create-release
     runs-on: 'ubuntu-22.04' 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - feature: 'holochain_service'
+            label: lite
+          - feature: 'holochain_bundled'
+            label: rich
     steps:
       - uses: actions/checkout@v3
 
@@ -116,9 +129,27 @@ jobs:
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           echo "storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
 
-      - name: Build android APKs
+      - name: Build android APK (aarch64)
         run: |
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64"
+          cargo clean
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+
+      - name: Build android APK (i684)
+        run: |
+          cargo clean
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target i686 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+      
+      - name: Build android APK (x86_64)
+        run: |
+          cargo clean
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target x86_64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+
+      - name: Rename android APKs
+        run: |
+          sudo apt install rename
+
+          # Rename apk to include the feature build label
+          find src-tauri/gen/android/app/build/outputs/apk/*/release -type f -name "*.apk" -exec rename -v 's/release\/app/release\/app-${{ matrix.label }}/' {} \;
 
       - uses: AButler/upload-release-assets@v3.0
         with:
@@ -132,6 +163,8 @@ jobs:
     environment: Relay Release
     runs-on: windows-latest
     steps:
+      - run: git config --system core.longpaths true
+
       - uses: actions/checkout@v3
 
       - name: setup node
@@ -160,7 +193,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --verbose
+          args: --verbose --features holochain_bundled
 
       - name: Sign the App
         run: |
@@ -188,7 +221,7 @@ jobs:
           CertUtil -hashfile $BUNDLE_OUT_PATH_2 SHA256
 
           # Code sign the output bundles via azure key vault, following these instructions:
-          # https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/          dotnet tool install --global AzureSignTool
+          # https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/
           dotnet tool install --global AzureSignTool
           AzureSignTool sign -kvu "${{ secrets.AZURE_KEY_VAULT_URI }}" -kvi "${{ secrets.AZURE_CLIENT_ID }}" -kvt "${{ secrets.AZURE_TENANT_ID }}" -kvs "${{ secrets.AZURE_CLIENT_SECRET }}" -kvc ${{ secrets.AZURE_CERT_NAME }} -tr http://timestamp.digicert.com -v $BUNDLE_OUT_PATH_1
           AzureSignTool sign -kvu "${{ secrets.AZURE_KEY_VAULT_URI }}" -kvi "${{ secrets.AZURE_CLIENT_ID }}" -kvt "${{ secrets.AZURE_TENANT_ID }}" -kvs "${{ secrets.AZURE_CLIENT_SECRET }}" -kvc ${{ secrets.AZURE_CERT_NAME }} -tr http://timestamp.digicert.com -v $BUNDLE_OUT_PATH_2
@@ -258,4 +291,4 @@ jobs:
 
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose
+          args: --verbose --features holochain_bundled
