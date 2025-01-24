@@ -18,8 +18,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.3", default-features = false , features = [] }
 
 [dependencies]
-tauri = { version = "2.1.1", features = [] }
-tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/p2p-shipyard", branch = "main-0.4" }
+tauri = "2.2.2"
+tauri-runtime = {version = "2.2.2", optional = true}
+tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/p2p-shipyard", branch = "main-0.4", optional = true }
+tauri-plugin-holochain-service-consumer = { git = "https://github.com/mattyg/p2p-shipyard", branch = "feat/foreground-service", optional = true }
+
 holochain_types = { version = "0.4.0-rc" }
 lair_keystore = { version = "0.5.2" }
 holochain_client = { version = "0.6.0-rc" }
@@ -39,3 +42,10 @@ app_dirs2 = "2.5.5"
 tempdir = "0.3.7"
 anyhow = "1"
 serde_json = "1"
+uuid = { version = "1.12.0", features = ["v4", "fast-rng"] }
+
+[features]
+default = []
+
+holochain_bundled = ["dep:tauri-plugin-holochain", "dep:tauri-runtime"]
+holochain_service = ["dep:tauri-plugin-holochain-service-consumer"]
