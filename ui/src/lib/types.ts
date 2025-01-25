@@ -87,7 +87,7 @@ export interface MessageExtended {
 
 export interface MessageExtendedWithDeletion extends MessageExtended {
   isDeleted?: boolean;
-  deletedAt?: number;
+  deletedAt?: string;
 }
 
 export interface MessageRecord {
