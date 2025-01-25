@@ -38,6 +38,7 @@ import type {
 } from "./generic/GenericKeyValueStore";
 import { TARGET_MESSAGES_COUNT } from "$config";
 import type { FileStore } from "./FileStore";
+import { format } from "date-fns";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
@@ -195,18 +196,20 @@ export function createConversationMessageStore(
 
     const [messageActionHash, existingMessage] = matchingMessage;
 
+    const deletionTimestamp = Date.now();
+    const formattedDeletionTime = format(deletionTimestamp, "HH:mm");
     await client.deleteMessage(cellId, decodeHashFromBase64(messageActionHash));
 
     const deletedMessageExtended: MessageExtendedWithDeletion = {
       message: {
-        content: "Message deleted",
+        content: `Message deleted on ${formattedDeletionTime}`,
         bucket: existingMessage.message.bucket,
         images: [],
       },
       authorAgentPubKeyB64: existingMessage.authorAgentPubKeyB64,
       timestamp: existingMessage.timestamp,
       isDeleted: true,
-      deletedAt: Date.now(),
+      deletedAt: formattedDeletionTime,
     };
 
     messages.update((m) => ({
@@ -220,9 +223,10 @@ export function createConversationMessageStore(
 
   async function markMessageAsDeleted(key1: CellIdB64, actionHashB64: ActionHashB64) {
     const currentMessages = get(messages).data[key1] || {};
-    const existingMessage: MessageExtendedWithDeletion = currentMessages[actionHashB64];
 
     if (currentMessages[actionHashB64]) {
+      const deletionTimestamp = Date.now();
+      const formattedDeletionTime = format(deletionTimestamp, "HH:mm");
       messages.update((m) => ({
         ...m,
         [key1]: {
@@ -230,7 +234,7 @@ export function createConversationMessageStore(
           [actionHashB64]: {
             ...currentMessages[actionHashB64],
             isDeleted: true,
-            deletedAt: Date.now(),
+            deletedAt: formattedDeletionTime,
             message: {
               content: "Message deleted",
               bucket: currentMessages[actionHashB64].message.bucket,
@@ -532,7 +536,7 @@ export function createConversationMessageStore(
     return {
       message: deleteStatus.isDeleted
         ? {
-            content: "Message deleted",
+            content: `Message deleted on ${format(Date.now(), "HH:mm")}`,
             bucket: messageRecord.message.bucket,
             images: [],
           }
@@ -540,7 +544,7 @@ export function createConversationMessageStore(
       authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
       timestamp: messageRecord.signed_action.hashed.content.timestamp,
       isDeleted: deleteStatus.isDeleted,
-      deletedAt: deleteStatus.isDeleted ? Date.now() : undefined,
+      deletedAt: deleteStatus.isDeleted ? format(Date.now(), "HH:mm") : undefined,
     };
   }
 
