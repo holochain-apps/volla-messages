@@ -63,7 +63,7 @@
       <BaseMessage
         {cellIdB64}
         message={messageExtended}
-        isSelected={selected === actionHashB64}
+        isSelected={messageExtended.isDeleted ? false : selected === actionHashB64}
         showAuthor={prevMessageExtended === undefined ||
           messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
           !isWithinFiveMinutes(

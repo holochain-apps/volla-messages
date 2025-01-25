@@ -102,6 +102,8 @@
     try {
       await messages.deleteMessageByContent($page.params.id, deleteDialog.messageHash);
       toast.success($t("messages.delete_message_success"));
+      clearTimeout(messageTimeout);
+      loadMessages();
     } catch (err) {
       console.error(err);
       toast.error($t("messages.delete_message_error"));

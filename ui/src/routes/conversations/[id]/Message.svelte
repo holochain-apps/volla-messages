@@ -81,16 +81,14 @@
         </span>
       {/if}
 
-      {#if !isDeleted}
-        {#each message.message.images as file}
-          <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
-            <MessageFilePreview
-              entryHashB64={encodeHashToBase64(file.storage_entry_hash)}
-              align={fromMe ? Alignment.Right : Alignment.Left}
-            />
-          </div>
-        {/each}
-      {/if}
+      {#each message.message.images as file}
+        <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
+          <MessageFilePreview
+            entryHashB64={encodeHashToBase64(file.storage_entry_hash)}
+            align={fromMe ? Alignment.Right : Alignment.Left}
+          />
+        </div>
+      {/each}
 
       <!-- 
         These ignored a11y lints are a workaround, because we cannot
