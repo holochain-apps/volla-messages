@@ -243,34 +243,6 @@ export class RelayClient {
     });
   }
 
-  public async deleteMessage(cellId: CellId, messageHash: ActionHash): Promise<ActionHash> {
-    return this.client.callZome({
-      cell_id: cellId,
-      zome_name: ZOME_NAME,
-      fn_name: "delete_message",
-      payload: messageHash,
-    });
-  }
-
-  public async getDeleteStatus(cellId: CellId, messageHash: ActionHash): Promise<{
-    isDeleted: boolean;
-  }> {
-    const deletedAction = await this.client.callZome({
-      cell_id: cellId,
-      zome_name: ZOME_NAME,
-      fn_name: "get_oldest_delete_for_message",
-      payload: messageHash,
-    });
-
-    if (!deletedAction) {
-      return { isDeleted: false };
-    }
-
-    return {
-      isDeleted: true,
-    };
-  }
-
   async setMyProfileForConversation(cell_id: CellId): Promise<Record> {
     const record = await this.getAgentProfile(this.provisionedRelayCellId, this.client.myPubKey);
     if (!record)
@@ -368,5 +340,47 @@ export class RelayClient {
       fn_name: "delete_contact",
       payload: originalContactHash,
     });
+  }
+
+  /**
+   * Delete a message
+   *
+   * Delete a message by its hash, and get the status of the deletion.
+   * Message is not actually deleted, but a delete action is created.
+   *
+   */
+
+  public async deleteMessage(cellId: CellId, messageHash: ActionHash): Promise<ActionHash> {
+    return this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "delete_message",
+      payload: messageHash,
+    });
+  }
+
+  public async getDeleteStatus(
+    cellId: CellId,
+    messageHash: ActionHash,
+  ): Promise<{
+    isDeleted: boolean;
+    deletedAt: number;
+  }> {
+    const deletedAction = await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "get_oldest_delete_for_message",
+      payload: messageHash,
+    });
+
+    if (!deletedAction) {
+      return { isDeleted: false, deletedAt: 0 };
+    }
+    const deletedAt = deletedAction.hashed.content.timestamp;
+
+    return {
+      isDeleted: true,
+      deletedAt,
+    };
   }
 }
