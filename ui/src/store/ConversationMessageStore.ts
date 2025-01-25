@@ -56,7 +56,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
     maxBucketsToFetch?: number,
   ) => Promise<number>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
-  deleteMessageByContent: (key1: CellIdB64, messageContent: string) => Promise<void>;
+  deleteMessage: (key1: CellIdB64, messageContent: string) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
   markMessageAsDeleted: (key1: CellIdB64, actionHashB64: ActionHashB64) => Promise<void>;
 }
@@ -185,7 +185,7 @@ export function createConversationMessageStore(
   }
 
   /**
-   *  Delete Message by Content, from the content of the message,
+   * Delete Message by Content, from the content of the message,
    * and mark it as deleted in the store.
    *
    * @param key1 CellIdB64
@@ -212,24 +212,16 @@ export function createConversationMessageStore(
     };
   }
 
-  async function deleteMessageByContent(key1: CellIdB64, messageContent: string): Promise<void> {
+  async function deleteMessage(key1: CellIdB64, actionHashB64: ActionHashB64): Promise<void> {
     const cellId = decodeCellIdFromBase64(key1);
 
     const existingMessages = get(messages).data[key1] || {};
+    const existingMessage = existingMessages[actionHashB64];
 
-    // Find the message with matching content
-    // Sort by timestamp to get the most recent matching message if there are multiple
-    const matchingMessage = Object.entries(existingMessages)
-      .filter(([_, message]) => message.message.content === messageContent)
-      .sort(([_, a], [__, b]) => b.timestamp - a.timestamp)[0];
+    if (!existingMessage) throw new Error("Message not found");
 
-    const [messageActionHash, existingMessage] = matchingMessage;
-
-    await client.deleteMessage(cellId, decodeHashFromBase64(messageActionHash));
-    const deleteStatus = await client.getDeleteStatus(
-      cellId,
-      decodeHashFromBase64(messageActionHash),
-    );
+    await client.deleteMessage(cellId, decodeHashFromBase64(actionHashB64));
+    const deleteStatus = await client.getDeleteStatus(cellId, decodeHashFromBase64(actionHashB64));
     const deletionTimestamp = formatHolochainTimestamp(deleteStatus.deletedAt);
 
     const deletedMessageExtended = _createDeletionPlaceholder(
@@ -243,7 +235,7 @@ export function createConversationMessageStore(
       ...m,
       [key1]: {
         ...(m[key1] || {}),
-        [messageActionHash]: deletedMessageExtended,
+        [actionHashB64]: deletedMessageExtended,
       },
     }));
   }
@@ -414,7 +406,6 @@ export function createConversationMessageStore(
     const messagesToLoad = await _filterMissingMessages(key1, allActionHashB64s);
     const count = await _loadMessages(key1, messagesToLoad);
 
-    // return count + Object.keys(updatedMessages).filter((k) => updatedMessages[k].isDeleted).length;
     return count;
   }
 
@@ -589,7 +580,7 @@ export function createConversationMessageStore(
     sendMessage,
     handleMessageSignalReceived,
     subscribe,
-    deleteMessageByContent,
+    deleteMessage,
     markMessageAsDeleted,
   };
 }
@@ -645,7 +636,7 @@ export function deriveCellConversationMessageStore(
       conversationMessageStore.sendMessage(key, content, files),
     handleMessageSignalReceived: (signal: MessageSignal) =>
       conversationMessageStore.handleMessageSignalReceived(key, signal),
-    deleteMessageByContent: (key: CellIdB64, messageContent: string) =>
-      conversationMessageStore.deleteMessageByContent(key, messageContent),
+    deleteMessage: (key: CellIdB64, messageContent: string) =>
+      conversationMessageStore.deleteMessage(key, messageContent),
   };
 }
