@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher, getContext } from "svelte";
+  import { createEventDispatcher, getContext, setContext } from "svelte";
   import {
     Alignment,
     type CellIdB64,
@@ -14,7 +14,7 @@
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
   import MessageFilePreview from "./MessageFilePreview.svelte";
-  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+  import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
   import { t } from "$translations";
@@ -27,13 +27,12 @@
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
+  export let actionHashB64: ActionHashB64;
+
+  setContext("messageActionHash", actionHashB64);
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
   $: isDeleted = message.isDeleted || false;
-
-  const dispatch = createEventDispatcher<{
-    delete: { messageHash: string };
-  }>();
 
   // Ensure that external links in message content are opened with the system default browser or mail client.
   function handleMessageContentClick(e: MouseEvent) {
@@ -117,7 +116,7 @@
   </div>
 
   {#if isSelected && !isDeleted}
-    <MessageActions {message} on:unselect on:delete={(e) => dispatch("delete", e.detail)} />
+    <MessageActions {message} on:unselect on:delete />
   {/if}
 </button>
 

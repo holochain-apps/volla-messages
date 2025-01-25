@@ -10,10 +10,6 @@
 
   let selected: ActionHashB64 | undefined;
 
-  const dispatch = createEventDispatcher<{
-    delete: { messageHash: string };
-  }>();
-
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
     // prevent clickoutside event from firing at the same time
     e.stopPropagation();
@@ -70,10 +66,11 @@
             new Date(messageExtended.timestamp / 1000),
             new Date(prevMessageExtended.timestamp / 1000),
           )}
+        {actionHashB64}
         on:press={() => handlePress(actionHashB64)}
         on:click={(e) => handleClick(e, actionHashB64)}
         on:clickoutside={handleClickOutside}
-        on:delete={(e) => dispatch("delete", e.detail)}
+        on:delete
       />
     {/each}
   </ul>

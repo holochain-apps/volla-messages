@@ -100,13 +100,14 @@
   async function confirmDelete() {
     deleteDialog.loading = true;
     try {
-      await messages.deleteMessageByContent($page.params.id, deleteDialog.messageHash);
-      toast.success($t("messages.delete_message_success"));
-      clearTimeout(messageTimeout);
-      loadMessages();
+      await messages.deleteMessage($page.params.id, deleteDialog.messageHash);
+      toast.success($t("common.delete_message_success"));
+      // If the message was deleted,
+      // we need to reload the messages immediately to update the UI
+      await loadMessagesInCurrentBucket();
     } catch (err) {
       console.error(err);
-      toast.error($t("messages.delete_message_error"));
+      toast.error($t("common.delete_message_error"));
     }
     deleteDialog.loading = false;
     deleteDialog.open = false;

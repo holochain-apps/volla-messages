@@ -10,17 +10,18 @@
   import { deriveCellFileStore, type FileStore } from "$store/FileStore";
   import { createEventDispatcher, getContext } from "svelte";
   import { page } from "$app/stores";
-  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+  import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   const fileStore = getContext<{
     getStore: () => FileStore;
   }>("fileStore").getStore();
   let cellFileStore = deriveCellFileStore(fileStore, $page.params.id);
 
+  const actionHashB64 = getContext<ActionHashB64>("messageActionHash");
+
   export let message: MessageExtendedWithDeletion;
 
   const dispatch = createEventDispatcher<{
     delete: { messageHash: string };
-    unselect: void;
   }>();
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -37,8 +38,7 @@
   );
 
   function handleDelete() {
-    dispatch("delete", { messageHash: message.message.content });
-    dispatch("unselect");
+    dispatch("delete", { messageHash: actionHashB64 });
   }
 
   async function downloadFile(file: File) {
