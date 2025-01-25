@@ -10,6 +10,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Base64 } from "js-base64";
 import type { CellId } from "@holochain/client";
 import type { CellIdB64 } from "./types";
+import { format } from "date-fns";
 
 /**
  * Share text via sharesheet
@@ -140,4 +141,9 @@ export function isWithinFiveMinutes(d1: Date, d2?: Date): boolean {
   if (d2 === undefined) return false;
 
   return Math.abs(d1.getTime() - d2.getTime()) <= 5 * 60 * 1000;
+}
+
+export function formatHolochainTimestamp(timestamp: number): string {
+  const dateInMs = timestamp / 1000;
+  return format(dateInMs, "h:mm a");
 }
