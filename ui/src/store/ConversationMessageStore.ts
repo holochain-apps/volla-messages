@@ -32,7 +32,10 @@ import {
 } from "./MergedProfileContactInviteStore";
 import type { RelayClient } from "./RelayClient";
 import { derived, get } from "svelte/store";
-import type { GenericKeyValueStoreReadable } from "./generic/GenericKeyValueStore";
+import type {
+  GenericKeyValueStoreData,
+  GenericKeyValueStoreReadable,
+} from "./generic/GenericKeyValueStore";
 import { TARGET_MESSAGES_COUNT } from "$config";
 import type { FileStore } from "./FileStore";
 
@@ -53,6 +56,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   deleteMessageByContent: (key1: CellIdB64, messageContent: string) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
+  markMessageAsDeleted: (key1: CellIdB64, actionHashB64: ActionHashB64) => Promise<void>;
 }
 
 export function createConversationMessageStore(
@@ -214,6 +218,30 @@ export function createConversationMessageStore(
     }));
   }
 
+  async function markMessageAsDeleted(key1: CellIdB64, actionHashB64: ActionHashB64) {
+    const currentMessages = get(messages).data[key1] || {};
+    const existingMessage: MessageExtendedWithDeletion = currentMessages[actionHashB64];
+
+    if (currentMessages[actionHashB64]) {
+      messages.update((m) => ({
+        ...m,
+        [key1]: {
+          ...currentMessages,
+          [actionHashB64]: {
+            ...currentMessages[actionHashB64],
+            isDeleted: true,
+            deletedAt: Date.now(),
+            message: {
+              content: "Message deleted",
+              bucket: currentMessages[actionHashB64].message.bucket,
+              images: [],
+            },
+          },
+        },
+      }));
+    }
+  }
+
   /**
    * Load messages, starting at the current bucket and working bakckwards,
    * until at least a targetCount have been fetched.
@@ -319,35 +347,39 @@ export function createConversationMessageStore(
       maxBucketsToFetch,
     );
     const allActionHashB64s = flatten(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s));
-    const deletedMessagesToUpdate = await _filterDeletedMessagesForLoading(key1, allActionHashB64s);
-    const newMessagesToLoad = await _filterMissingMessages(key1, allActionHashB64s);
-    const count = await _loadMessages(key1, newMessagesToLoad);
-    return count;
-  }
+    const currentMessages: GenericKeyValueStoreData<MessageExtendedWithDeletion> =
+      get(messages).data[key1] || {};
+    const updatedMessages = { ...currentMessages };
 
-  async function _filterDeletedMessagesForLoading(
-    key1: CellIdB64,
-    allActionHashB64s: ActionHashB64[],
-  ): Promise<ActionHashB64[]> {
-    const cellId = decodeCellIdFromBase64(key1);
-    const currentMessages = get(messages).data[key1] || {};
-    const storedActionHashB64s = Object.keys(currentMessages);
-
-    const deletionChecks = await Promise.all(
-      storedActionHashB64s.map(async (actionHash) => {
-        // Checking the messages that are no longer in the latest bucket set
-        if (!allActionHashB64s.includes(actionHash)) {
-          const deleteStatus = await client.getDeleteStatus(
-            cellId,
-            decodeHashFromBase64(actionHash),
-          );
-          return deleteStatus.isDeleted ? actionHash : null;
+    await Promise.all(
+      Object.keys(currentMessages).map(async (actionHash) => {
+        const deleteStatus = await client.getDeleteStatus(
+          decodeCellIdFromBase64(key1),
+          decodeHashFromBase64(actionHash),
+        );
+        if (deleteStatus.isDeleted) {
+          updatedMessages[actionHash] = {
+            ...currentMessages[actionHash],
+            isDeleted: true,
+            message: {
+              content: "Message deleted",
+              bucket: currentMessages[actionHash].message.bucket,
+              images: [],
+            },
+          };
         }
-        return null;
       }),
     );
-    const confirmedDeletedActionHashB64s = deletionChecks.filter((hash) => hash !== null);
-    return [...confirmedDeletedActionHashB64s];
+    messages.update((m) => ({
+      ...m,
+      [key1]: updatedMessages,
+    }));
+
+    const messagesToLoad = await _filterMissingMessages(key1, allActionHashB64s);
+    const count = await _loadMessages(key1, messagesToLoad);
+
+    // return count + Object.keys(updatedMessages).filter((k) => updatedMessages[k].isDeleted).length;
+    return count;
   }
 
   /**
@@ -417,10 +449,8 @@ export function createConversationMessageStore(
    * @returns ActionHashB64[] of missing messages
    */
   async function _filterMissingMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]) {
-    const m = get(messages).data[key1];
-
-    const storedActionHashB64s = Object.keys(m || {});
-    return difference(actionHashB64s, storedActionHashB64s);
+    // return all the messages
+    return actionHashB64s;
   }
 
   async function _loadMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]): Promise<number> {
@@ -483,20 +513,6 @@ export function createConversationMessageStore(
 
     const deleteStatus = await client.getDeleteStatus(cellId, messageRecord.original_action);
 
-    const messageExtended: MessageExtendedWithDeletion = {
-      message: deleteStatus.isDeleted
-        ? {
-            content: "Message deleted",
-            bucket: messageRecord.message.bucket,
-            images: [],
-          }
-        : messageRecord.message,
-      authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
-      timestamp: messageRecord.signed_action.hashed.content.timestamp,
-      isDeleted: deleteStatus.isDeleted,
-      deletedAt: Date.now(),
-    };
-
     if (!deleteStatus.isDeleted && messageRecord.message.images.length > 0) {
       const fileStorageClient = new FileStorageClient(
         client.client,
@@ -513,7 +529,19 @@ export function createConversationMessageStore(
       );
     }
 
-    return messageExtended;
+    return {
+      message: deleteStatus.isDeleted
+        ? {
+            content: "Message deleted",
+            bucket: messageRecord.message.bucket,
+            images: [],
+          }
+        : messageRecord.message,
+      authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
+      timestamp: messageRecord.signed_action.hashed.content.timestamp,
+      isDeleted: deleteStatus.isDeleted,
+      deletedAt: deleteStatus.isDeleted ? Date.now() : undefined,
+    };
   }
 
   return {
@@ -525,6 +553,7 @@ export function createConversationMessageStore(
     handleMessageSignalReceived,
     subscribe,
     deleteMessageByContent,
+    markMessageAsDeleted,
   };
 }
 
