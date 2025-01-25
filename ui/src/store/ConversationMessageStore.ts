@@ -17,6 +17,7 @@ import {
   decodeHashFromBase64,
   encodeHashToBase64,
   type ActionHashB64,
+  type AgentPubKeyB64,
   type CellId,
 } from "@holochain/client";
 import { difference, flatten, range, sortBy, sum } from "lodash-es";
@@ -38,7 +39,7 @@ import type {
 } from "./generic/GenericKeyValueStore";
 import { TARGET_MESSAGES_COUNT } from "$config";
 import type { FileStore } from "./FileStore";
-import { format } from "date-fns";
+import { formatHolochainTimestamp } from "$lib/utils";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
@@ -183,6 +184,34 @@ export function createConversationMessageStore(
     }));
   }
 
+  /**
+   *  Delete Message by Content, from the content of the message,
+   * and mark it as deleted in the store.
+   *
+   * @param key1 CellIdB64
+   * @param messageContent string
+   * @returns
+   */
+
+  function _createDeletionPlaceholder(
+    originalMessage: Message,
+    authorAgentPubKeyB64: AgentPubKeyB64,
+    originalTimestamp: number,
+    deletionTime?: string,
+  ): MessageExtendedWithDeletion {
+    return {
+      message: {
+        content: `Message deleted on ${deletionTime}`,
+        bucket: originalMessage.bucket,
+        images: [],
+      },
+      authorAgentPubKeyB64,
+      timestamp: originalTimestamp,
+      isDeleted: true,
+      deletedAt: deletionTime,
+    };
+  }
+
   async function deleteMessageByContent(key1: CellIdB64, messageContent: string): Promise<void> {
     const cellId = decodeCellIdFromBase64(key1);
 
@@ -196,21 +225,19 @@ export function createConversationMessageStore(
 
     const [messageActionHash, existingMessage] = matchingMessage;
 
-    const deletionTimestamp = Date.now();
-    const formattedDeletionTime = format(deletionTimestamp, "HH:mm");
     await client.deleteMessage(cellId, decodeHashFromBase64(messageActionHash));
+    const deleteStatus = await client.getDeleteStatus(
+      cellId,
+      decodeHashFromBase64(messageActionHash),
+    );
+    const deletionTimestamp = formatHolochainTimestamp(deleteStatus.deletedAt);
 
-    const deletedMessageExtended: MessageExtendedWithDeletion = {
-      message: {
-        content: `Message deleted on ${formattedDeletionTime}`,
-        bucket: existingMessage.message.bucket,
-        images: [],
-      },
-      authorAgentPubKeyB64: existingMessage.authorAgentPubKeyB64,
-      timestamp: existingMessage.timestamp,
-      isDeleted: true,
-      deletedAt: formattedDeletionTime,
-    };
+    const deletedMessageExtended = _createDeletionPlaceholder(
+      existingMessage.message,
+      existingMessage.authorAgentPubKeyB64,
+      existingMessage.timestamp,
+      deletionTimestamp,
+    );
 
     messages.update((m) => ({
       ...m,
@@ -223,24 +250,28 @@ export function createConversationMessageStore(
 
   async function markMessageAsDeleted(key1: CellIdB64, actionHashB64: ActionHashB64) {
     const currentMessages = get(messages).data[key1] || {};
+    const cellId = decodeCellIdFromBase64(key1);
 
     if (currentMessages[actionHashB64]) {
-      const deletionTimestamp = Date.now();
-      const formattedDeletionTime = format(deletionTimestamp, "HH:mm");
+      const deletionStatus = await client.getDeleteStatus(
+        cellId,
+        decodeHashFromBase64(actionHashB64),
+      );
+      const deletionTimestamp = formatHolochainTimestamp(deletionStatus.deletedAt);
+      const currentMessage = currentMessages[actionHashB64];
+
+      const deletedMessageExtended = _createDeletionPlaceholder(
+        currentMessage.message,
+        currentMessage.authorAgentPubKeyB64,
+        currentMessage.timestamp,
+        deletionTimestamp,
+      );
+
       messages.update((m) => ({
         ...m,
         [key1]: {
           ...currentMessages,
-          [actionHashB64]: {
-            ...currentMessages[actionHashB64],
-            isDeleted: true,
-            deletedAt: formattedDeletionTime,
-            message: {
-              content: "Message deleted",
-              bucket: currentMessages[actionHashB64].message.bucket,
-              images: [],
-            },
-          },
+          [actionHashB64]: deletedMessageExtended,
         },
       }));
     }
@@ -362,11 +393,12 @@ export function createConversationMessageStore(
           decodeHashFromBase64(actionHash),
         );
         if (deleteStatus.isDeleted) {
+          const deletionTime = formatHolochainTimestamp(deleteStatus.deletedAt);
           updatedMessages[actionHash] = {
             ...currentMessages[actionHash],
             isDeleted: true,
             message: {
-              content: "Message deleted",
+              content: `Message deleted on ${deletionTime}`,
               bucket: currentMessages[actionHash].message.bucket,
               images: [],
             },
@@ -533,18 +565,19 @@ export function createConversationMessageStore(
       );
     }
 
+    if (deleteStatus.isDeleted) {
+      return _createDeletionPlaceholder(
+        messageRecord.message,
+        encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
+        messageRecord.signed_action.hashed.content.timestamp,
+      );
+    }
+
     return {
-      message: deleteStatus.isDeleted
-        ? {
-            content: `Message deleted on ${format(Date.now(), "HH:mm")}`,
-            bucket: messageRecord.message.bucket,
-            images: [],
-          }
-        : messageRecord.message,
+      message: messageRecord.message,
       authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
       timestamp: messageRecord.signed_action.hashed.content.timestamp,
-      isDeleted: deleteStatus.isDeleted,
-      deletedAt: deleteStatus.isDeleted ? format(Date.now(), "HH:mm") : undefined,
+      isDeleted: false,
     };
   }
 
