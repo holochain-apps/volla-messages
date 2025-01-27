@@ -12,6 +12,6 @@ pub use holochain_bundled::*;
     not(feature = "holochain_bundled"),
     not(all(feature = "holochain_service", mobile))
 ))]
-pub fn setup_builder<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
-    builder
+pub fn setup_builder<R: tauri::Runtime>(_: tauri::Builder<R>) -> tauri::Builder<R> {
+    unimplemented!("One of the features 'holochain_bundled' and 'holochain_service' is required.");
 }
