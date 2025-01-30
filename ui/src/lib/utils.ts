@@ -143,7 +143,7 @@ export function isWithinFiveMinutes(d1: Date, d2?: Date): boolean {
   return Math.abs(d1.getTime() - d2.getTime()) <= 5 * 60 * 1000;
 }
 
-export function formatHolochainTimestamp(timestamp: number): string {
-  const dateInMs = timestamp / 1000;
+export function formatHolochainTimestamp(timestamp: number | undefined): string {
+  const dateInMs = (timestamp ?? 0) / 1000;
   return format(dateInMs, "h:mm a");
 }

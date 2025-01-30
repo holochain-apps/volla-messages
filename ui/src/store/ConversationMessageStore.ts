@@ -222,7 +222,7 @@ export function createConversationMessageStore(
 
     await client.deleteMessage(cellId, decodeHashFromBase64(actionHashB64));
     const deleteStatus = await client.getDeleteStatus(cellId, decodeHashFromBase64(actionHashB64));
-    const deletionTimestamp = formatHolochainTimestamp(deleteStatus.deletedAt);
+    const deletionTimestamp = formatHolochainTimestamp(deleteStatus?.hashed.content.timestamp);
 
     const deletedMessageExtended = _createDeletionPlaceholder(
       existingMessage.message,
@@ -249,7 +249,10 @@ export function createConversationMessageStore(
         cellId,
         decodeHashFromBase64(actionHashB64),
       );
-      const deletionTimestamp = formatHolochainTimestamp(deletionStatus.deletedAt);
+      if (!deletionStatus) {
+        throw new Error("Failed to get deletion status");
+      }
+      const deletionTimestamp = formatHolochainTimestamp(deletionStatus.hashed.content.timestamp);
       const currentMessage = currentMessages[actionHashB64];
 
       const deletedMessageExtended = _createDeletionPlaceholder(
@@ -374,37 +377,62 @@ export function createConversationMessageStore(
       maxBucketsToFetch,
     );
     const allActionHashB64s = flatten(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s));
-    const currentMessages: GenericKeyValueStoreData<MessageExtendedWithDeletion> =
-      get(messages).data[key1] || {};
-    const updatedMessages = { ...currentMessages };
 
-    await Promise.all(
-      Object.keys(currentMessages).map(async (actionHash) => {
-        const deleteStatus = await client.getDeleteStatus(
-          decodeCellIdFromBase64(key1),
-          decodeHashFromBase64(actionHash),
-        );
-        if (deleteStatus.isDeleted) {
-          const deletionTime = formatHolochainTimestamp(deleteStatus.deletedAt);
-          updatedMessages[actionHash] = {
-            ...currentMessages[actionHash],
-            isDeleted: true,
-            message: {
-              content: `Message deleted on ${deletionTime}`,
-              bucket: currentMessages[actionHash].message.bucket,
-              images: [],
-            },
-          };
-        }
-      }),
+    // Fetch missing messages
+    const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
+      decodeCellIdFromBase64(key1),
+      allActionHashB64s.map((a) => decodeHashFromBase64(a)),
     );
-    messages.update((m) => ({
-      ...m,
-      [key1]: updatedMessages,
-    }));
 
-    const messagesToLoad = await _filterMissingMessages(key1, allActionHashB64s);
-    const count = await _loadMessages(key1, messagesToLoad);
+    // Transform Messages into MessageExtendeds with deletion status
+    const data = Object.fromEntries(
+      await Promise.all(
+        messageRecords.map(async (record) => {
+          const cellId = decodeCellIdFromBase64(key1);
+          const actionHashB64 = encodeHashToBase64(record.original_action);
+          const deleteStatus = await client.getDeleteStatus(cellId, record.original_action);
+
+          if (deleteStatus) {
+            // Message is deleted - create deletion placeholder
+            const deletionTimestamp = formatHolochainTimestamp(
+              deleteStatus.hashed.content.timestamp,
+            );
+            return [
+              actionHashB64,
+              {
+                message: {
+                  content: `Message deleted on ${deletionTimestamp}`,
+                  bucket: record.message?.bucket ?? 0,
+                  images: [], // Clear images for deleted messages
+                },
+                authorAgentPubKeyB64: encodeHashToBase64(
+                  record.signed_action.hashed.content.author,
+                ),
+                timestamp: record.signed_action.hashed.content.timestamp,
+                isDeleted: true,
+                deletedAt: deletionTimestamp,
+              } as MessageExtendedWithDeletion,
+            ];
+          } else {
+            // Message is not deleted - create normal message extended
+            const messageExtended = await _makeMessageExtended(cellId, record);
+            return [actionHashB64, messageExtended];
+          }
+        }),
+      ),
+    );
+
+    const count = Object.keys(data).length;
+    if (count === 0) return 0;
+
+    // Update the messages store with the new data
+    messages.update((c) => ({
+      ...c,
+      [key1]: {
+        ...(c[key1] || {}),
+        ...data,
+      },
+    }));
 
     return count;
   }
@@ -540,7 +568,23 @@ export function createConversationMessageStore(
 
     const deleteStatus = await client.getDeleteStatus(cellId, messageRecord.original_action);
 
-    if (!deleteStatus.isDeleted && messageRecord.message.images.length > 0) {
+    if (deleteStatus) {
+      const deletionTimestamp = formatHolochainTimestamp(deleteStatus.hashed.content.timestamp);
+      return {
+        message: {
+          content: `Message deleted on ${deletionTimestamp}`,
+          bucket: messageRecord.message.bucket,
+          images: [],
+        },
+        authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
+        timestamp: messageRecord.signed_action.hashed.content.timestamp,
+        isDeleted: true,
+        deletedAt: deletionTimestamp,
+      };
+    }
+
+    // Handle file downloads for non-deleted messages
+    if (messageRecord.message.images.length > 0) {
       const fileStorageClient = new FileStorageClient(
         client.client,
         "UNUSED ROLE NAME",
@@ -548,19 +592,13 @@ export function createConversationMessageStore(
         cellId,
       );
 
-      messageRecord.message.images.forEach((messageFile) =>
-        fileStore.download(
-          encodeCellIdToBase64(cellId),
-          encodeHashToBase64(messageFile.storage_entry_hash),
+      await Promise.all(
+        messageRecord.message.images.map((messageFile) =>
+          fileStore.download(
+            encodeCellIdToBase64(cellId),
+            encodeHashToBase64(messageFile.storage_entry_hash),
+          ),
         ),
-      );
-    }
-
-    if (deleteStatus.isDeleted) {
-      return _createDeletionPlaceholder(
-        messageRecord.message,
-        encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
-        messageRecord.signed_action.hashed.content.timestamp,
       );
     }
 
