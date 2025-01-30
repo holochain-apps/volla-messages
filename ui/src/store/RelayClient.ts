@@ -11,6 +11,7 @@ import {
   type Record,
   type ClonedCell,
   type ProvisionedCell,
+  type SignedActionHashed,
 } from "@holochain/client";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import type {
@@ -362,25 +363,16 @@ export class RelayClient {
   public async getDeleteStatus(
     cellId: CellId,
     messageHash: ActionHash,
-  ): Promise<{
-    isDeleted: boolean;
-    deletedAt: number;
-  }> {
-    const deletedAction = await this.client.callZome({
+  ): Promise<SignedActionHashed | undefined> {
+    const deletedAction: SignedActionHashed = await this.client.callZome({
       cell_id: cellId,
       zome_name: ZOME_NAME,
       fn_name: "get_oldest_delete_for_message",
       payload: messageHash,
     });
 
-    if (!deletedAction) {
-      return { isDeleted: false, deletedAt: 0 };
-    }
-    const deletedAt = deletedAction.hashed.content.timestamp;
+    console.log("Deleted action", deletedAction);
 
-    return {
-      isDeleted: true,
-      deletedAt,
-    };
+    return deletedAction || undefined;
   }
 }
