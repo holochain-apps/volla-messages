@@ -36,7 +36,7 @@ export function createSignalHandler(
       }
     } else if (payload.type === "EntryDeleted" && payload.original_app_entry.type === "Message") {
       const originalActionHashB64 = payload.action.hashed.hash;
-      conversationMessageStore.markMessageAsDeleted(
+      conversationMessageStore.handleMessageDeletedSignalReceived(
         cellIdB64,
         encodeHashToBase64(originalActionHashB64),
       );

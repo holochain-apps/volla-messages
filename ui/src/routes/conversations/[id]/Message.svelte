@@ -1,11 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, getContext, setContext } from "svelte";
-  import {
-    Alignment,
-    type CellIdB64,
-    type MessageExtended,
-    type MessageExtendedWithDeletion,
-  } from "$lib/types";
+  import { Alignment, type CellIdB64, type MessageExtended } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
   import Avatar from "$lib/Avatar.svelte";
@@ -18,12 +13,13 @@
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
   import { t } from "$translations";
+  import { formatHolochainTimestamp } from "$lib/utils";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
 
-  export let message: MessageExtendedWithDeletion;
+  export let message: MessageExtended;
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
@@ -32,7 +28,7 @@
   setContext("messageActionHash", actionHashB64);
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
-  $: isDeleted = message.isDeleted || false;
+  $: isDeleted = message.deletedAt;
 
   // Ensure that external links in message content are opened with the system default browser or mail client.
   function handleMessageContentClick(e: MouseEvent) {
@@ -103,14 +99,18 @@
         role="button"
         tabindex="0"
       >
-        {@html DOMPurify.sanitize(
-          linkifyStr(message.message.content, {
-            defaultProtocol: "https",
-            rel: {
-              url: "noopener noreferrer",
-            },
-          }),
-        )}
+        {#if isDeleted}
+          Message Deleted {formatHolochainTimestamp(message.deletedAt)}
+        {:else}
+          {@html DOMPurify.sanitize(
+            linkifyStr(message.message.content, {
+              defaultProtocol: "https",
+              rel: {
+                url: "noopener noreferrer",
+              },
+            }),
+          )}
+        {/if}
       </div>
     </div>
   </div>

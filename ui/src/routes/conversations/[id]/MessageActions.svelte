@@ -1,6 +1,6 @@
 <script lang="ts">
   import ButtonInline from "$lib/ButtonInline.svelte";
-  import { FileStatus, type MessageExtended, type MessageExtendedWithDeletion } from "$lib/types";
+  import { FileStatus, type MessageExtended } from "$lib/types";
   import { t } from "$translations";
   import { copyToClipboard } from "$lib/utils";
   import { save } from "@tauri-apps/plugin-dialog";
@@ -18,7 +18,7 @@
 
   const actionHashB64 = getContext<ActionHashB64>("messageActionHash");
 
-  export let message: MessageExtendedWithDeletion;
+  export let message: MessageExtended;
 
   const dispatch = createEventDispatcher<{
     delete: { messageHash: string };

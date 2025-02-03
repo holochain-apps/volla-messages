@@ -1,11 +1,11 @@
 <script lang="ts">
   import { isMobile, isSameDay, isWithinFiveMinutes } from "$lib/utils";
   import type { ActionHashB64, AgentPubKeyB64 } from "@holochain/client";
-  import type { MessageExtended, CellIdB64, MessageExtendedWithDeletion } from "$lib/types";
+  import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
   import { createEventDispatcher } from "svelte";
 
-  export let messages: [ActionHashB64, MessageExtendedWithDeletion][];
+  export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
 
   let selected: ActionHashB64 | undefined;
@@ -59,7 +59,7 @@
       <BaseMessage
         {cellIdB64}
         message={messageExtended}
-        isSelected={messageExtended.isDeleted ? false : selected === actionHashB64}
+        isSelected={messageExtended.deletedAt ? false : selected === actionHashB64}
         showAuthor={prevMessageExtended === undefined ||
           messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
           !isWithinFiveMinutes(

@@ -4,7 +4,6 @@ import {
   type LocalFile,
   type Message,
   type MessageExtended,
-  type MessageExtendedWithDeletion,
   type MessageFile,
   type MessageRecord,
   type MessageSignal,
@@ -58,7 +57,10 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   deleteMessage: (key1: CellIdB64, messageContent: string) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
-  markMessageAsDeleted: (key1: CellIdB64, actionHashB64: ActionHashB64) => Promise<void>;
+  handleMessageDeletedSignalReceived: (
+    key1: CellIdB64,
+    actionHashB64: ActionHashB64,
+  ) => Promise<void>;
 }
 
 export function createConversationMessageStore(
@@ -189,87 +191,51 @@ export function createConversationMessageStore(
    * and mark it as deleted in the store.
    *
    * @param key1 CellIdB64
-   * @param messageContent string
+   * @param actionHashB64 ActionHashB64
    * @returns
    */
-
-  function _createDeletionPlaceholder(
-    originalMessage: Message,
-    authorAgentPubKeyB64: AgentPubKeyB64,
-    originalTimestamp: number,
-    deletionTime?: string,
-  ): MessageExtendedWithDeletion {
-    return {
-      message: {
-        content: `Message deleted on ${deletionTime}`,
-        bucket: originalMessage.bucket,
-        images: [],
-      },
-      authorAgentPubKeyB64,
-      timestamp: originalTimestamp,
-      isDeleted: true,
-      deletedAt: deletionTime,
-    };
-  }
 
   async function deleteMessage(key1: CellIdB64, actionHashB64: ActionHashB64): Promise<void> {
     const cellId = decodeCellIdFromBase64(key1);
 
-    const existingMessages = get(messages).data[key1] || {};
-    const existingMessage = existingMessages[actionHashB64];
-
-    if (!existingMessage) throw new Error("Message not found");
-
     await client.deleteMessage(cellId, decodeHashFromBase64(actionHashB64));
-    const deleteStatus = await client.getDeleteStatus(cellId, decodeHashFromBase64(actionHashB64));
-    const deletionTimestamp = formatHolochainTimestamp(deleteStatus?.hashed.content.timestamp);
-
-    const deletedMessageExtended = _createDeletionPlaceholder(
-      existingMessage.message,
-      existingMessage.authorAgentPubKeyB64,
-      existingMessage.timestamp,
-      deletionTimestamp,
+    const deletionStatus = await client.getDeleteStatus(
+      cellId,
+      decodeHashFromBase64(actionHashB64),
     );
 
     messages.update((m) => ({
       ...m,
       [key1]: {
-        ...(m[key1] || {}),
-        [actionHashB64]: deletedMessageExtended,
+        ...m[key1],
+        [actionHashB64]: {
+          ...m[key1]?.[actionHashB64],
+          deletedAt: deletionStatus?.hashed.content.timestamp,
+        },
       },
     }));
   }
 
-  async function markMessageAsDeleted(key1: CellIdB64, actionHashB64: ActionHashB64) {
-    const currentMessages = get(messages).data[key1] || {};
+  async function handleMessageDeletedSignalReceived(key1: CellIdB64, actionHashB64: ActionHashB64) {
     const cellId = decodeCellIdFromBase64(key1);
 
-    if (currentMessages[actionHashB64]) {
-      const deletionStatus = await client.getDeleteStatus(
-        cellId,
-        decodeHashFromBase64(actionHashB64),
-      );
-      if (!deletionStatus) {
-        throw new Error("Failed to get deletion status");
-      }
-      const deletionTimestamp = formatHolochainTimestamp(deletionStatus.hashed.content.timestamp);
-      const currentMessage = currentMessages[actionHashB64];
+    const deletionStatus = await client.getDeleteStatus(
+      cellId,
+      decodeHashFromBase64(actionHashB64),
+    );
 
-      const deletedMessageExtended = _createDeletionPlaceholder(
-        currentMessage.message,
-        currentMessage.authorAgentPubKeyB64,
-        currentMessage.timestamp,
-        deletionTimestamp,
-      );
-
-      messages.update((m) => ({
-        ...m,
-        [key1]: {
-          ...currentMessages,
-          [actionHashB64]: deletedMessageExtended,
+    messages.update((m) => ({
+      ...m,
+      [key1]: {
+        ...m[key1],
+        [actionHashB64]: {
+          ...m[key1]?.[actionHashB64],
+          deletedAt: deletionStatus?.hashed.content.timestamp,
         },
-      }));
-    }
+      },
+    }));
+
+    console.debug("message updated", messages);
   }
 
   /**
@@ -369,6 +335,7 @@ export function createConversationMessageStore(
     maxBucketsToFetch?: number,
   ): Promise<number> {
     // Fetch the list of buckets that contain the target count
+    // This step is split out so that buckets can be fetched in chunks, in parallel
     const bucketsToFetch = await _fetchBucketsTargetCount(
       key1,
       bucket,
@@ -376,63 +343,13 @@ export function createConversationMessageStore(
       bucketChunkSize,
       maxBucketsToFetch,
     );
-    const allActionHashB64s = flatten(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s));
+    const actionHashB64s = flatten(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s));
 
-    // Fetch missing messages
-    const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
-      decodeCellIdFromBase64(key1),
-      allActionHashB64s.map((a) => decodeHashFromBase64(a)),
-    );
+    // Filter only messages we are not storing already
+    const missingActionHashB64s = await _filterMissingMessages(key1, actionHashB64s);
 
-    // Transform Messages into MessageExtendeds with deletion status
-    const data = Object.fromEntries(
-      await Promise.all(
-        messageRecords.map(async (record) => {
-          const cellId = decodeCellIdFromBase64(key1);
-          const actionHashB64 = encodeHashToBase64(record.original_action);
-          const deleteStatus = await client.getDeleteStatus(cellId, record.original_action);
-
-          if (deleteStatus) {
-            // Message is deleted - create deletion placeholder
-            const deletionTimestamp = formatHolochainTimestamp(
-              deleteStatus.hashed.content.timestamp,
-            );
-            return [
-              actionHashB64,
-              {
-                message: {
-                  content: `Message deleted on ${deletionTimestamp}`,
-                  bucket: record.message?.bucket ?? 0,
-                  images: [], // Clear images for deleted messages
-                },
-                authorAgentPubKeyB64: encodeHashToBase64(
-                  record.signed_action.hashed.content.author,
-                ),
-                timestamp: record.signed_action.hashed.content.timestamp,
-                isDeleted: true,
-                deletedAt: deletionTimestamp,
-              } as MessageExtendedWithDeletion,
-            ];
-          } else {
-            // Message is not deleted - create normal message extended
-            const messageExtended = await _makeMessageExtended(cellId, record);
-            return [actionHashB64, messageExtended];
-          }
-        }),
-      ),
-    );
-
-    const count = Object.keys(data).length;
-    if (count === 0) return 0;
-
-    // Update the messages store with the new data
-    messages.update((c) => ({
-      ...c,
-      [key1]: {
-        ...(c[key1] || {}),
-        ...data,
-      },
-    }));
+    // Fetch and save missing message data to store
+    const count = await _loadMessages(key1, missingActionHashB64s);
 
     return count;
   }
@@ -504,8 +421,10 @@ export function createConversationMessageStore(
    * @returns ActionHashB64[] of missing messages
    */
   async function _filterMissingMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]) {
-    // return all the messages
-    return actionHashB64s;
+    const m = get(messages).data[key1];
+
+    const storedActionHashB64s = Object.keys(m || {});
+    return difference(actionHashB64s, storedActionHashB64s);
   }
 
   async function _loadMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]): Promise<number> {
@@ -561,30 +480,22 @@ export function createConversationMessageStore(
   async function _makeMessageExtended(
     cellId: CellId,
     messageRecord: MessageRecord,
-  ): Promise<MessageExtendedWithDeletion> {
+  ): Promise<MessageExtended> {
     if (messageRecord.message === undefined) {
       throw new Error("MessageRecord does not include message entry");
     }
 
     const deleteStatus = await client.getDeleteStatus(cellId, messageRecord.original_action);
 
-    if (deleteStatus) {
-      const deletionTimestamp = formatHolochainTimestamp(deleteStatus.hashed.content.timestamp);
-      return {
-        message: {
-          content: `Message deleted on ${deletionTimestamp}`,
-          bucket: messageRecord.message.bucket,
-          images: [],
-        },
-        authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
-        timestamp: messageRecord.signed_action.hashed.content.timestamp,
-        isDeleted: true,
-        deletedAt: deletionTimestamp,
-      };
-    }
+    const baseMessage: MessageExtended = {
+      message: messageRecord.message,
+      authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
+      timestamp: messageRecord.signed_action.hashed.content.timestamp,
+      deletedAt: deleteStatus?.hashed.content.timestamp,
+    };
 
     // Handle file downloads for non-deleted messages
-    if (messageRecord.message.images.length > 0) {
+    if (!baseMessage.deletedAt && messageRecord.message.images.length > 0) {
       const fileStorageClient = new FileStorageClient(
         client.client,
         "UNUSED ROLE NAME",
@@ -602,12 +513,7 @@ export function createConversationMessageStore(
       );
     }
 
-    return {
-      message: messageRecord.message,
-      authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
-      timestamp: messageRecord.signed_action.hashed.content.timestamp,
-      isDeleted: false,
-    };
+    return baseMessage;
   }
 
   return {
@@ -619,7 +525,7 @@ export function createConversationMessageStore(
     handleMessageSignalReceived,
     subscribe,
     deleteMessage,
-    markMessageAsDeleted,
+    handleMessageDeletedSignalReceived,
   };
 }
 
@@ -674,7 +580,7 @@ export function deriveCellConversationMessageStore(
       conversationMessageStore.sendMessage(key, content, files),
     handleMessageSignalReceived: (signal: MessageSignal) =>
       conversationMessageStore.handleMessageSignalReceived(key, signal),
-    deleteMessage: (key: CellIdB64, messageContent: string) =>
-      conversationMessageStore.deleteMessage(key, messageContent),
+    deleteMessage: (key1: CellIdB64, actionHashB64: ActionHashB64) =>
+      conversationMessageStore.deleteMessage(key1, actionHashB64),
   };
 }
