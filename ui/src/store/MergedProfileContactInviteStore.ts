@@ -114,6 +114,10 @@ export function deriveCellMergedProfileContactInviteStore(
     ([agentPubKeyB64]) => agentPubKeyB64 !== myAgentPubKeyB64,
 
     // Then by nickname alphabetically
-    ([, profileExtended]) => profileExtended.profile.nickname,
+    ([, profileExtended]) =>
+      profileExtended ? profileExtended.profile.nickname : Number.MAX_SAFE_INTEGER,
+
+    // Then by AgentPubKeyB64 alphabetically
+    ([, profileExtended]) => profileExtended.publicKeyB64,
   ]);
 }

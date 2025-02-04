@@ -61,33 +61,6 @@ export function createConversationMessageStore(
 ): ConversationMessageStore {
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
 
-  // Filter out messages by agents who do not have a Contact nor Profile
-  const { subscribe } = derived(
-    [messages, mergedProfileContactInviteStore],
-    ([$messages, $mergedProfileContactInviteStore]) => {
-      const filteredMessages = Object.fromEntries(
-        $messages.list.map(([cellIdB64, messagesData]) => [
-          cellIdB64,
-          Object.fromEntries(
-            Object.entries(messagesData).filter(
-              ([, messageExtended]) =>
-                $mergedProfileContactInviteStore.data[cellIdB64] !== undefined &&
-                $mergedProfileContactInviteStore.data[cellIdB64][
-                  messageExtended.authorAgentPubKeyB64
-                ] !== undefined,
-            ),
-          ),
-        ]),
-      );
-
-      return {
-        data: filteredMessages,
-        list: Object.entries(filteredMessages),
-        count: Object.keys(filteredMessages).length,
-      };
-    },
-  );
-
   async function initialize() {
     const cellInfos = await client.getRelayClonedCellInfos();
 
@@ -450,7 +423,6 @@ export function createConversationMessageStore(
     loadMessagesInPreviousBucketTargetCount,
     sendMessage,
     handleMessageSignalReceived,
-    subscribe,
   };
 }
 
