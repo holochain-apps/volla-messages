@@ -1,7 +1,7 @@
 <script lang="ts">
   import { debounce } from "lodash-es";
   import { type AgentPubKeyB64 } from "@holochain/client";
-  import { getContext, onDestroy, onMount } from "svelte";
+  import { getContext, onDestroy, onMount, tick } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
@@ -29,6 +29,7 @@
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import VirtualScroll from "svelte-virtual-scroll-list";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -67,6 +68,7 @@
   let sending = false;
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
+  let virtualList: VirtualScroll;
 
   const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
   const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
@@ -150,6 +152,13 @@
     loadingMessagesOld = true;
     try {
       await messages.loadMessagesInPreviousBucketTargetCount();
+      await tick();
+      if (virtualList) {
+        const prevHeight = virtualList.getScrollSize();
+        await messages.loadMessagesInPreviousBucketTargetCount();
+        await tick();
+        virtualList.scrollToOffset(virtualList.getScrollSize() - prevHeight);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -190,8 +199,7 @@
 
   function scrollToBottom(delay: number = 0) {
     setTimeout(() => {
-      if (!conversationContainerRef) return;
-      conversationContainerRef.scrollTop = conversationContainerRef.scrollHeight;
+      if (virtualList) virtualList.scrollToBottom();
       scrollAtBottom = true;
     }, delay);
   }
@@ -230,8 +238,6 @@
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-
-    conversationMessageStore.cleanupOlderMessages($page.params.id, 1);
 
     conversationContainerRef.removeEventListener("scroll", handleScroll);
 
@@ -295,7 +301,12 @@
           <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
         </div>
       {/if}
-      <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
+      <ConversationMessages
+        bind:virtualList
+        cellIdB64={$page.params.id}
+        messages={$messages.list}
+        on:load-previous={loadMessagesInPreviousBucket}
+      />
       {#if loadingMessagesNew}
         <div class="flex items-center justify-center">
           <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
