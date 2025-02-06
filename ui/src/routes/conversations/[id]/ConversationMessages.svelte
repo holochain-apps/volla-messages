@@ -14,46 +14,33 @@
 
   let selected: ActionHashB64 | undefined;
 
-  function processMessages(messages: [ActionHashB64, MessageExtended][]) {
-    let processed = [];
-    let prevMessage: MessageExtended | undefined;
-
-    for (const [actionHashB64, message] of messages) {
-      const currentDate = new Date(message.timestamp / 1000);
-
-      if (!prevMessage || !isSameDay(currentDate, new Date(prevMessage.timestamp / 1000))) {
-        processed.push({
-          type: "date",
-          date: currentDate,
-          key: `date-${currentDate.toISOString()}`,
-        });
-      }
-
-      processed.push({
-        type: "message",
-        actionHashB64,
-        message,
-        showAuthor:
-          !prevMessage ||
-          message.authorAgentPubKeyB64 !== prevMessage.authorAgentPubKeyB64 ||
-          !isWithinFiveMinutes(currentDate, new Date(prevMessage.timestamp / 1000)),
-        key: actionHashB64,
-      });
-
-      prevMessage = message;
-    }
-    return processed;
-  }
-
-  $: processedData = processMessages(messages);
-
+  /**
+   * Calculates the size of each item.
+   * Adds an extra 40 pixels if a date header is to be rendered.
+   */
   function getSize(index: number) {
-    const item = processedData[index];
-    return item.type === "date"
-      ? 40
-      : item.message && item.message.message.images.length > 0
-        ? 300
-        : 100;
+    const [, message] = messages[index];
+    // Base size is larger if the message contains images.
+    let baseSize = message.message.images.length > 0 ? 300 : 100;
+
+    // Date header should be displayed if message is the first in the list
+    // or if its date differs from the previous message's date.
+    let showHeader = false;
+    if (index === 0) {
+      showHeader = true;
+    } else {
+      const [, prevMessage] = messages[index - 1];
+      const currentDate = new Date(message.timestamp / 1000);
+      const prevDate = new Date(prevMessage.timestamp / 1000);
+      if (!isSameDay(currentDate, prevDate)) {
+        showHeader = true;
+      }
+    }
+
+    if (showHeader) {
+      baseSize += 40;
+    }
+    return baseSize;
   }
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
@@ -88,8 +75,8 @@
 <div class="flex w-full flex-1 flex-col-reverse p-4">
   <VirtualScroll
     bind:this={virtualList}
-    data={processedData}
-    key="key"
+    data={messages}
+    key="0"
     {getSize}
     keeps={30}
     topThreshold={300}
@@ -97,27 +84,51 @@
     on:top={() => dispatch("top")}
     on:bottom={() => dispatch("bottom")}
     let:data
+    let:index
   >
-    {#if data.type === "date"}
+    {#if (() => {
+      let showHeader = false;
+      const [, message] = data;
+      const currentDate = new Date(message.timestamp / 1000);
+      if (index === 0) {
+        showHeader = true;
+      } else {
+        const [, prevMessage] = messages[index - 1];
+        const prevDate = new Date(prevMessage.timestamp / 1000);
+        if (!isSameDay(currentDate, prevDate)) {
+          showHeader = true;
+        }
+      }
+      return showHeader;
+    })()}
       <li class="my-4">
         <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
-          {new Date(data.date).toLocaleDateString("en-US", {
+          {new Date(data[1].timestamp / 1000).toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
             day: "numeric",
           })}
         </div>
       </li>
-    {:else}
-      <BaseMessage
-        {cellIdB64}
-        message={data.message}
-        isSelected={selected === data.actionHashB64}
-        showAuthor={data.showAuthor}
-        on:press={() => handlePress(data.actionHashB64)}
-        on:click={(e) => handleClick(e, data.actionHashB64)}
-        on:clickoutside={handleClickOutside}
-      />
     {/if}
+    <BaseMessage
+      {cellIdB64}
+      message={data[1]}
+      isSelected={selected === data[0]}
+      showAuthor={index === 0
+        ? true
+        : (() => {
+            const [, prevMessage] = messages[index - 1];
+            const currentDate = new Date(data[1].timestamp / 1000);
+            const prevDate = new Date(prevMessage.timestamp / 1000);
+            return (
+              data[1].authorAgentPubKeyB64 !== prevMessage.authorAgentPubKeyB64 ||
+              !isWithinFiveMinutes(currentDate, prevDate)
+            );
+          })()}
+      on:press={() => handlePress(data[0])}
+      on:click={(e) => handleClick(e, data[0])}
+      on:clickoutside={handleClickOutside}
+    />
   </VirtualScroll>
 </div>
