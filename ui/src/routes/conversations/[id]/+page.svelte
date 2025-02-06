@@ -153,12 +153,11 @@
     try {
       await messages.loadMessagesInPreviousBucketTargetCount();
       await tick();
-      if (virtualList) {
-        const prevHeight = virtualList.getScrollSize();
-        await messages.loadMessagesInPreviousBucketTargetCount();
-        await tick();
-        virtualList.scrollToOffset(virtualList.getScrollSize() - prevHeight);
-      }
+      if (!virtualList) return;
+      const prevHeight = virtualList.getScrollSize();
+      await messages.loadMessagesInPreviousBucketTargetCount();
+      await tick();
+      virtualList.scrollToOffset(virtualList.getScrollSize() - prevHeight);
     } catch (e) {
       console.error(e);
     }
@@ -199,7 +198,8 @@
 
   function scrollToBottom(delay: number = 0) {
     setTimeout(() => {
-      if (virtualList) virtualList.scrollToBottom();
+      if (!virtualList) return;
+      virtualList.scrollToBottom();
       scrollAtBottom = true;
     }, delay);
   }
@@ -305,7 +305,6 @@
         bind:virtualList
         cellIdB64={$page.params.id}
         messages={$messages.list}
-        on:load-previous={loadMessagesInPreviousBucket}
       />
       {#if loadingMessagesNew}
         <div class="flex items-center justify-center">
