@@ -253,3 +253,8 @@ export interface FileExtended {
   file?: File;
   status: FileStatus;
 }
+
+export interface SizeInfo {
+  height: number;
+  measured: boolean;
+}
