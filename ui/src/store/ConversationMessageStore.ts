@@ -455,16 +455,11 @@ export function createConversationMessageStore(
   function cleanupOlderMessages(key1: CellIdB64, keepLastN: number = 1) {
     messages.update((current) => {
       const conversationMessages = current[key1];
-      console.log("cleanupOlderMessages", conversationMessages);
       if (!conversationMessages) return current;
-
       const sorted = Object.entries(conversationMessages).sort(
         ([, a], [, b]) => b.timestamp - a.timestamp,
       );
-
       const toKeep = sorted.slice(0, keepLastN);
-      console.log("cleanupOlderMessages toKeep", toKeep);
-
       return {
         ...current,
         [key1]: Object.fromEntries(toKeep),
