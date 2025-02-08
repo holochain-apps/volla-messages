@@ -1,46 +1,109 @@
 <script lang="ts">
   import { isMobile, isSameDay, isWithinFiveMinutes } from "$lib/utils";
   import type { ActionHashB64, AgentPubKeyB64 } from "@holochain/client";
-  import type { MessageExtended, CellIdB64 } from "$lib/types";
+  import type { MessageExtended, CellIdB64, SizeInfo } from "$lib/types";
   import BaseMessage from "./Message.svelte";
-  import VirtualScroll from "svelte-virtual-scroll-list";
-  import { createEventDispatcher } from "svelte";
-
-  const dispatch = createEventDispatcher();
+  import { createVirtualizer } from "@tanstack/svelte-virtual";
+  import { onMount, afterUpdate, onDestroy } from "svelte";
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
-  export let virtualList: VirtualScroll;
 
   let selected: ActionHashB64 | undefined;
+  let virtualListEl: HTMLDivElement;
+  let resizeObserver: ResizeObserver;
+  let scrollTimeout: NodeJS.Timeout;
+  let autoScroll = true;
+
+  const SCROLL_BOTTOM_THRESHOLD = 100;
 
   /**
-   * Calculates the size of each item.
-   * Adds an extra 40 pixels if a date header is to be rendered.
+   * Map to cache measured element heights for virtual scrolling
+   * @param Key Index of message in messages array
+   * @param Value Size information including height and measurement status
    */
-  function getSize(index: number) {
-    const [, message] = messages[index];
-    // Base size is larger if the message contains images.
-    let baseSize = message.message.images.length > 0 ? 300 : 100;
+  const sizeMap = new Map<number, SizeInfo>();
 
-    // Date header should be displayed if message is the first in the list
-    // or if its date differs from the previous message's date.
-    let showHeader = false;
-    if (index === 0) {
-      showHeader = true;
-    } else {
-      const [, prevMessage] = messages[index - 1];
-      const currentDate = new Date(message.timestamp / 1000);
-      const prevDate = new Date(prevMessage.timestamp / 1000);
-      if (!isSameDay(currentDate, prevDate)) {
-        showHeader = true;
-      }
-    }
+  /**
+   * Virtualizer instance for efficient rendering of large lists
+   * Handles calculations for visible items and scroll positioning
+   */
+  $: virtualizer = createVirtualizer({
+    count: messages.length,
+    getScrollElement: () => virtualListEl,
 
-    if (showHeader) {
-      baseSize += 40;
+    /**
+     * Estimates item height for initial layout calculations
+     * @param index Index of item in messages array
+     * @returns Estimated height in pixels including optional date header
+     */
+    estimateSize: (index) => {
+      const cached = sizeMap.get(index);
+      if (cached) return cached.height;
+
+      const message = messages[index][1];
+      const prevMessage = index > 0 ? messages[index - 1][1] : undefined;
+      const showDate =
+        !prevMessage ||
+        !isSameDay(new Date(message.timestamp / 1000), new Date(prevMessage.timestamp / 1000));
+
+      // Base message height 100px + date header height
+      return (showDate ? 40 : 0) + 100;
+    },
+    overscan: 10,
+
+    /**
+     * Measures actual element height and updates size cache
+     * @param element The rendered DOM element
+     * @returns Measured height of the element in pixels
+     */
+    measureElement: (element: HTMLElement) => {
+      const index = Number(element.dataset.index);
+      if (isNaN(index)) return 0;
+
+      const height = element.offsetHeight;
+      sizeMap.set(index, { height, measured: true });
+      return height;
+    },
+  });
+
+  function handleItemMount(element: HTMLElement) {
+    resizeObserver.observe(element);
+  }
+
+  function handleScroll() {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const { scrollTop, scrollHeight, clientHeight } = virtualListEl;
+      autoScroll = scrollHeight - scrollTop <= clientHeight + SCROLL_BOTTOM_THRESHOLD;
+    }, 50);
+  }
+
+  afterUpdate(() => {
+    if (autoScroll) {
+      virtualListEl.scrollTop = virtualListEl.scrollHeight;
     }
-    return baseSize;
+  });
+
+  onMount(() => {
+    resizeObserver = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const index = Number(entry.target.getAttribute("data-index"));
+        if (!isNaN(index)) {
+          sizeMap.set(index, { height: entry.contentRect.height, measured: true });
+          $virtualizer.measure();
+        }
+      });
+    });
+
+    return () => resizeObserver.disconnect();
+  });
+
+  // Scrolls to the bottom of the message list
+  // Aligns to end of list with smooth animation
+  export function scrollToBottom() {
+    if (messages.length === 0) return;
+    $virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: "auto" });
   }
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
@@ -73,62 +136,52 @@
 </script>
 
 <div class="flex w-full flex-1 flex-col-reverse p-4">
-  <VirtualScroll
-    bind:this={virtualList}
-    data={messages}
-    key="0"
-    {getSize}
-    keeps={30}
-    topThreshold={300}
-    bottomThreshold={100}
-    on:top={() => dispatch("top")}
-    on:bottom={() => dispatch("bottom")}
-    let:data
-    let:index
-  >
-    {#if (() => {
-      let showHeader = false;
-      const [, message] = data;
-      const currentDate = new Date(message.timestamp / 1000);
-      if (index === 0) {
-        showHeader = true;
-      } else {
-        const [, prevMessage] = messages[index - 1];
-        const prevDate = new Date(prevMessage.timestamp / 1000);
-        if (!isSameDay(currentDate, prevDate)) {
-          showHeader = true;
-        }
-      }
-      return showHeader;
-    })()}
-      <li class="my-4">
-        <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
-          {new Date(data[1].timestamp / 1000).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
+  <div class="scroll-container" bind:this={virtualListEl} on:scroll={handleScroll}>
+    <div style="position: relative; height: {$virtualizer.getTotalSize()}px; width: 100%;">
+      {#each $virtualizer.getVirtualItems() as virtualItem (messages[virtualItem.index][0])}
+        {@const [actionHashB64, messageExtended] = messages[virtualItem.index]}
+        {@const prevMessage =
+          virtualItem.index > 0 ? messages[virtualItem.index - 1][1] : undefined}
+        {@const showDate =
+          !prevMessage ||
+          !isSameDay(
+            new Date(messageExtended.timestamp / 1000),
+            new Date(prevMessage?.timestamp / 1000),
+          )}
+
+        <div
+          data-index={virtualItem.index}
+          use:handleItemMount
+          style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px);"
+        >
+          {#if showDate}
+            <li class="my-4">
+              <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
+                {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </div>
+            </li>
+          {/if}
+
+          <BaseMessage
+            {cellIdB64}
+            message={messageExtended}
+            isSelected={selected === actionHashB64}
+            showAuthor={prevMessage === undefined ||
+              messageExtended.authorAgentPubKeyB64 !== prevMessage.authorAgentPubKeyB64 ||
+              !isWithinFiveMinutes(
+                new Date(messageExtended.timestamp / 1000),
+                new Date(prevMessage.timestamp / 1000),
+              )}
+            on:press={() => handlePress(actionHashB64)}
+            on:click={(e) => handleClick(e, actionHashB64)}
+            on:clickoutside={handleClickOutside}
+          />
         </div>
-      </li>
-    {/if}
-    <BaseMessage
-      {cellIdB64}
-      message={data[1]}
-      isSelected={selected === data[0]}
-      showAuthor={index === 0
-        ? true
-        : (() => {
-            const [, prevMessage] = messages[index - 1];
-            const currentDate = new Date(data[1].timestamp / 1000);
-            const prevDate = new Date(prevMessage.timestamp / 1000);
-            return (
-              data[1].authorAgentPubKeyB64 !== prevMessage.authorAgentPubKeyB64 ||
-              !isWithinFiveMinutes(currentDate, prevDate)
-            );
-          })()}
-      on:press={() => handlePress(data[0])}
-      on:click={(e) => handleClick(e, data[0])}
-      on:clickoutside={handleClickOutside}
-    />
-  </VirtualScroll>
+      {/each}
+    </div>
+  </div>
 </div>
