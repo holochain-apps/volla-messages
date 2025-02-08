@@ -51,6 +51,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
   ) => Promise<number>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
+  cleanupOlderMessages: (key1: CellIdB64, keepLastN: number) => void;
 }
 
 export function createConversationMessageStore(
@@ -443,12 +444,41 @@ export function createConversationMessageStore(
     };
   }
 
+  /**
+   * Function for cleaning up older messages upon closing a conversation
+   * Reduces the number of messages stored in memory to keep the app performant
+   *
+   * @param key1
+   * @param keepLastN
+   */
+
+  function cleanupOlderMessages(key1: CellIdB64, keepLastN: number = 1) {
+    messages.update((current) => {
+      const conversationMessages = current[key1];
+      console.log("cleanupOlderMessages", conversationMessages);
+      if (!conversationMessages) return current;
+
+      const sorted = Object.entries(conversationMessages).sort(
+        ([, a], [, b]) => b.timestamp - a.timestamp,
+      );
+
+      const toKeep = sorted.slice(0, keepLastN);
+      console.log("cleanupOlderMessages toKeep", toKeep);
+
+      return {
+        ...current,
+        [key1]: Object.fromEntries(toKeep),
+      };
+    });
+  }
+
   return {
     ...messages,
     initialize,
     loadMessagesInCurrentBucketTargetCount,
     loadMessagesInPreviousBucketTargetCount,
     sendMessage,
+    cleanupOlderMessages,
     handleMessageSignalReceived,
     subscribe,
   };
