@@ -23,6 +23,7 @@
     "@lightningrodlabs/we-applet": "^0.17.0-dev.2",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@svelte-put/clickoutside": "^3.0.2",
+    "@tanstack/svelte-virtual": "^3.13.0",
     "@tauri-apps/api": "^2.0.3",
     "@tauri-apps/plugin-barcode-scanner": "^2.0.0",
     "@tauri-apps/plugin-clipboard-manager": "^2.0.0",
@@ -42,7 +43,6 @@
     "svelte-french-toast": "^1.2.0",
     "svelte-gestures": "^5.0.6",
     "svelte-qrcode-image": "^2.0.0-alpha.1",
-    "svelte-virtual-scroll-list": "^1.3.0",
     "sveltekit-i18n": "^2.4.2",
     "uuid": "^10.0.0"
   },
@@ -83,8 +83,7 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.16.0",
     "vite": "^5.3.4",
-    "vite-plugin-tailwind-purgecss": "^0.3.3",
-    "svelte-virtual-scroll-list": "^1.3.0"
+    "vite-plugin-tailwind-purgecss": "^0.3.3"
   },
   "type": "module"
 }
