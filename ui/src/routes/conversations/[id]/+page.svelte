@@ -231,7 +231,7 @@
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
 
-    conversationMessageStore.cleanupOlderMessages($page.params.id, 20);
+    conversationMessageStore.deleteMessagesFromStore($page.params.id, 20);
 
     conversationContainerRef.removeEventListener("scroll", handleScroll);
 
