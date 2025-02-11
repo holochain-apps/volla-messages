@@ -5,6 +5,7 @@
   import BaseMessage from "./Message.svelte";
   import { createVirtualizer } from "@tanstack/svelte-virtual";
   import { onMount, afterUpdate, onDestroy } from "svelte";
+  import { SCROLL_BOTTOM_THRESHOLD } from "$config";
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
@@ -14,8 +15,6 @@
   let resizeObserver: ResizeObserver;
   let scrollTimeout: NodeJS.Timeout;
   let autoScroll = true;
-
-  const SCROLL_BOTTOM_THRESHOLD = 100;
 
   /**
    * Map to cache measured element heights for virtual scrolling
@@ -140,13 +139,13 @@
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px; width: 100%;">
       {#each $virtualizer.getVirtualItems() as virtualItem (messages[virtualItem.index][0])}
         {@const [actionHashB64, messageExtended] = messages[virtualItem.index]}
-        {@const prevMessage =
+        {@const prevMessageExtended =
           virtualItem.index > 0 ? messages[virtualItem.index - 1][1] : undefined}
         {@const showDate =
-          !prevMessage ||
+          !prevMessageExtended ||
           !isSameDay(
             new Date(messageExtended.timestamp / 1000),
-            new Date(prevMessage?.timestamp / 1000),
+            new Date(prevMessageExtended?.timestamp / 1000),
           )}
 
         <div
@@ -170,11 +169,11 @@
             {cellIdB64}
             message={messageExtended}
             isSelected={selected === actionHashB64}
-            showAuthor={prevMessage === undefined ||
-              messageExtended.authorAgentPubKeyB64 !== prevMessage.authorAgentPubKeyB64 ||
+            showAuthor={prevMessageExtended === undefined ||
+              messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
               !isWithinFiveMinutes(
                 new Date(messageExtended.timestamp / 1000),
-                new Date(prevMessage.timestamp / 1000),
+                new Date(prevMessageExtended.timestamp / 1000),
               )}
             on:press={() => handlePress(actionHashB64)}
             on:click={(e) => handleClick(e, actionHashB64)}
