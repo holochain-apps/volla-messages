@@ -51,7 +51,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
   ) => Promise<number>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
-  cleanupOlderMessages: (key1: CellIdB64, keepLastN: number) => void;
+  deleteMessagesFromStore: (key1: CellIdB64, keepLastN: number) => void;
 }
 
 export function createConversationMessageStore(
@@ -452,7 +452,7 @@ export function createConversationMessageStore(
    * @param keepLastN
    */
 
-  function cleanupOlderMessages(key1: CellIdB64, keepLastN: number = 1) {
+  function deleteMessagesFromStore(key1: CellIdB64, keepLastN: number = 1) {
     messages.update((current) => {
       const conversationMessages = current[key1];
       if (!conversationMessages) return current;
@@ -473,7 +473,7 @@ export function createConversationMessageStore(
     loadMessagesInCurrentBucketTargetCount,
     loadMessagesInPreviousBucketTargetCount,
     sendMessage,
-    cleanupOlderMessages,
+    deleteMessagesFromStore,
     handleMessageSignalReceived,
     subscribe,
   };
