@@ -29,6 +29,7 @@
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import { SCROLL_BOTTOM_THRESHOLD, SCROLL_TOP_THRESHOLD } from "$config";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -67,9 +68,6 @@
   let sending = false;
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
-
-  const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
-  const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
 
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
 
