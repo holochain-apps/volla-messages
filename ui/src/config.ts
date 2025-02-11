@@ -27,3 +27,6 @@ export const ZOME_NAME = "relay";
 // Polling intervals, used on conversations page
 export const POLLING_INTERVAL_SLOW = 30 * 1000;
 export const POLLING_INTERVAL_FAST = 2 * 1000;
+
+export const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
+export const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
