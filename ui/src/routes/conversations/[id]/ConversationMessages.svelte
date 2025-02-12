@@ -24,6 +24,22 @@
   const sizeMap = new Map<number, SizeInfo>();
 
   /**
+   * Svelte action that attaches an index to node and starts observing it.
+   * It replaces the need for HTML data attributes.
+   */
+  function bindIndex(node: HTMLElement, index: number) {
+    // Attach the index directly to the element.
+    (node as any).__messageIndex = index;
+    // Start observing the node if the observer exists.
+    resizeObserver?.observe(node);
+    return {
+      destroy() {
+        resizeObserver?.unobserve(node);
+      },
+    };
+  }
+
+  /**
    * Virtualizer instance for efficient rendering of large lists
    * Handles calculations for visible items and scroll positioning
    */
@@ -57,18 +73,14 @@
      * @returns Measured height of the element in pixels
      */
     measureElement: (element: HTMLElement) => {
-      const index = Number(element.dataset.index);
-      if (isNaN(index)) return 0;
-
+      // Retrieve index from the element’s attached property.
+      const index = (element as any).__messageIndex;
+      if (typeof index !== "number") return 0;
       const height = element.offsetHeight;
       sizeMap.set(index, { height, measured: true });
       return height;
     },
   });
-
-  function handleItemMount(element: HTMLElement) {
-    resizeObserver.observe(element);
-  }
 
   function handleScroll() {
     clearTimeout(scrollTimeout);
@@ -84,15 +96,25 @@
     }
   });
 
+  // Throttle resize observer updates to avoid excessive remeasure calls.
+  let measureScheduled = false;
   onMount(() => {
     resizeObserver = new ResizeObserver((entries) => {
+      let anyUpdated = false;
       entries.forEach((entry) => {
-        const index = Number(entry.target.getAttribute("data-index"));
-        if (!isNaN(index)) {
+        const index = (entry.target as any).__messageIndex;
+        if (typeof index === "number") {
           sizeMap.set(index, { height: entry.contentRect.height, measured: true });
-          $virtualizer.measure();
+          anyUpdated = true;
         }
       });
+      if (anyUpdated && !measureScheduled) {
+        measureScheduled = true;
+        requestAnimationFrame(() => {
+          $virtualizer.measure();
+          measureScheduled = false;
+        });
+      }
     });
 
     return () => resizeObserver.disconnect();
@@ -149,8 +171,7 @@
           )}
 
         <div
-          data-index={virtualItem.index}
-          use:handleItemMount
+          use:bindIndex={virtualItem.index}
           style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px);"
         >
           {#if showDate}
