@@ -73,10 +73,8 @@
 
   // Reactive update to scroll to the bottom every time the messages update,
   // but only if the user is near the bottom already
-  $: if ($messages.count > 0) {
-    if (scrollAtBottom) {
-      scrollToBottom(100);
-    }
+  $: if ($messages.count > 0 && scrollAtBottom) {
+    scrollToBottom(100);
   }
 
   /**
