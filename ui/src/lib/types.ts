@@ -254,22 +254,7 @@ export interface FileExtended {
   status: FileStatus;
 }
 
-/**
- * Represents sizing data for dynamically measured elements in virtualized lists.
- *
- * Used for:
- * - Caching heights to reduce re-measurements
- * - Tracking whether sizes are measured or estimated
- * - Adjusting scroll positions smoothly as content loads/changes
- *
- * Works with dynamic content where:
- * - Initial sizes are estimated
- * - Actual measurements happen asynchronously
- * - Sizes can change with content updates and resizing
- *
- * @property height - Current height in pixels
- * @property measured - True if height is from actual measurement, false if estimated
- */
+// Represents sizing data for dynamically measured elements in virtualized lists.
 export interface SizeInfo {
   height: number;
   measured: boolean;
