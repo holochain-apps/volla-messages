@@ -129,6 +129,11 @@ jobs:
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           echo "storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
 
+      - name: Build android AAB
+        run: |
+          cargo clean
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --aab --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+
       - name: Build android APK (aarch64)
         run: |
           cargo clean
@@ -150,6 +155,7 @@ jobs:
 
           # Rename apk to include the feature build label
           find src-tauri/gen/android/app/build/outputs/apk/*/release -type f -name "*.apk" -exec rename -v 's/release\/app/release\/app-${{ matrix.label }}/' {} \;
+          find src-tauri/gen/android/app/build/outputs -type f -name "*.aab" -exec rename -v 's/release\/app/release\/app-${{ matrix.label }}/' {} \;
 
       - uses: AButler/upload-release-assets@v3.0
         with:
