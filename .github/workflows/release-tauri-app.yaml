@@ -126,9 +126,17 @@ jobs:
           cargo clean
           nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64"
 
-      - uses: AButler/upload-release-assets@v3.0
+      - name: Upload Android APK  
+        uses: AButler/upload-release-assets@v3.0
         with:
-          files: "src-tauri/gen/android/app/build/outputs/apk/*/release/app-*;src-tauri/gen/android/app/build/outputs/**/*.aab"
+          files: src-tauri/gen/android/app/build/outputs/apk/*/release/app-*
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-id: ${{ needs.create-release.outputs.releaseId }}
+
+      - name: Upload Android AAB  
+        uses: AButler/upload-release-assets@v3.0
+        with:
+          files: src-tauri/gen/android/app/build/outputs/bundle/**/*.aab
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{ needs.create-release.outputs.releaseId }}
 
