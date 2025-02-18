@@ -17,7 +17,7 @@
   let autoScroll = true;
 
   /**
-   * Map to cache measured element heights for virtual scrolling
+   * Cache of measured list element heights for virtual scrolling
    * @param Key Index of message in messages array
    * @param Value Size information including height and measurement status
    */
@@ -163,18 +163,11 @@
         {@const [actionHashB64, messageExtended] = messages[virtualItem.index]}
         {@const prevMessageExtended =
           virtualItem.index > 0 ? messages[virtualItem.index - 1][1] : undefined}
-        {@const showDate =
-          !prevMessageExtended ||
-          !isSameDay(
-            new Date(messageExtended.timestamp / 1000),
-            new Date(prevMessageExtended?.timestamp / 1000),
-          )}
-
         <div
           use:bindIndex={virtualItem.index}
           style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px);"
         >
-          {#if showDate}
+          {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
             <li class="my-4">
               <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
                 {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
