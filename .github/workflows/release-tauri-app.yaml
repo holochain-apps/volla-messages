@@ -159,7 +159,7 @@ jobs:
 
       - uses: AButler/upload-release-assets@v3.0
         with:
-          files: src-tauri/gen/android/app/build/outputs/apk/*/release/app-*
+          files: "src-tauri/gen/android/app/build/outputs/apk/*/release/app-*;src-tauri/gen/android/app/build/outputs/bundle/**/*.aab"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{ needs.create-release.outputs.releaseId }}
 
