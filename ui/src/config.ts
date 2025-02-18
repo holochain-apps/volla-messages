@@ -28,5 +28,7 @@ export const ZOME_NAME = "relay";
 export const POLLING_INTERVAL_SLOW = 30 * 1000;
 export const POLLING_INTERVAL_FAST = 2 * 1000;
 
-export const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
-export const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
+// Distance from ends of page that trigger loading next collection of data
+// For infinite scrolling, used in conversations page.
+export const SCROLL_BOTTOM_THRESHOLD = 100;
+export const SCROLL_TOP_THRESHOLD = 300;
