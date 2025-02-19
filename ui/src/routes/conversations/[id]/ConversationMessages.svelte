@@ -4,10 +4,9 @@
   import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
   import { createVirtualizer } from "@tanstack/svelte-virtual";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
-  import { SCROLL_BOTTOM_THRESHOLD, SCROLL_TOP_THRESHOLD } from "$config";
-  import type { t } from "$translations";
+  import ConversationHeader from "./ConversationHeader.svelte";
 
   const dispatch = createEventDispatcher<{ scrollAtTop: null; scrollAtBottom: null }>();
 
@@ -19,7 +18,6 @@
   let selected: ActionHashB64 | undefined;
   let virtualListEl: HTMLDivElement;
   let virtualItemEls: HTMLDivElement[] = [];
-  let autoScrollToBottom = false;
 
   // Virtual list to ensure reliable rendering of a large number of DOM elements
   $: count = messages.length;
@@ -35,7 +33,6 @@
       virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
     }
   }
-  $: virtualListSize = $virtualizer.getTotalSize();
 
   // Dispatch events when scrollbar at top or bottom
   $: scrollOffset = $virtualizer.scrollOffset;
@@ -97,6 +94,8 @@
       class="absolute left-0 top-0 w-full px-4 py-1"
       style="transform: translateY({virtualListItems[0] ? virtualListItems[0].start : 0}px);"
     >
+      <ConversationHeader {cellIdB64} />
+
       <div class="flex h-4 items-center justify-center">
         {#if loadingTop}
           <SvgIcon icon="spinner" moreClasses="!h-4" />

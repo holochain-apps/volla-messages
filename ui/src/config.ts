@@ -28,7 +28,6 @@ export const ZOME_NAME = "relay";
 export const POLLING_INTERVAL_SLOW = 30 * 1000;
 export const POLLING_INTERVAL_FAST = 2 * 1000;
 
-// Distance from ends of page that trigger loading next collection of data
-// For infinite scrolling, used in conversations page.
+// Distance from bottom of scroll area within which to enable auto-scroll as new content is added.
+// Used in ConversationMessages
 export const SCROLL_BOTTOM_THRESHOLD = 100;
-export const SCROLL_TOP_THRESHOLD = 300;

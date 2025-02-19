@@ -8,7 +8,6 @@
   import { Privacy, type LocalFile } from "$lib/types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
-  import PrivateConversationImage from "./PrivateConversationImage.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
@@ -210,23 +209,6 @@
 
 <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
   <div class="relative flex w-full grow flex-col items-center overflow-hidden pt-6">
-    {#if $conversation.dnaProperties.privacy === Privacy.Private}
-      <PrivateConversationImage cellIdB64={$page.params.id} />
-    {:else if $conversation.config?.image}
-      <img
-        src={$conversation.config.image}
-        alt="Conversation"
-        class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
-      />
-    {/if}
-
-    <h1 class="b-1 break-all text-3xl">{$conversationTitle}</h1>
-
-    <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
-    <div class="text-left text-sm">
-      {$t("common.num_members", { count: $joined.count })}
-    </div>
-
     {#if $messages.count === 0 && iAmProgenitor && $joined.count === 1}
       <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
       <ConversationEmpty cellIdB64={$page.params.id} />
