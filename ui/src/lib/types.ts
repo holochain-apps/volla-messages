@@ -253,10 +253,3 @@ export interface FileExtended {
   file?: File;
   status: FileStatus;
 }
-
-// Size of DOM element
-// Used when dynamically measuring DOM element included virtual scrolling list
-export interface SizeInfo {
-  height: number;
-  measured: boolean;
-}

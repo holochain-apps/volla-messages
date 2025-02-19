@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { debounce } from "lodash-es";
   import { type AgentPubKeyB64 } from "@holochain/client";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
@@ -28,8 +27,6 @@
     type MergedProfileContactInviteJoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
-  import SvgIcon from "$lib/SvgIcon.svelte";
-  import { SCROLL_BOTTOM_THRESHOLD, SCROLL_TOP_THRESHOLD } from "$config";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -62,20 +59,11 @@
   let messageTimeout: NodeJS.Timeout;
 
   let conversationMessageInputRef: HTMLInputElement;
-  let conversationContainerRef: HTMLElement;
-  let scrollAtBottom = true;
-  let scrollAtTop = false;
   let sending = false;
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
 
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
-
-  // Reactive update to scroll to the bottom every time the messages update,
-  // but only if the user is near the bottom already
-  $: if ($messages.count > 0 && scrollAtBottom) {
-    scrollToBottom(100);
-  }
 
   /**
    * Fetch agent profiles every 2s, until at least 2 profiles are received.
@@ -164,34 +152,6 @@
     loadingMessagesNew = false;
   }
 
-  function _handleResize() {
-    if (!scrollAtBottom) return;
-
-    scrollToBottom();
-  }
-  const debouncedHandleResize = debounce(_handleResize, 100);
-
-  const handleScroll = debounce(() => {
-    if (conversationContainerRef === undefined) return;
-
-    const atTop = conversationContainerRef.scrollTop < SCROLL_TOP_THRESHOLD;
-    if (!scrollAtTop && atTop) {
-      loadMessagesInPreviousBucket();
-    }
-    scrollAtTop = atTop;
-    scrollAtBottom =
-      conversationContainerRef.scrollHeight - conversationContainerRef.scrollTop <=
-      conversationContainerRef.clientHeight + SCROLL_BOTTOM_THRESHOLD;
-  }, 100);
-
-  function scrollToBottom(delay: number = 0) {
-    setTimeout(() => {
-      if (!conversationContainerRef) return;
-      conversationContainerRef.scrollTop = conversationContainerRef.scrollHeight;
-      scrollAtBottom = true;
-    }, delay);
-  }
-
   async function sendMessage(text: string, files: LocalFile[]) {
     if (sending) return;
 
@@ -213,12 +173,7 @@
 
     loadData();
 
-    conversationContainerRef.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", debouncedHandleResize);
-
     conversation.updateUnread(false);
-
-    scrollToBottom();
   });
 
   // Cleanup
@@ -226,10 +181,6 @@
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-
-    conversationContainerRef.removeEventListener("scroll", handleScroll);
-
-    window.removeEventListener("resize", debouncedHandleResize);
   });
 </script>
 
@@ -258,10 +209,7 @@
 </Header>
 
 <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
-  <div
-    class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
-    bind:this={conversationContainerRef}
-  >
+  <div class="relative flex w-full grow flex-col items-center overflow-hidden pt-6">
     {#if $conversation.dnaProperties.privacy === Privacy.Private}
       <PrivateConversationImage cellIdB64={$page.params.id} />
     {:else if $conversation.config?.image}
@@ -284,17 +232,14 @@
       <ConversationEmpty cellIdB64={$page.params.id} />
     {:else}
       <!-- Display conversation messages -->
-      {#if loadingMessagesOld}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
-        </div>
-      {/if}
-      <ConversationMessages cellIdB64={$page.params.id} messages={$messages.list} />
-      {#if loadingMessagesNew}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
-        </div>
-      {/if}
+      <ConversationMessages
+        cellIdB64={$page.params.id}
+        messages={$messages.list}
+        loadingTop={loadingMessagesOld}
+        loadingBottom={loadingMessagesNew}
+        on:scrollAtTop={loadMessagesInPreviousBucket}
+        on:scrollAtBottom={loadMessagesInCurrentBucket}
+      />
     {/if}
   </div>
 </div>

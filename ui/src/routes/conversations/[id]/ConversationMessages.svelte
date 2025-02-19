@@ -1,128 +1,59 @@
 <script lang="ts">
   import { isMobile, isSameDay, isWithinFiveMinutes } from "$lib/utils";
-  import type { ActionHashB64, AgentPubKeyB64 } from "@holochain/client";
-  import type { MessageExtended, CellIdB64, SizeInfo } from "$lib/types";
+  import type { ActionHashB64 } from "@holochain/client";
+  import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
   import { createVirtualizer } from "@tanstack/svelte-virtual";
-  import { onMount, afterUpdate, onDestroy } from "svelte";
-  import { SCROLL_BOTTOM_THRESHOLD } from "$config";
+  import { createEventDispatcher, onMount } from "svelte";
+  import SvgIcon from "$lib/SvgIcon.svelte";
+  import { SCROLL_BOTTOM_THRESHOLD, SCROLL_TOP_THRESHOLD } from "$config";
+  import type { t } from "$translations";
+
+  const dispatch = createEventDispatcher<{ scrollAtTop: null; scrollAtBottom: null }>();
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
+  export let loadingTop = false;
+  export let loadingBottom = false;
 
   let selected: ActionHashB64 | undefined;
   let virtualListEl: HTMLDivElement;
-  let resizeObserver: ResizeObserver;
-  let scrollTimeout: NodeJS.Timeout;
-  let autoScroll = true;
+  let virtualItemEls: HTMLDivElement[] = [];
+  let autoScrollToBottom = false;
 
-  /**
-   * Cache of measured list element heights for virtual scrolling
-   * @param Key Index of message in messages array
-   * @param Value Size information including height and measurement status
-   */
-  const sizeMap = new Map<number, SizeInfo>();
-
-  /**
-   * Svelte action that attaches an index to node and starts observing it.
-   * It replaces the need for HTML data attributes.
-   */
-  function bindIndex(node: HTMLElement, index: number) {
-    // Attach the index directly to the element.
-    (node as any).__messageIndex = index;
-    // Start observing the node if the observer exists.
-    resizeObserver?.observe(node);
-    return {
-      destroy() {
-        resizeObserver?.unobserve(node);
-      },
-    };
-  }
-
-  /**
-   * Virtualizer instance for efficient rendering of large lists
-   * Handles calculations for visible items and scroll positioning
-   */
+  // Virtual list to ensure reliable rendering of a large number of DOM elements
+  $: count = messages.length;
   $: virtualizer = createVirtualizer({
-    count: messages.length,
+    count,
     getScrollElement: () => virtualListEl,
-
-    /**
-     * Estimates item height for initial layout calculations
-     * @param index Index of item in messages array
-     * @returns Estimated height in pixels including optional date header
-     */
-    estimateSize: (index) => {
-      const cached = sizeMap.get(index);
-      if (cached) return cached.height;
-
-      const message = messages[index][1];
-      const prevMessage = index > 0 ? messages[index - 1][1] : undefined;
-      const showDate =
-        !prevMessage ||
-        !isSameDay(new Date(message.timestamp / 1000), new Date(prevMessage.timestamp / 1000));
-
-      // Base message height 100px + date header height
-      return (showDate ? 40 : 0) + 100;
-    },
+    estimateSize: () => 45,
     overscan: 10,
-
-    /**
-     * Measures actual element height and updates size cache
-     * @param element The rendered DOM element
-     * @returns Measured height of the element in pixels
-     */
-    measureElement: (element: HTMLElement) => {
-      // Retrieve index from the element’s attached property.
-      const index = (element as any).__messageIndex;
-      if (typeof index !== "number") return 0;
-      const height = element.offsetHeight;
-      sizeMap.set(index, { height, measured: true });
-      return height;
-    },
   });
-
-  function handleScroll() {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      const { scrollTop, scrollHeight, clientHeight } = virtualListEl;
-      autoScroll = scrollHeight - scrollTop <= clientHeight + SCROLL_BOTTOM_THRESHOLD;
-    }, 50);
-  }
-
-  afterUpdate(() => {
-    if (autoScroll) {
-      virtualListEl.scrollTop = virtualListEl.scrollHeight;
+  $: virtualListItems = $virtualizer.getVirtualItems();
+  $: {
+    if (virtualItemEls.length > 0) {
+      virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
     }
-  });
+  }
+  $: virtualListSize = $virtualizer.getTotalSize();
 
-  // Throttle resize observer updates to avoid excessive remeasure calls.
-  let measureScheduled = false;
-  onMount(() => {
-    resizeObserver = new ResizeObserver((entries) => {
-      let anyUpdated = false;
-      entries.forEach((entry) => {
-        const index = (entry.target as any).__messageIndex;
-        if (typeof index === "number") {
-          sizeMap.set(index, { height: entry.contentRect.height, measured: true });
-          anyUpdated = true;
-        }
-      });
-      if (anyUpdated && !measureScheduled) {
-        measureScheduled = true;
-        requestAnimationFrame(() => {
-          $virtualizer.measure();
-          measureScheduled = false;
-        });
-      }
-    });
-
-    return () => resizeObserver.disconnect();
-  });
+  // Dispatch events when scrollbar at top or bottom
+  $: scrollOffset = $virtualizer.scrollOffset;
+  $: {
+    if (scrollOffset !== null && scrollOffset === 0) {
+      dispatch("scrollAtTop");
+    } else if (
+      scrollOffset !== null &&
+      virtualListEl !== undefined &&
+      scrollOffset === virtualListEl.scrollHeight - virtualListEl.offsetHeight
+    ) {
+      dispatch("scrollAtBottom");
+    }
+  }
 
   // Scrolls to the bottom of the message list
   // Aligns to end of list with smooth animation
-  export function scrollToBottom() {
+  function scrollToBottom() {
     if (messages.length === 0) return;
     $virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: "auto" });
   }
@@ -156,45 +87,61 @@
   }
 </script>
 
-<div class="flex w-full flex-1 flex-col-reverse p-4">
-  <div class="scroll-container" bind:this={virtualListEl} on:scroll={handleScroll}>
-    <div style="position: relative; height: {$virtualizer.getTotalSize()}px; width: 100%;">
-      {#each $virtualizer.getVirtualItems() as virtualItem (messages[virtualItem.index][0])}
-        {@const [actionHashB64, messageExtended] = messages[virtualItem.index]}
-        {@const prevMessageExtended =
-          virtualItem.index > 0 ? messages[virtualItem.index - 1][1] : undefined}
-        <div
-          use:bindIndex={virtualItem.index}
-          style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px);"
-        >
+<div
+  class="flex h-full w-full flex-1 overflow-y-auto"
+  style="contain: strict;"
+  bind:this={virtualListEl}
+>
+  <div class="relative w-full">
+    <div
+      class="absolute left-0 top-0 w-full px-4 py-1"
+      style="transform: translateY({virtualListItems[0] ? virtualListItems[0].start : 0}px);"
+    >
+      <div class="flex h-4 items-center justify-center">
+        {#if loadingTop}
+          <SvgIcon icon="spinner" moreClasses="!h-4" />
+        {/if}
+      </div>
+
+      {#each virtualListItems as row, index (messages[index][0])}
+        {@const [actionHashB64, messageExtended] = messages[row.index]}
+        {@const prevMessageExtended = row.index > 0 ? messages[row.index - 1][1] : undefined}
+
+        <div bind:this={virtualItemEls[index]} data-index={row.index}>
           {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
-            <li class="my-4">
-              <div class="text-secondary-400 dark:text-secondary-300 text-center text-xs">
-                {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </div>
-            </li>
+            <div class="text-secondary-400 dark:text-secondary-300 my-4 text-center text-xs">
+              {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </div>
           {/if}
 
-          <BaseMessage
-            {cellIdB64}
-            message={messageExtended}
-            isSelected={selected === actionHashB64}
-            showAuthor={prevMessageExtended === undefined ||
-              messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
-              !isWithinFiveMinutes(
-                new Date(messageExtended.timestamp / 1000),
-                new Date(prevMessageExtended.timestamp / 1000),
-              )}
-            on:press={() => handlePress(actionHashB64)}
-            on:click={(e) => handleClick(e, actionHashB64)}
-            on:clickoutside={handleClickOutside}
-          />
+          <div class="mt-3">
+            <BaseMessage
+              {cellIdB64}
+              message={messageExtended}
+              isSelected={selected === actionHashB64}
+              showAuthor={prevMessageExtended === undefined ||
+                messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
+                !isWithinFiveMinutes(
+                  new Date(messageExtended.timestamp / 1000),
+                  new Date(prevMessageExtended.timestamp / 1000),
+                )}
+              on:press={() => handlePress(actionHashB64)}
+              on:click={(e) => handleClick(e, actionHashB64)}
+              on:clickoutside={handleClickOutside}
+            />
+          </div>
         </div>
       {/each}
+
+      <div class="flex h-4 items-center justify-center">
+        {#if loadingBottom}
+          <SvgIcon icon="spinner" moreClasses="!h-4" />
+        {/if}
+      </div>
     </div>
   </div>
 </div>
