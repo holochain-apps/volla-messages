@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feat: CI builds a "rich" and "lite" version of the android app, where the "rich" version uses feature `holochain_bundled`, and the "lite" version uses feature `holochain_service`.
 - Fix: Use uuid network seed for provisioned cell, instead of system timestamp.
 - Fix: Ensure all npm scripts running the app in dev mode enable one of the required features `holochain_bundled`, and `holochain_service`.
+- Feat: CI now builds `.aab` files needed for Google Play Store release, generating two variants (`rich` and `lite`) analogous to APK builds.
 
 ## [0.7.5] - 2025-01-10
 
