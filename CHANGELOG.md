@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feat: CI builds a "rich" and "lite" version of the android app, where the "rich" version uses feature `holochain_bundled`, and the "lite" version uses feature `holochain_service`.
 - Fix: Use uuid network seed for provisioned cell, instead of system timestamp.
 - Fix: Ensure all npm scripts running the app in dev mode enable one of the required features `holochain_bundled`, and `holochain_service`.
+- Feat: Virtual Scrolling of messages in conversations page, to ensure smooth scrolling of a large collection of already-loaded messages.
+- Fix: Avoid rendering too many messages at once within a conversation, which could cause the app to crash.
 
 ## [0.7.5] - 2025-01-10
 
