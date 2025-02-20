@@ -220,7 +220,6 @@
         loadingTop={loadingMessagesOld}
         loadingBottom={loadingMessagesNew}
         on:scrollAtTop={loadMessagesInPreviousBucket}
-        on:scrollAtBottom={loadMessagesInCurrentBucket}
       />
     {/if}
   </div>

@@ -20,13 +20,23 @@
   let virtualItemEls: HTMLDivElement[] = [];
 
   // Virtual list to ensure reliable rendering of a large number of DOM elements
-  $: count = messages.length;
   $: virtualizer = createVirtualizer({
-    count,
+    count: 0,
     getScrollElement: () => virtualListEl,
     estimateSize: () => 45,
     overscan: 10,
   });
+
+  // Workaround to ensure that the virtualizer is not re-instantiated every time the messages count changes
+  // (and thus the scrollbar position is reset to the top)
+  $: count = messages.length;
+  $: {
+    $virtualizer.setOptions({
+      count,
+    });
+  }
+
+  // Dynamic sizing of virtual list elements
   $: virtualListItems = $virtualizer.getVirtualItems();
   $: {
     if (virtualItemEls.length > 0) {
@@ -48,11 +58,48 @@
     }
   }
 
+  // Auto scroll to bottom of list when new messages are added
+  let messagesCount: number | undefined;
+  let prevMessagesCount: number | undefined;
+  $: {
+    if (messagesCount === undefined || messagesCount !== count) {
+      prevMessagesCount = messagesCount;
+      messagesCount = count;
+    }
+  }
+  $: {
+    if (
+      (messagesCount !== undefined && prevMessagesCount === undefined) ||
+      (messagesCount !== undefined &&
+        prevMessagesCount !== undefined &&
+        messagesCount > prevMessagesCount)
+    ) {
+      scrollToBottom();
+    }
+  }
+
   // Scrolls to the bottom of the message list
-  // Aligns to end of list with smooth animation
+  // This exported so the parent component can bind to it and call it
+  // after creating a new message
   function scrollToBottom() {
-    if (messages.length === 0) return;
-    $virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: "auto" });
+    setTimeout(() => {
+      console.log("scrollToBottom");
+      $virtualizer.scrollToIndex(count);
+    }, 50);
+  }
+
+  // Dispatch events when scrollbar at top or bottom
+  $: scrollOffset = $virtualizer.scrollOffset;
+  $: {
+    if (scrollOffset !== null && scrollOffset === 0) {
+      dispatch("scrollAtTop");
+    } else if (
+      scrollOffset !== null &&
+      virtualListEl !== undefined &&
+      scrollOffset === virtualListEl.scrollHeight - virtualListEl.offsetHeight
+    ) {
+      dispatch("scrollAtBottom");
+    }
   }
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
@@ -84,63 +131,81 @@
   }
 </script>
 
-<div
-  class="flex h-full w-full flex-1 overflow-y-auto"
-  style="contain: strict;"
-  bind:this={virtualListEl}
->
-  <div class="relative w-full">
+
+<div class="flex w-full flex-1 overflow-y-auto" style="contain: strict;" bind:this={virtualListEl}>
+  <div class="relative h-full w-full">
     <div
-      class="absolute left-0 top-0 w-full px-4 py-1"
+      class="absolute left-0 top-0 h-full w-full"
       style="transform: translateY({virtualListItems[0] ? virtualListItems[0].start : 0}px);"
     >
-      <ConversationHeader {cellIdB64} />
-
-      <div class="flex h-4 items-center justify-center">
-        {#if loadingTop}
-          <SvgIcon icon="spinner" moreClasses="!h-4" />
-        {/if}
-      </div>
-
-      {#each virtualListItems as row, index (messages[index][0])}
+      {#each virtualListItems as row (messages[row.index][0])}
         {@const [actionHashB64, messageExtended] = messages[row.index]}
         {@const prevMessageExtended = row.index > 0 ? messages[row.index - 1][1] : undefined}
 
-        <div bind:this={virtualItemEls[index]} data-index={row.index}>
-          {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
-            <div class="text-secondary-400 dark:text-secondary-300 my-4 text-center text-xs">
-              {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </div>
-          {/if}
+        <div bind:this={virtualItemEls[row.index]} data-index={row.index}>
+          <div class="flex flex-col">
+            <!-- 
+              First element includes conversation header.
+              
+              This ensures the conversation header is *within* the virtualized list,
+              without breaking scrollToBottom. 
+            -->
+            {#if row.index === 0}
+              <ConversationHeader {cellIdB64} />
+              <div class="flex h-4 items-center justify-center">
+                {#if loadingTop}
+                  <SvgIcon icon="spinner" moreClasses="!h-4" />
+                {/if}
+              </div>
+            {/if}
 
-          <div class="mt-3">
-            <BaseMessage
-              {cellIdB64}
-              message={messageExtended}
-              isSelected={selected === actionHashB64}
-              showAuthor={prevMessageExtended === undefined ||
-                messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
-                !isWithinFiveMinutes(
-                  new Date(messageExtended.timestamp / 1000),
-                  new Date(prevMessageExtended.timestamp / 1000),
-                )}
-              on:press={() => handlePress(actionHashB64)}
-              on:click={(e) => handleClick(e, actionHashB64)}
-              on:clickoutside={handleClickOutside}
-            />
+            <!-- 
+              Show day if the message is authored on a different day then the previous message
+            -->
+            {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
+              <div class="text-secondary-400 dark:text-secondary-300 my-4 px-4 text-center text-xs">
+                {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </div>
+            {/if}
+
+            <div class="mt-3 px-4">
+              <BaseMessage
+                {cellIdB64}
+                message={messageExtended}
+                isSelected={selected === actionHashB64}
+                showAuthor={prevMessageExtended === undefined ||
+                  messageExtended.authorAgentPubKeyB64 !==
+                    prevMessageExtended.authorAgentPubKeyB64 ||
+                  !isWithinFiveMinutes(
+                    new Date(messageExtended.timestamp / 1000),
+                    new Date(prevMessageExtended.timestamp / 1000),
+                  )}
+                on:press={() => handlePress(actionHashB64)}
+                on:click={(e) => handleClick(e, actionHashB64)}
+                on:clickoutside={handleClickOutside}
+              />
+            </div>
+
+            <!-- 
+              Last element includes loadingBottom indicator.
+              
+              This ensures the indicator is *within* the virtualized list,
+              without breaking scrollToBottom. 
+            -->
+            {#if row.index === messages.length - 1}
+              <div class="flex h-4 items-center justify-center">
+                {#if loadingBottom}
+                  <SvgIcon icon="spinner" moreClasses="!h-4" />
+                {/if}
+              </div>
+            {/if}
           </div>
         </div>
       {/each}
-
-      <div class="flex h-4 items-center justify-center">
-        {#if loadingBottom}
-          <SvgIcon icon="spinner" moreClasses="!h-4" />
-        {/if}
-      </div>
     </div>
   </div>
 </div>
