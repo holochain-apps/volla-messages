@@ -68,38 +68,24 @@
     }
   }
   $: {
-    if (
-      (messagesCount !== undefined && prevMessagesCount === undefined) ||
-      (messagesCount !== undefined &&
-        prevMessagesCount !== undefined &&
-        messagesCount > prevMessagesCount)
+    if (messagesCount !== undefined && prevMessagesCount === undefined) {
+      // Extended delay to allow time for android keyboard to open,
+      // as this adjusts the scroll element height
+      scrollToBottom(200);
+    } else if (
+      messagesCount !== undefined &&
+      prevMessagesCount !== undefined &&
+      messagesCount > prevMessagesCount
     ) {
       scrollToBottom();
     }
   }
 
   // Scrolls to the bottom of the message list
-  // This exported so the parent component can bind to it and call it
-  // after creating a new message
-  function scrollToBottom() {
+  function scrollToBottom(delay = 50) {
     setTimeout(() => {
-      console.log("scrollToBottom");
       $virtualizer.scrollToIndex(count);
-    }, 50);
-  }
-
-  // Dispatch events when scrollbar at top or bottom
-  $: scrollOffset = $virtualizer.scrollOffset;
-  $: {
-    if (scrollOffset !== null && scrollOffset === 0) {
-      dispatch("scrollAtTop");
-    } else if (
-      scrollOffset !== null &&
-      virtualListEl !== undefined &&
-      scrollOffset === virtualListEl.scrollHeight - virtualListEl.offsetHeight
-    ) {
-      dispatch("scrollAtBottom");
-    }
+    }, delay);
   }
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
@@ -130,7 +116,6 @@
     selected = actionHashB64;
   }
 </script>
-
 
 <div class="flex w-full flex-1 overflow-y-auto" style="contain: strict;" bind:this={virtualListEl}>
   <div class="relative h-full w-full">
