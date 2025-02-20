@@ -129,6 +129,11 @@ jobs:
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           echo "storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
 
+      - name: Build android AAB
+        run: |
+          cargo clean
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --aab --target aarch64 --target i686 --target x86_64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+
       - name: Build android APK (aarch64)
         run: |
           cargo clean
@@ -144,16 +149,17 @@ jobs:
           cargo clean
           nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target x86_64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
 
-      - name: Rename android APKs
+      - name: Rename android APKs and ABBs
         run: |
           sudo apt install rename
 
           # Rename apk to include the feature build label
           find src-tauri/gen/android/app/build/outputs/apk/*/release -type f -name "*.apk" -exec rename -v 's/release\/app/release\/app-${{ matrix.label }}/' {} \;
+          find src-tauri/gen/android/app/build/outputs/bundle -type f -name "*.aab" -exec rename -v 's/app-universal-release/app-universal-${{ matrix.label }}-release/' {} \;
 
       - uses: AButler/upload-release-assets@v3.0
         with:
-          files: src-tauri/gen/android/app/build/outputs/apk/*/release/app-*
+          files: "src-tauri/gen/android/app/build/outputs/apk/*/release/app-*;src-tauri/gen/android/app/build/outputs/bundle/**/*.aab"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{ needs.create-release.outputs.releaseId }}
 
