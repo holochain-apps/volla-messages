@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix: In public converastion invitations, use the cell name as the conversation title when convesation config is not available.
 - Fix: Open external links in message content in system default browser or mail client.
 - Feat: Delete a contact by clicking the "Delete Contact" button on their page.
+- Feat: Virtual Scrolling of messages in conversations page, to ensure smooth scrolling of a large collection of already-loaded messages.
+- Fix: Avoid rendering too many messages at once within a conversation, which could cause the app to crash.
 
 ## [0.7.5] - 2025-01-10
 
