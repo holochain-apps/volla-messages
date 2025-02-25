@@ -4,20 +4,11 @@
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
   import ButtonsCopyShare from "$lib/ButtonsCopyShare.svelte";
   import { getContext } from "svelte";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import { type CellProfileStore } from "$store/ProfileStore";
   import type { AgentPubKeyB64 } from "@holochain/client";
-  import {
-    deriveCellMergedProfileContactInviteStore,
-    type MergedProfileContactInviteStore,
-  } from "$store/MergedProfileContactInviteStore";
-  import { page } from "$app/stores";
-  import {
-    deriveCellConversationTitleStore,
-    type ConversationTitleStore,
-  } from "$store/ConversationTitleStore";
   import { deriveCellInviteStore, type InviteStore } from "$store/InviteStore";
   import NoticeContactNotJoined from "$lib/NoticeContactNotJoined.svelte";
+  import ConversationHeader from "./ConversationHeader.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -35,9 +26,9 @@
 
   let conversation = deriveCellConversationStore(conversationStore, cellIdB64);
   let invite = deriveCellInviteStore(inviteStore, cellIdB64);
-
-  $: myProfile = $provisionedRelayCellProfileStore.data[myPubKeyB64];
 </script>
+
+<ConversationHeader {cellIdB64} />
 
 <div class="flex h-full w-full flex-col items-center justify-center">
   <div
