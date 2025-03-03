@@ -42,7 +42,7 @@
 </script>
 
 <button
-  class="message-content mt-3 block w-full border-0 text-left
+  class="message-content block w-full border-0 text-left
     {isSelected
     ? 'bg-tertiary-500 dark:bg-secondary-500 rounded-xl px-2.5 py-1.5'
     : 'bg-transparent'}"

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { debounce } from "lodash-es";
   import { type AgentPubKeyB64 } from "@holochain/client";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
@@ -9,7 +8,6 @@
   import { Privacy, type LocalFile } from "$lib/types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
-  import PrivateConversationImage from "./PrivateConversationImage.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import { deriveCellConversationStore, type ConversationStore } from "$store/ConversationStore";
@@ -62,25 +60,11 @@
   let messageTimeout: NodeJS.Timeout;
 
   let conversationMessageInputRef: HTMLInputElement;
-  let conversationContainerRef: HTMLElement;
-  let scrollAtBottom = true;
-  let scrollAtTop = false;
   let sending = false;
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
 
-  const SCROLL_BOTTOM_THRESHOLD = 100; // How close to the bottom must the user be to consider it "at the bottom"
-  const SCROLL_TOP_THRESHOLD = 300; // How close to the top must the user be to consider it "at the top"
-
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
-
-  // Reactive update to scroll to the bottom every time the messages update,
-  // but only if the user is near the bottom already
-  $: if ($messages.count > 0) {
-    if (scrollAtBottom) {
-      scrollToBottom(100);
-    }
-  }
 
   /**
    * Fetch agent profiles every 2s, until at least 2 profiles are received.
@@ -198,34 +182,6 @@
     loadingMessagesNew = false;
   }
 
-  function _handleResize() {
-    if (!scrollAtBottom) return;
-
-    scrollToBottom();
-  }
-  const debouncedHandleResize = debounce(_handleResize, 100);
-
-  const handleScroll = debounce(() => {
-    if (conversationContainerRef === undefined) return;
-
-    const atTop = conversationContainerRef.scrollTop < SCROLL_TOP_THRESHOLD;
-    if (!scrollAtTop && atTop) {
-      loadMessagesInPreviousBucket();
-    }
-    scrollAtTop = atTop;
-    scrollAtBottom =
-      conversationContainerRef.scrollHeight - conversationContainerRef.scrollTop <=
-      conversationContainerRef.clientHeight + SCROLL_BOTTOM_THRESHOLD;
-  }, 100);
-
-  function scrollToBottom(delay: number = 0) {
-    setTimeout(() => {
-      if (!conversationContainerRef) return;
-      conversationContainerRef.scrollTop = conversationContainerRef.scrollHeight;
-      scrollAtBottom = true;
-    }, delay);
-  }
-
   async function sendMessage(text: string, files: LocalFile[]) {
     if (sending) return;
 
@@ -247,12 +203,7 @@
 
     loadData();
 
-    conversationContainerRef.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", debouncedHandleResize);
-
     conversation.updateUnread(false);
-
-    scrollToBottom();
   });
 
   // Cleanup
@@ -260,10 +211,6 @@
     clearTimeout(agentTimeout);
     clearTimeout(configTimeout);
     clearTimeout(messageTimeout);
-
-    conversationContainerRef.removeEventListener("scroll", handleScroll);
-
-    window.removeEventListener("resize", debouncedHandleResize);
   });
 </script>
 
@@ -292,27 +239,7 @@
 </Header>
 
 <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
-  <div
-    class="relative flex w-full grow flex-col items-center overflow-y-auto overflow-x-hidden pt-6"
-    bind:this={conversationContainerRef}
-  >
-    {#if $conversation.dnaProperties.privacy === Privacy.Private}
-      <PrivateConversationImage cellIdB64={$page.params.id} />
-    {:else if $conversation.config?.image}
-      <img
-        src={$conversation.config.image}
-        alt="Conversation"
-        class="mb-5 h-32 min-h-32 w-32 rounded-full object-cover"
-      />
-    {/if}
-
-    <h1 class="b-1 break-all text-3xl">{$conversationTitle}</h1>
-
-    <!-- if joining a conversation created by someone else, say still syncing here until there are at least 2 members -->
-    <div class="text-left text-sm">
-      {$t("common.num_members", { count: $joined.count })}
-    </div>
-
+  <div class="relative flex w-full grow flex-col items-center overflow-hidden pt-6">
     {#if $messages.count === 0 && iAmProgenitor && $joined.count === 1}
       <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
       <ConversationEmpty cellIdB64={$page.params.id} />
@@ -324,15 +251,13 @@
         </div>
       {/if}
       <ConversationMessages
+        loadingTop={loadingMessagesOld}
+        loadingBottom={loadingMessagesNew}
         cellIdB64={$page.params.id}
         messages={$messages.list}
         on:delete={handleDeleteMessage}
+        on:scrollAtTop={loadMessagesInPreviousBucket}
       />
-      {#if loadingMessagesNew}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mb-4" />
-        </div>
-      {/if}
     {/if}
   </div>
 </div>
