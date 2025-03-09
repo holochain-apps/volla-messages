@@ -35,10 +35,13 @@ export function createSignalHandler(
         await conversationStore.updateUnread(cellIdB64, true);
       }
     } else if (payload.type === "EntryDeleted" && payload.original_app_entry.type === "Message") {
-      const originalActionHashB64 = payload.action.hashed.hash;
+      const originalActionHash = payload.action.hashed.content.deletes_address;
+      const originalActionHashB64 = encodeHashToBase64(originalActionHash);
+      const deletionTimestamp = payload.action.hashed.content.timestamp;
       conversationMessageStore.handleMessageDeletedSignalReceived(
         cellIdB64,
-        encodeHashToBase64(originalActionHashB64),
+        originalActionHashB64,
+        deletionTimestamp,
       );
     }
   }
