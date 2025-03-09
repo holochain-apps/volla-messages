@@ -182,11 +182,7 @@
               without breaking scrollToBottom. 
             -->
             {#if row.index === messages.length - 1}
-              <div class="flex h-4 items-center justify-center">
-                {#if loadingBottom}
-                  <SvgIcon icon="spinner" moreClasses="!h-4" />
-                {/if}
-              </div>
+              <div class="flex h-4 items-center justify-center"></div>
             {/if}
           </div>
         </div>
