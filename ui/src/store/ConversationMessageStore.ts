@@ -60,6 +60,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
   handleMessageDeletedSignalReceived: (
     key1: CellIdB64,
     actionHashB64: ActionHashB64,
+    deletionTimestamp: number,
   ) => Promise<void>;
 }
 
@@ -187,7 +188,7 @@ export function createConversationMessageStore(
   }
 
   /**
-   * Delete Message by Content, from the content of the message,
+   * Delete Message
    * and mark it as deleted in the store.
    *
    * @param key1 CellIdB64
@@ -216,13 +217,16 @@ export function createConversationMessageStore(
     }));
   }
 
-  async function handleMessageDeletedSignalReceived(key1: CellIdB64, actionHashB64: ActionHashB64) {
-    const cellId = decodeCellIdFromBase64(key1);
-
-    const deletionStatus = await client.getDeleteStatus(
-      cellId,
-      decodeHashFromBase64(actionHashB64),
-    );
+  async function handleMessageDeletedSignalReceived(
+    key1: CellIdB64,
+    actionHashB64: ActionHashB64,
+    deletionTimestamp: number,
+  ) {
+    const currentMessages = get(messages).data[key1];
+    if (currentMessages[actionHashB64] === undefined) {
+      console.log("Message not found in store");
+      return;
+    }
 
     messages.update((m) => ({
       ...m,
@@ -230,12 +234,10 @@ export function createConversationMessageStore(
         ...m[key1],
         [actionHashB64]: {
           ...m[key1]?.[actionHashB64],
-          deletedAt: deletionStatus?.hashed.content.timestamp,
+          deletedAt: deletionTimestamp,
         },
       },
     }));
-
-    console.debug("message updated", messages);
   }
 
   /**
