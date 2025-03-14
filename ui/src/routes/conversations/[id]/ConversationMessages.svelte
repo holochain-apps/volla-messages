@@ -13,7 +13,6 @@
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
   export let loadingTop = false;
-  export let loadingBottom = false;
 
   let selected: ActionHashB64 | undefined;
   let virtualListEl: HTMLDivElement;
