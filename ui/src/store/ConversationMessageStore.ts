@@ -199,8 +199,6 @@ export function createConversationMessageStore(
   async function deleteMessage(key1: CellIdB64, actionHashB64: ActionHashB64): Promise<void> {
     const cellId = decodeCellIdFromBase64(key1);
 
-    console.log("[Sender] (1) Delete message initiated");
-
     const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactInviteStore,
       key1,
@@ -218,8 +216,6 @@ export function createConversationMessageStore(
       decodeHashFromBase64(actionHashB64),
     );
 
-    console.log("[Sender] (2) Delete message status received", deletionStatus);
-
     messages.update((m) => ({
       ...m,
       [key1]: {
@@ -230,8 +226,6 @@ export function createConversationMessageStore(
         },
       },
     }));
-
-    console.log("[Sender] (3) Message marked as deleted in store");
   }
 
   async function handleMessageDeletedSignalReceived(
@@ -239,17 +233,10 @@ export function createConversationMessageStore(
     actionHashB64: ActionHashB64,
     deletionTimestamp: number,
   ) {
-    console.log("[Receiver] (2) Message deleted signal received");
     const currentMessages = get(messages).data[key1];
     if (currentMessages[actionHashB64] === undefined) {
-      console.log("Message not found in store");
       return;
     }
-
-    console.log(
-      "[Receiver] (3) Message found in store, marking as deleted",
-      currentMessages[actionHashB64],
-    );
 
     messages.update((m) => ({
       ...m,
@@ -261,8 +248,6 @@ export function createConversationMessageStore(
         },
       },
     }));
-
-    console.log("[Receiver] (4) Message marked as deleted in store");
   }
 
   /**
