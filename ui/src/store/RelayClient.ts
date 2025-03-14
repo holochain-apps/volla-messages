@@ -27,6 +27,7 @@ import type {
   BucketInput,
   CreateConversationInput,
   SendMessageInput,
+  DeleteMessageInput,
 } from "$lib/types";
 import { ZOME_NAME, ROLE_NAME } from "$config";
 import { encodeCellIdToBase64 } from "$lib/utils";
@@ -351,7 +352,7 @@ export class RelayClient {
    *
    */
 
-  public async deleteMessage(cellId: CellId, payload: ActionHash): Promise<ActionHash> {
+  public async deleteMessage(cellId: CellId, payload: DeleteMessageInput): Promise<ActionHash> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: ZOME_NAME,
