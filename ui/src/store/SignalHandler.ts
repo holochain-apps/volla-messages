@@ -34,9 +34,8 @@ export function createSignalHandler(
       if ($page.params.id !== cellIdB64 || $page.route.id !== "/conversations/[id]") {
         await conversationStore.updateUnread(cellIdB64, true);
       }
-    } else if (payload.type === "EntryDeleted" && payload.original_app_entry.type === "Message") {
-      console.log("[Receiver] (1) EntryDeleted signal received");
-      const originalActionHash = payload.action.hashed.content.deletes_address;
+    } else if (payload.type === "MessageDeleted") {
+      const originalActionHash = payload.original_action;
       const originalActionHashB64 = encodeHashToBase64(originalActionHash);
       const deletionTimestamp = payload.action.hashed.content.timestamp;
       conversationMessageStore.handleMessageDeletedSignalReceived(
