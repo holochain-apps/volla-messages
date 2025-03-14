@@ -238,39 +238,55 @@ pub fn update_message(input: UpdateMessageInput) -> ExternResult<Record> {
     Ok(record)
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeleteMessageInput {
+    pub original_message_hash: ActionHash,
+    pub agents: Vec<AgentPubKey>,
+}
+
 #[hdk_extern]
-pub fn delete_message(original_message_hash: ActionHash) -> ExternResult<ActionHash> {
-    let maybe_entry = get_entry_for_action(&original_message_hash)?;
+pub fn delete_message(input: DeleteMessageInput) -> ExternResult<ActionHash> {
+    let maybe_entry = get_entry_for_action(&input.original_message_hash)?;
     let message = if let Some(app_entry) = maybe_entry {
         match app_entry {
             EntryTypes::Message(message) => Ok(message),
-            _=> Err(
-                wasm_error!(
-                    WasmErrorInner::Guest("Malformed get details response".to_string())
-                ),
-            )
+            _ => Err(wasm_error!(WasmErrorInner::Guest(
+                "Malformed get details response".to_string()
+            ))),
         }
     } else {
-        Err(
-            wasm_error!(
-                WasmErrorInner::Guest("Entry not found".to_string())
-            ),
-        )
+        Err(wasm_error!(WasmErrorInner::Guest(
+            "Entry not found".to_string()
+        )))
     }?;
 
     let path = messages_path(message.bucket);
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
-            .build(),
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.build(),
     )?;
     for link in links {
         if let Some(hash) = link.target.into_action_hash() {
-            if hash.eq(&original_message_hash) {
+            if hash.eq(&input.original_message_hash) {
                 delete_link(link.create_link_hash)?;
             }
         }
     }
-    delete_entry(original_message_hash)
+    let delete_hash = delete_entry(input.original_message_hash.clone())?;
+
+    let delete_record = get(delete_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+        WasmErrorInner::Guest("Could not find the delete action".to_string())
+    ))?;
+
+    let _ = send_remote_signal(
+        MessageRecord {
+            message: None,
+            original_action: input.original_message_hash,
+            signed_action: delete_record.signed_action().clone(),
+        },
+        input.agents,
+    );
+
+    Ok(delete_hash)
 }
 
 #[hdk_extern]
@@ -300,3 +316,4 @@ pub fn get_oldest_delete_for_message(
         });
     Ok(deletes.first().cloned())
 }
+
