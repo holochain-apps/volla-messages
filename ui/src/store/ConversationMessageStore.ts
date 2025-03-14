@@ -201,7 +201,18 @@ export function createConversationMessageStore(
 
     console.log("[Sender] (1) Delete message initiated");
 
-    await client.deleteMessage(cellId, decodeHashFromBase64(actionHashB64));
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
+      mergedProfileContactInviteStore,
+      key1,
+      encodeHashToBase64(client.client.myPubKey),
+    );
+    const agentPubKeys = get(mergedProfileContact).list.map(([a]) => decodeHashFromBase64(a));
+
+    await client.deleteMessage(cellId, {
+      original_message_hash: decodeHashFromBase64(actionHashB64),
+      agents: agentPubKeys,
+    });
+
     const deletionStatus = await client.getDeleteStatus(
       cellId,
       decodeHashFromBase64(actionHashB64),
