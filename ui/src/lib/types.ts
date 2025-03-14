@@ -27,8 +27,16 @@ export interface MessageSignal {
   from: AgentPubKey;
 }
 
+export interface MessageDeleted {
+  type: "MessageDeleted";
+  action: SignedActionHashed<Delete>;
+  original_action: ActionHash;
+  from: AgentPubKey;
+}
+
 export type RelaySignal =
   | MessageSignal
+  | MessageDeleted
   | {
       type: "EntryCreated";
       action: SignedActionHashed<Create>;
@@ -94,6 +102,11 @@ export interface MessageRecord {
 
 export interface SendMessageInput {
   message: Message;
+  agents: AgentPubKey[];
+}
+
+export interface DeleteMessageInput {
+  original_message_hash: ActionHash;
   agents: AgentPubKey[];
 }
 
