@@ -10,6 +10,8 @@
 
   const dispatch = createEventDispatcher<{ scrollAtTop: null; scrollAtBottom: null }>();
 
+  // Note we must have at least 1 message when rendering this component, 
+  // or the virtual list instance will fail to render any additional messages -->
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
   export let loadingTop = false;
