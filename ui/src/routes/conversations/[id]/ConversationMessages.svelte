@@ -173,6 +173,16 @@
                 on:clickoutside={handleClickOutside}
               />
             </div>
+
+            <!-- 
+              Last element includes additional row of padding
+              
+              This is a hacky workaround to ensure that the list
+              scrolls to the bottom when a new message is added.
+            -->
+            {#if row.index === messages.length - 1}
+              <div class="flex h-4 items-center justify-center"></div>
+            {/if}
           </div>
         </div>
       {/each}
