@@ -26,6 +26,7 @@
     type MergedProfileContactInviteJoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
+  import ConversationHeader from "./ConversationHeader.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -212,6 +213,9 @@
     {#if $messages.count === 0 && iAmProgenitor && $joined.count === 1}
       <!-- No messages yet, no one has joined, and this is a conversation I created. Display a helpful message to invite others -->
       <ConversationEmpty cellIdB64={$page.params.id} />
+    {:else if $messages.count === 0}
+      <!-- No messages yet, display conversation header -->
+      <ConversationHeader cellIdB64={$page.params.id} />
     {:else}
       <!-- Display conversation messages -->
       <ConversationMessages
