@@ -15,7 +15,6 @@
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
   export let loadingTop = false;
-  export let loadingBottom = false;
 
   let selected: ActionHashB64 | undefined;
   let virtualListEl: HTMLDivElement;
@@ -178,17 +177,13 @@
             </div>
 
             <!-- 
-              Last element includes loadingBottom indicator.
+              Last element includes additional row of padding
               
-              This ensures the indicator is *within* the virtualized list,
-              without breaking scrollToBottom. 
+              This is a hacky workaround to ensure that the list
+              scrolls to the bottom when a new message is added.
             -->
             {#if row.index === messages.length - 1}
-              <div class="flex h-4 items-center justify-center">
-                {#if loadingBottom}
-                  <SvgIcon icon="spinner" moreClasses="!h-4" />
-                {/if}
-              </div>
+              <div class="flex h-4 items-center justify-center"></div>
             {/if}
           </div>
         </div>
