@@ -159,7 +159,7 @@
   };
 
   async function loadMessagesInPreviousBucket() {
-    if (loadingMessagesOld || loadingMessagesNew) return;
+    if (loadingMessagesOld) return;
 
     loadingMessagesOld = true;
     try {
@@ -171,7 +171,7 @@
   }
 
   async function loadMessagesInCurrentBucket() {
-    if (loadingMessagesOld || loadingMessagesNew) return;
+    if (loadingMessagesNew) return;
     console.log("loadMessagesInCurrentBucket");
     loadingMessagesNew = true;
     try {
@@ -252,7 +252,6 @@
       {/if}
       <ConversationMessages
         loadingTop={loadingMessagesOld}
-        loadingBottom={loadingMessagesNew}
         cellIdB64={$page.params.id}
         messages={$messages.list}
         on:delete={handleDeleteMessage}
