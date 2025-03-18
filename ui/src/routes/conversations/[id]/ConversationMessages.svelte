@@ -173,16 +173,6 @@
                 on:clickoutside={handleClickOutside}
               />
             </div>
-
-            <!-- 
-              Last element includes loadingBottom indicator.
-              
-              This ensures the indicator is *within* the virtualized list,
-              without breaking scrollToBottom. 
-            -->
-            {#if row.index === messages.length - 1}
-              <div class="flex h-4 items-center justify-center"></div>
-            {/if}
           </div>
         </div>
       {/each}
