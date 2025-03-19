@@ -508,12 +508,10 @@ export function createConversationMessageStore(
         cellId,
       );
 
-      await Promise.all(
-        messageRecord.message.images.map((messageFile) =>
-          fileStore.download(
-            encodeCellIdToBase64(cellId),
-            encodeHashToBase64(messageFile.storage_entry_hash),
-          ),
+      messageRecord.message.images.forEach((messageFile) =>
+        fileStore.download(
+          encodeCellIdToBase64(cellId),
+          encodeHashToBase64(messageFile.storage_entry_hash),
         ),
       );
     }
