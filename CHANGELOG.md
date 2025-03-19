@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feat: Delete a contact by clicking the "Delete Contact" button on their page.
 - Feat: Virtual Scrolling of messages in conversations page, to ensure smooth scrolling of a large collection of already-loaded messages.
 - Fix: Avoid rendering too many messages at once within a conversation, which could cause the app to crash.
+- Fix: Remove bottom loading spinner from message list when scrolling, and implement concurrent message loading.
 - Feat: CI now builds `.aab` files needed for Google Play Store release
 - Fix: Empty conversations with multiple peers display first message properly, without needing to reload after message is sent.
 
