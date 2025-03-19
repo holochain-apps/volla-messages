@@ -91,7 +91,6 @@ export interface MessageExtended {
   message: Message;
   authorAgentPubKeyB64: AgentPubKeyB64;
   timestamp: number;
-  deletedAt?: number;
 }
 
 export interface MessageRecord {

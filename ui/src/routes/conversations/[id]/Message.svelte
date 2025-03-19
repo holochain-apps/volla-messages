@@ -25,7 +25,6 @@
   export let actionHashB64: ActionHashB64;
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
-  $: isDeleted = message.deletedAt;
 
   // Ensure that external links in message content are opened with the system default browser or mail client.
   function handleMessageContentClick(e: MouseEvent) {
@@ -89,30 +88,25 @@
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div
-        class="message w-full break-words font-light {fromMe && 'text-end'} {isDeleted &&
-          'italic text-gray-500'}"
+        class="message w-full break-words font-light {fromMe && 'text-end'}"
         on:click={handleMessageContentClick}
         on:keydown={(e) => e.key === "Enter" && handleMessageContentClick(e)}
         role="button"
         tabindex="0"
       >
-        {#if message.deletedAt !== undefined}
-          Message Deleted {formatTimestampMicros(message.deletedAt)}
-        {:else}
-          {@html DOMPurify.sanitize(
-            linkifyStr(message.message.content, {
-              defaultProtocol: "https",
-              rel: {
-                url: "noopener noreferrer",
-              },
-            }),
-          )}
-        {/if}
+        {@html DOMPurify.sanitize(
+          linkifyStr(message.message.content, {
+            defaultProtocol: "https",
+            rel: {
+              url: "noopener noreferrer",
+            },
+          }),
+        )}
       </div>
     </div>
   </div>
 
-  {#if isSelected && !isDeleted}
+  {#if isSelected}
     <MessageActions {message} {actionHashB64} on:unselect on:delete />
   {/if}
 </button>

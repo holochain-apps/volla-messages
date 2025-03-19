@@ -35,12 +35,7 @@ export function createSignalHandler(
     } else if (payload.type === "MessageDeleted") {
       const originalActionHash = payload.original_action;
       const originalActionHashB64 = encodeHashToBase64(originalActionHash);
-      const deletionTimestamp = payload.action.hashed.content.timestamp;
-      conversationMessageStore.handleMessageDeletedSignalReceived(
-        cellIdB64,
-        originalActionHashB64,
-        deletionTimestamp,
-      );
+      conversationMessageStore.handleMessageDeletedSignalReceived(cellIdB64, originalActionHashB64);
     }
   }
 }

@@ -77,9 +77,6 @@
     try {
       await messages.deleteMessage($page.params.id, deleteMessageActionHashB64);
       toast.success($t("common.delete_message_success"));
-      // If the message was deleted,
-      // we need to reload the messages immediately to update the UI
-      await loadMessagesInCurrentBucket();
     } catch (err) {
       console.error(err);
       toast.error($t("common.delete_message_error"));

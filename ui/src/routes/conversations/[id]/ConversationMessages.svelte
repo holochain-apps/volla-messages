@@ -7,6 +7,7 @@
   import { createEventDispatcher } from "svelte";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
+  import { v4 as uuidv4 } from "uuid";
 
   const dispatch = createEventDispatcher<{ scrollAtTop: null; scrollAtBottom: null }>();
 
@@ -122,70 +123,76 @@
       class="absolute left-0 top-0 h-full w-full"
       style="transform: translateY({virtualListItems[0] ? virtualListItems[0].start : 0}px);"
     >
-      {#each virtualListItems as row (messages[row.index][0])}
-        {@const [actionHashB64, messageExtended] = messages[row.index]}
-        {@const prevMessageExtended = row.index > 0 ? messages[row.index - 1][1] : undefined}
+      {#each virtualListItems as row (messages[row.index] !== undefined ? messages[row.index][0] : uuidv4())}
+        <!-- This if statement is a hacky workaround to ensure that deleted messages do not break rendering,
+          as they are not removed from the virtualListItems reactively -->
+        {#if row.index < messages.length}
+          {@const [actionHashB64, messageExtended] = messages[row.index]}
+          {@const prevMessageExtended = row.index > 0 ? messages[row.index - 1][1] : undefined}
 
-        <div bind:this={virtualItemEls[row.index]} data-index={row.index}>
-          <div class="flex flex-col">
-            <!-- 
+          <div bind:this={virtualItemEls[row.index]} data-index={row.index}>
+            <div class="flex flex-col">
+              <!-- 
               First element includes conversation header.
               
               This ensures the conversation header is *within* the virtualized list,
               without breaking scrollToBottom. 
             -->
-            {#if row.index === 0}
-              <ConversationHeader {cellIdB64} />
-              <div class="flex h-4 items-center justify-center">
-                {#if loadingTop}
-                  <SvgIcon icon="spinner" moreClasses="!h-4" />
-                {/if}
-              </div>
-            {/if}
+              {#if row.index === 0}
+                <ConversationHeader {cellIdB64} />
+                <div class="flex h-4 items-center justify-center">
+                  {#if loadingTop}
+                    <SvgIcon icon="spinner" moreClasses="!h-4" />
+                  {/if}
+                </div>
+              {/if}
 
-            <!-- 
+              <!-- 
               Show day if the message is authored on a different day then the previous message
             -->
-            {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
-              <div class="text-secondary-400 dark:text-secondary-300 my-4 px-4 text-center text-xs">
-                {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </div>
-            {/if}
+              {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
+                <div
+                  class="text-secondary-400 dark:text-secondary-300 my-4 px-4 text-center text-xs"
+                >
+                  {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+              {/if}
 
-            <div class="mt-3 px-4">
-              <BaseMessage
-                {cellIdB64}
-                message={messageExtended}
-                isSelected={messageExtended.deletedAt ? false : selected === actionHashB64}
-                showAuthor={prevMessageExtended === undefined ||
-                  messageExtended.authorAgentPubKeyB64 !==
-                    prevMessageExtended.authorAgentPubKeyB64 ||
-                  !isWithinFiveMinutes(
-                    new Date(messageExtended.timestamp / 1000),
-                    new Date(prevMessageExtended.timestamp / 1000),
-                  )}
-                {actionHashB64}
-                on:press={() => handlePress(actionHashB64)}
-                on:click={(e) => handleClick(e, actionHashB64)}
-                on:clickoutside={handleClickOutside}
-                on:delete
-              />
+              <div class="mt-3 px-4">
+                <BaseMessage
+                  {cellIdB64}
+                  message={messageExtended}
+                  isSelected={selected === actionHashB64}
+                  showAuthor={prevMessageExtended === undefined ||
+                    messageExtended.authorAgentPubKeyB64 !==
+                      prevMessageExtended.authorAgentPubKeyB64 ||
+                    !isWithinFiveMinutes(
+                      new Date(messageExtended.timestamp / 1000),
+                      new Date(prevMessageExtended.timestamp / 1000),
+                    )}
+                  {actionHashB64}
+                  on:press={() => handlePress(actionHashB64)}
+                  on:click={(e) => handleClick(e, actionHashB64)}
+                  on:clickoutside={handleClickOutside}
+                  on:delete
+                />
+              </div>
+              <!-- 
+                Last element includes additional row of padding
+                
+                This is a hacky workaround to ensure that the list
+                scrolls to the bottom when a new message is added.
+              -->
+              {#if row.index === messages.length - 1}
+                <div class="flex h-4 items-center justify-center"></div>
+              {/if}
             </div>
-            <!-- 
-              Last element includes additional row of padding
-              
-              This is a hacky workaround to ensure that the list
-              scrolls to the bottom when a new message is added.
-            -->
-            {#if row.index === messages.length - 1}
-              <div class="flex h-4 items-center justify-center"></div>
-            {/if}
           </div>
-        </div>
+        {/if}
       {/each}
     </div>
   </div>

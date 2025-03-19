@@ -54,7 +54,6 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
   handleMessageDeletedSignalReceived: (
     key1: CellIdB64,
     actionHashB64: ActionHashB64,
-    deletionTimestamp: number,
   ) => Promise<void>;
 }
 
@@ -199,28 +198,15 @@ export function createConversationMessageStore(
       agents: agentPubKeys,
     });
 
-    const deletionStatus = await client.getDeleteStatus(
-      cellId,
-      decodeHashFromBase64(actionHashB64),
-    );
-
     messages.update((m) => ({
       ...m,
-      [key1]: {
-        ...m[key1],
-        [actionHashB64]: {
-          ...m[key1]?.[actionHashB64],
-          deletedAt: deletionStatus?.hashed.content.timestamp,
-        },
-      },
+      [key1]: Object.fromEntries(
+        Object.entries(m[key1]).filter(([key2]) => key2 !== actionHashB64),
+      ),
     }));
   }
 
-  async function handleMessageDeletedSignalReceived(
-    key1: CellIdB64,
-    actionHashB64: ActionHashB64,
-    deletionTimestamp: number,
-  ) {
+  async function handleMessageDeletedSignalReceived(key1: CellIdB64, actionHashB64: ActionHashB64) {
     const currentMessages = get(messages).data[key1];
     if (currentMessages[actionHashB64] === undefined) {
       return;
@@ -228,13 +214,9 @@ export function createConversationMessageStore(
 
     messages.update((m) => ({
       ...m,
-      [key1]: {
-        ...m[key1],
-        [actionHashB64]: {
-          ...m[key1]?.[actionHashB64],
-          deletedAt: deletionTimestamp,
-        },
-      },
+      [key1]: Object.fromEntries(
+        Object.entries(m[key1]).filter(([key2]) => key2 !== actionHashB64),
+      ),
     }));
   }
 
@@ -484,24 +466,13 @@ export function createConversationMessageStore(
     if (messageRecord.message === undefined)
       throw new Error("MessageRecord does not include message entry");
 
-    const deleteStatus = await client.getDeleteStatus(cellId, messageRecord.original_action);
-
     const baseMessage: MessageExtended = {
       message: messageRecord.message,
       authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
       timestamp: messageRecord.signed_action.hashed.content.timestamp,
-      deletedAt: deleteStatus?.hashed.content.timestamp,
     };
 
-    // Handle file downloads for non-deleted messages
-    if (!baseMessage.deletedAt && messageRecord.message.images.length > 0) {
-      const fileStorageClient = new FileStorageClient(
-        client.client,
-        "UNUSED ROLE NAME",
-        "file_storage",
-        cellId,
-      );
-
+    if (messageRecord.message.images.length > 0) {
       messageRecord.message.images.forEach((messageFile) =>
         fileStore.download(
           encodeCellIdToBase64(cellId),

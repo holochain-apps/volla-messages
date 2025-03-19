@@ -352,26 +352,12 @@ export class RelayClient {
    *
    */
 
-  public async deleteMessage(cellId: CellId, payload: DeleteMessageInput): Promise<ActionHash> {
+  public async deleteMessage(cellId: CellId, payload: DeleteMessageInput): Promise<Record> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: ZOME_NAME,
       fn_name: "delete_message",
       payload,
     });
-  }
-
-  public async getDeleteStatus(
-    cellId: CellId,
-    payload: ActionHash,
-  ): Promise<SignedActionHashed | undefined> {
-    const deletedAction: SignedActionHashed = await this.client.callZome({
-      cell_id: cellId,
-      zome_name: ZOME_NAME,
-      fn_name: "get_oldest_delete_for_message",
-      payload,
-    });
-
-    return deletedAction !== null ? deletedAction : undefined;
   }
 }
