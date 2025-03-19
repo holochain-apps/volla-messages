@@ -16,19 +16,18 @@
   }>("fileStore").getStore();
   let cellFileStore = deriveCellFileStore(fileStore, $page.params.id);
 
-  const actionHashB64 = getContext<ActionHashB64>("messageActionHash");
-
   export let message: MessageExtended;
+  export let actionHashB64: ActionHashB64;
 
   const dispatch = createEventDispatcher<{
-    delete: { messageHash: string };
+    delete: { messageActionHashB64: ActionHashB64 };
   }>();
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
   ).getMyPubKeyB64();
 
-  $: isMyMessage = message.authorAgentPubKeyB64 === myPubKeyB64;
+  $: iAmAuthor = message.authorAgentPubKeyB64 === myPubKeyB64;
 
   $: hasText = message.message.content.trim().length > 0;
   $: hasLoadedFiles = message.message.images.some(
@@ -36,10 +35,6 @@
       $cellFileStore.data[encodeHashToBase64(f.storage_entry_hash)] &&
       $cellFileStore.data[encodeHashToBase64(f.storage_entry_hash)].status === FileStatus.Loaded,
   );
-
-  function handleDelete() {
-    dispatch("delete", { messageHash: actionHashB64 });
-  }
 
   async function downloadFile(file: File) {
     try {
@@ -112,9 +107,9 @@
     </ButtonInline>
   {/if}
 
-  {#if isMyMessage}
+  {#if iAmAuthor}
     <ButtonInline
-      on:click={handleDelete}
+      on:click={() => dispatch("delete", { messageActionHashB64: actionHashB64 })}
       icon="delete"
       moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
       moreClasses="w-[30px]"

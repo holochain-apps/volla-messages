@@ -33,7 +33,7 @@
   "delete_contact_success": "Contact deleted successfully",
   "delete_contact_dialog_message": "Are you sure you want to delete this contact? This action cannot be undone.",
   "delete_message": "Delete Message",
-  "delete_message_error":"Error delete message",
+  "delete_message_error":"Error deleting message",
   "delete_message_success":"Message deleted successfully",
   "delete_message_dialog_message": "Are you sure you want to delete this message? Peers may still hold a copy of this message.",
   "download": "Download",

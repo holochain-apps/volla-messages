@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher, getContext, setContext } from "svelte";
+  import { getContext, setContext } from "svelte";
   import { Alignment, type CellIdB64, type MessageExtended } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
@@ -12,8 +12,7 @@
   import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
-  import { t } from "$translations";
-  import { formatHolochainTimestamp } from "$lib/utils";
+  import { formatTimestampMicros } from "$lib/utils";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
@@ -24,8 +23,6 @@
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
   export let actionHashB64: ActionHashB64;
-
-  setContext("messageActionHash", actionHashB64);
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
   $: isDeleted = message.deletedAt;
@@ -99,8 +96,8 @@
         role="button"
         tabindex="0"
       >
-        {#if isDeleted}
-          Message Deleted {formatHolochainTimestamp(message.deletedAt)}
+        {#if message.deletedAt !== undefined}
+          Message Deleted {formatTimestampMicros(message.deletedAt)}
         {:else}
           {@html DOMPurify.sanitize(
             linkifyStr(message.message.content, {
@@ -116,7 +113,7 @@
   </div>
 
   {#if isSelected && !isDeleted}
-    <MessageActions {message} on:unselect on:delete />
+    <MessageActions {message} {actionHashB64} on:unselect on:delete />
   {/if}
 </button>
 

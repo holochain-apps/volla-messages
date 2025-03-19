@@ -1,5 +1,4 @@
 import {
-  FileStatus,
   type CellIdB64,
   type LocalFile,
   type Message,
@@ -16,7 +15,6 @@ import {
   decodeHashFromBase64,
   encodeHashToBase64,
   type ActionHashB64,
-  type AgentPubKeyB64,
   type CellId,
 } from "@holochain/client";
 import { difference, flatten, range, sortBy, sum } from "lodash-es";
@@ -32,13 +30,9 @@ import {
 } from "./MergedProfileContactInviteStore";
 import type { RelayClient } from "./RelayClient";
 import { derived, get } from "svelte/store";
-import type {
-  GenericKeyValueStoreData,
-  GenericKeyValueStoreReadable,
-} from "./generic/GenericKeyValueStore";
+import type { GenericKeyValueStoreReadable } from "./generic/GenericKeyValueStore";
 import { TARGET_MESSAGES_COUNT } from "$config";
 import type { FileStore } from "./FileStore";
-import { formatHolochainTimestamp } from "$lib/utils";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
@@ -493,9 +487,8 @@ export function createConversationMessageStore(
     cellId: CellId,
     messageRecord: MessageRecord,
   ): Promise<MessageExtended> {
-    if (messageRecord.message === undefined) {
+    if (messageRecord.message === undefined)
       throw new Error("MessageRecord does not include message entry");
-    }
 
     const deleteStatus = await client.getDeleteStatus(cellId, messageRecord.original_action);
 

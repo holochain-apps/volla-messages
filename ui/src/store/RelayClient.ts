@@ -347,7 +347,7 @@ export class RelayClient {
   /**
    * Delete a message
    *
-   * Delete a message by its hash, and get the status of the deletion.
+   * Delete a message by its ActionHash, and get the status of the deletion.
    * Message is not actually deleted, but a delete action is created.
    *
    */
@@ -372,6 +372,6 @@ export class RelayClient {
       payload,
     });
 
-    return deletedAction || undefined;
+    return deletedAction !== null ? deletedAction : undefined;
   }
 }
