@@ -28,7 +28,7 @@
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
   import DialogConfirm from "$lib/DialogConfirm.svelte";
-  import ConversationHeader from "$lib/ConversationHeader.svelte";
+  import ConversationHeader from "./ConversationHeader.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
