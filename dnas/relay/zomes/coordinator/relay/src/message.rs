@@ -30,13 +30,16 @@ pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
         (),
     )?;
 
+    // Signal other agents that a message was created
+    let my_pub_key = agent_info()?.agent_initial_pubkey;
+    let agents = input.agents.into_iter().filter(|a| a != &my_pub_key).collect();
     let _ = send_remote_signal(
         MessageRecord {
             message: Some(input.message),
             original_action: message_hash.clone(),
             signed_action: record.signed_action().clone()
         },
-        input.agents,
+        agents,
     );
 
     debug!("create message all messages link: {:?}", link);
@@ -277,13 +280,16 @@ pub fn delete_message(input: DeleteMessageInput) -> ExternResult<ActionHash> {
         WasmErrorInner::Guest("Could not find the delete action".to_string())
     ))?;
 
+    // Signal other agents that a message was created
+    let my_pub_key = agent_info()?.agent_initial_pubkey;
+    let agents = input.agents.into_iter().filter(|a| a != &my_pub_key).collect();
     let _ = send_remote_signal(
         MessageRecord {
             message: None,
             original_action: input.original_message_hash,
             signed_action: delete_record.signed_action().clone(),
         },
-        input.agents,
+        agents,
     );
 
     Ok(delete_hash)

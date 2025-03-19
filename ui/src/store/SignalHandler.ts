@@ -22,8 +22,6 @@ export function createSignalHandler(
     const cellIdB64 = encodeCellIdToBase64(signal[SignalType.App].cell_id);
 
     if (payload.type === "Message") {
-      // Ignore signals for messages I sent
-      if (isEqual(payload.from, client.client.myPubKey)) return;
       await conversationMessageStore.handleMessageSignalReceived(
         cellIdB64,
         signal[SignalType.App].payload as MessageSignal,
