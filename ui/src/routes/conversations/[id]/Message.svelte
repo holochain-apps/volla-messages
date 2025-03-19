@@ -12,7 +12,6 @@
   import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
-  import { formatTimestampMicros } from "$lib/utils";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
