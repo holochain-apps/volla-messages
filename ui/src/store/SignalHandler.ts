@@ -1,4 +1,4 @@
-import { type AppSignal, SignalType } from "@holochain/client";
+import { encodeHashToBase64, type Signal, SignalType } from "@holochain/client";
 import { RelayClient } from "$store/RelayClient";
 import { type RelaySignal, type MessageSignal } from "$lib/types";
 import { encodeCellIdToBase64 } from "$lib/utils";
@@ -15,28 +15,27 @@ export function createSignalHandler(
 ) {
   client.client.on("signal", _handleSignalReceived);
 
-  async function _handleSignalReceived(signal: AppSignal) {
-    if ((signal.payload as RelaySignal).type !== "Message") return;
+  async function _handleSignalReceived(signal: Signal) {
+    if (!(SignalType.App in signal)) return;
 
-    // Ignore signals for messages I sent
-    if (isEqual((signal.payload as MessageSignal).from, client.client.myPubKey))
-      return;
+    const payload = signal[SignalType.App].payload as RelaySignal;
+    const cellIdB64 = encodeCellIdToBase64(signal[SignalType.App].cell_id);
 
-    // Save recieved message
-    const cellIdB64 = encodeCellIdToBase64(signal.cell_id);
-    await conversationMessageStore.handleMessageSignalReceived(
-      cellIdB64,
-      signal.payload as MessageSignal
-    );
-
-    // Mark conversation as unread
-    // Unless user is currently viewing the conversation page.
-    const $page = get(page);
-    if (
-      $page.params.id !== cellIdB64 ||
-      $page.route.id !== "/conversations/[id]"
-    ) {
-      await conversationStore.updateUnread(cellIdB64, true);
+    if (payload.type === "Message") {
+      await conversationMessageStore.handleMessageSignalReceived(
+        cellIdB64,
+        signal[SignalType.App].payload as MessageSignal,
+      );
+      // Mark conversation as unread
+      // Unless user is currently viewing the conversation page.
+      const $page = get(page);
+      if ($page.params.id !== cellIdB64 || $page.route.id !== "/conversations/[id]") {
+        await conversationStore.updateUnread(cellIdB64, true);
+      }
+    } else if (payload.type === "MessageDeleted") {
+      const originalActionHash = payload.original_action;
+      const originalActionHashB64 = encodeHashToBase64(originalActionHash);
+      conversationMessageStore.handleMessageDeletedSignalReceived(cellIdB64, originalActionHashB64);
     }
   }
 }

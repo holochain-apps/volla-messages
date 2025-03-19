@@ -11,6 +11,7 @@ import {
   type Record,
   type ClonedCell,
   type ProvisionedCell,
+  type SignedActionHashed,
 } from "@holochain/client";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import type {
@@ -26,6 +27,7 @@ import type {
   BucketInput,
   CreateConversationInput,
   SendMessageInput,
+  DeleteMessageInput,
 } from "$lib/types";
 import { ZOME_NAME, ROLE_NAME } from "$config";
 import { encodeCellIdToBase64 } from "$lib/utils";
@@ -359,6 +361,23 @@ export class RelayClient {
       zome_name: ZOME_NAME,
       fn_name: "delete_contact",
       payload: originalContactHash,
+    });
+  }
+
+  /**
+   * Delete a message
+   *
+   * Delete a message by its ActionHash, and get the status of the deletion.
+   * Message is not actually deleted, but a delete action is created.
+   *
+   */
+
+  public async deleteMessage(cellId: CellId, payload: DeleteMessageInput): Promise<Record> {
+    return this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "delete_message",
+      payload,
     });
   }
 }
