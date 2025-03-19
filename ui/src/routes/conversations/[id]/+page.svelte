@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type AgentPubKeyB64 } from "@holochain/client";
+  import { decodeHashFromBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
@@ -26,6 +26,8 @@
     type MergedProfileContactInviteJoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
+  import SvgIcon from "$lib/SvgIcon.svelte";
+  import DialogConfirm from "$lib/DialogConfirm.svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
@@ -63,7 +65,27 @@
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
 
+  let showDeleteDialog = false;
+  let deleteMessageActionHashB64: undefined | ActionHashB64 = undefined;
+  let isDeletingMessage = false;
+
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
+
+  async function handleDeleteMessage() {
+    if (deleteMessageActionHashB64 === undefined) return;
+
+    isDeletingMessage = true;
+    try {
+      await messages.deleteMessage($page.params.id, deleteMessageActionHashB64);
+      toast.success($t("common.delete_message_success"));
+    } catch (err) {
+      console.error(err);
+      toast.error($t("common.delete_message_error"));
+    }
+    isDeletingMessage = false;
+    showDeleteDialog = false;
+    deleteMessageActionHashB64 = undefined;
+  }
 
   /**
    * Fetch agent profiles every 2s, until at least 2 profiles are received.
@@ -218,10 +240,19 @@
       <ConversationHeader cellIdB64={$page.params.id} />
     {:else}
       <!-- Display conversation messages -->
+      {#if loadingMessagesOld}
+        <div class="flex items-center justify-center">
+          <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
+        </div>
+      {/if}
       <ConversationMessages
+        loadingTop={loadingMessagesOld}
         cellIdB64={$page.params.id}
         messages={$messages.list}
-        loadingTop={loadingMessagesOld}
+        on:delete={(e) => {
+          deleteMessageActionHashB64 = e.detail;
+          showDeleteDialog = true;
+        }}
         on:scrollAtTop={loadMessagesInPreviousBucket}
       />
     {/if}
@@ -234,3 +265,14 @@
   loading={sending}
   on:send={(e) => sendMessage(e.detail.text, e.detail.files)}
 />
+
+<DialogConfirm
+  bind:open={showDeleteDialog}
+  title={$t("common.delete_message")}
+  actionButtonLabel={$t("common.delete")}
+  actionButtonIcon="delete"
+  loading={isDeletingMessage}
+  on:confirm={handleDeleteMessage}
+>
+  <p>{$t("common.delete_message_dialog_message")}</p>
+</DialogConfirm>

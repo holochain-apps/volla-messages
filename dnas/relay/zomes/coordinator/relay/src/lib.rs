@@ -8,13 +8,34 @@ use relay_integrity::*;
 #[hdk_extern]
 fn recv_remote_signal(message_record: MessageRecord) -> ExternResult<()> {
     let info: CallInfo = call_info()?;
-    let message = message_record.message.unwrap();
-    let signal = Signal::Message {
-        action: message_record.signed_action.clone(),
-        message,
-        from: info.provenance,
+
+    let is_deletion = match message_record.signed_action.action() {
+        Action::Delete(_) => true,
+        _ => false,
     };
-    emit_signal(signal)
+
+    if is_deletion {
+        let signal = Signal::MessageDeleted {
+            action: message_record.signed_action.clone(),
+            original_action: message_record.original_action.clone(),
+            from: info.provenance,
+        };
+
+        debug!("recv_remote_signal: signal: {:?}", signal);
+
+        emit_signal(signal)
+    } else if let Some(message) = message_record.message {
+        let signal = Signal::Message {
+            action: message_record.signed_action.clone(),
+            message,
+            from: info.provenance,
+        };
+        emit_signal(signal)
+    } else {
+        Err(wasm_error!(WasmErrorInner::Guest(
+            "Invalid message record".to_string()
+        )))
+    }
 }
 
 #[hdk_extern]
@@ -33,20 +54,38 @@ pub fn init(_: ()) -> ExternResult<InitCallbackResult> {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum Signal {
-    Message { action: SignedActionHashed, message: Message, from: AgentPubKey },
-    LinkCreated { action: SignedActionHashed, link_type: LinkTypes },
+    Message {
+        action: SignedActionHashed,
+        message: Message,
+        from: AgentPubKey,
+    },
+    MessageDeleted {
+        action: SignedActionHashed,
+        original_action: ActionHash,
+        from: AgentPubKey,
+    },
+    LinkCreated {
+        action: SignedActionHashed,
+        link_type: LinkTypes,
+    },
     LinkDeleted {
         action: SignedActionHashed,
         create_link_action: SignedActionHashed,
         link_type: LinkTypes,
     },
-    EntryCreated { action: SignedActionHashed, app_entry: EntryTypes },
+    EntryCreated {
+        action: SignedActionHashed,
+        app_entry: EntryTypes,
+    },
     EntryUpdated {
         action: SignedActionHashed,
         app_entry: EntryTypes,
         original_app_entry: EntryTypes,
     },
-    EntryDeleted { action: SignedActionHashed, original_app_entry: EntryTypes },
+    EntryDeleted {
+        action: SignedActionHashed,
+        original_app_entry: EntryTypes,
+    },
 }
 #[hdk_extern(infallible)]
 pub fn post_commit(committed_actions: Vec<SignedActionHashed>) {
@@ -211,3 +250,4 @@ pub fn get_membrane_proof(agent: AgentPubKey) -> ExternResult<Option<MembranePro
         }
     }
 }
+
