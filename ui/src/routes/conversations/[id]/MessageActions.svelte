@@ -20,7 +20,7 @@
   export let actionHashB64: ActionHashB64;
 
   const dispatch = createEventDispatcher<{
-    delete: { messageActionHashB64: ActionHashB64 };
+    delete: ActionHashB64;
   }>();
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -109,7 +109,7 @@
 
   {#if iAmAuthor}
     <ButtonInline
-      on:click={() => dispatch("delete", { messageActionHashB64: actionHashB64 })}
+      on:click={() => dispatch("delete", actionHashB64)}
       icon="delete"
       moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
       moreClasses="w-[30px]"

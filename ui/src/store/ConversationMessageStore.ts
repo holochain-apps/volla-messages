@@ -124,12 +124,6 @@ export function createConversationMessageStore(
 
   async function sendMessage(key1: CellIdB64, content: string, files: LocalFile[]) {
     const cellId = decodeCellIdFromBase64(key1);
-    const fileStorageClient = new FileStorageClient(
-      client.client,
-      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
-      "file_storage",
-      cellId,
-    );
     const messageFiles = await Promise.all(
       files.map(async (file) => {
         const entryHash = await fileStore.upload(key1, file.file);

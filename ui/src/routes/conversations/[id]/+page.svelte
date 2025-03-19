@@ -64,11 +64,11 @@
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
 
-  $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
-
   let showDeleteDialog = false;
   let deleteMessageActionHashB64: undefined | ActionHashB64 = undefined;
   let isDeletingMessage = false;
+
+  $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
 
   async function handleDeleteMessage() {
     if (deleteMessageActionHashB64 === undefined) return;
@@ -249,7 +249,7 @@
         cellIdB64={$page.params.id}
         messages={$messages.list}
         on:delete={(e) => {
-          deleteMessageActionHashB64 = e.detail.messageActionHashB64;
+          deleteMessageActionHashB64 = e.detail;
           showDeleteDialog = true;
         }}
         on:scrollAtTop={loadMessagesInPreviousBucket}
