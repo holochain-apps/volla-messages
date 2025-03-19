@@ -198,12 +198,14 @@ export function createConversationMessageStore(
       agents: agentPubKeys,
     });
 
-    messages.update((m) => ({
-      ...m,
-      [key1]: Object.fromEntries(
-        Object.entries(m[key1]).filter(([key2]) => key2 !== actionHashB64),
-      ),
-    }));
+    messages.update((m) => {
+      const k = { ...m[key1] };
+      delete k[actionHashB64];
+      return {
+        ...m,
+        [key1]: k,
+      };
+    });
   }
 
   async function handleMessageDeletedSignalReceived(key1: CellIdB64, actionHashB64: ActionHashB64) {
@@ -212,12 +214,14 @@ export function createConversationMessageStore(
       return;
     }
 
-    messages.update((m) => ({
-      ...m,
-      [key1]: Object.fromEntries(
-        Object.entries(m[key1]).filter(([key2]) => key2 !== actionHashB64),
-      ),
-    }));
+    messages.update((m) => {
+      const k = { ...m[key1] };
+      delete k[actionHashB64];
+      return {
+        ...m,
+        [key1]: k,
+      };
+    });
   }
 
   /**
