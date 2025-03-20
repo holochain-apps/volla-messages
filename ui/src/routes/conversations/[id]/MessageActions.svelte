@@ -8,15 +8,26 @@
   import { downloadDir } from "@tauri-apps/api/path";
   import toast from "svelte-french-toast";
   import { deriveCellFileStore, type FileStore } from "$store/FileStore";
-  import { getContext } from "svelte";
+  import { createEventDispatcher, getContext } from "svelte";
   import { page } from "$app/stores";
-  import { encodeHashToBase64 } from "@holochain/client";
+  import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   const fileStore = getContext<{
     getStore: () => FileStore;
   }>("fileStore").getStore();
   let cellFileStore = deriveCellFileStore(fileStore, $page.params.id);
 
   export let message: MessageExtended;
+  export let actionHashB64: ActionHashB64;
+
+  const dispatch = createEventDispatcher<{
+    delete: ActionHashB64;
+  }>();
+
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
+    "myPubKey",
+  ).getMyPubKeyB64();
+
+  $: iAmAuthor = message.authorAgentPubKeyB64 === myPubKeyB64;
 
   $: hasText = message.message.content.trim().length > 0;
   $: hasLoadedFiles = message.message.images.some(
@@ -93,6 +104,17 @@
       moreClasses="w-[30px]"
     >
       <span class="text-xs md:text-sm">{$t("common.download")}</span>
+    </ButtonInline>
+  {/if}
+
+  {#if iAmAuthor}
+    <ButtonInline
+      on:click={() => dispatch("delete", actionHashB64)}
+      icon="delete"
+      moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
+      moreClasses="w-[30px]"
+    >
+      <span class="text-xs md:text-sm">{$t("common.delete")}</span>
     </ButtonInline>
   {/if}
 </div>

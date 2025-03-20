@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext } from "svelte";
+  import { getContext, setContext } from "svelte";
   import { Alignment, type CellIdB64, type MessageExtended } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
@@ -9,7 +9,7 @@
   import linkifyStr from "linkify-string";
   import { clickoutside } from "@svelte-put/clickoutside";
   import MessageFilePreview from "./MessageFilePreview.svelte";
-  import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
+  import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
 
@@ -21,6 +21,7 @@
   export let cellIdB64: CellIdB64;
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
+  export let actionHashB64: ActionHashB64;
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
 
@@ -88,6 +89,9 @@
       <div
         class="message w-full break-words font-light {fromMe && 'text-end'}"
         on:click={handleMessageContentClick}
+        on:keydown={(e) => e.key === "Enter" && handleMessageContentClick(e)}
+        role="button"
+        tabindex="0"
       >
         {@html DOMPurify.sanitize(
           linkifyStr(message.message.content, {
@@ -102,7 +106,7 @@
   </div>
 
   {#if isSelected}
-    <MessageActions {message} on:unselect />
+    <MessageActions {message} {actionHashB64} on:unselect on:delete />
   {/if}
 </button>
 
