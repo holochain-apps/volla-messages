@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix: Avoid rendering too many messages at once within a conversation, which could cause the app to crash.
 - Fix: Remove bottom loading spinner from message list when scrolling, and implement concurrent message loading.
 - Fix: Empty conversations with multiple peers display first message properly, without needing to reload after message is sent.
+- Feat: Users can delete the message they had sent by clicking "Delete".
 
 ## [0.7.5] - 2025-01-10
 
