@@ -4,7 +4,7 @@ All notable changes to Volla Messages will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.7.6] - 2025-03-21
 
 - Fix: Display "unconfirmed" label for contacts that have not yet joined their private conversation.
 - Fix: In public converastion invitations, use the cell name as the conversation title when convesation config is not available.

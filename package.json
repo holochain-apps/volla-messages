@@ -1,8 +1,10 @@
 {
   "name": "volla_messages",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "private": true,
-  "workspaces": ["ui"],
+  "workspaces": [
+    "ui"
+  ],
   "scripts": {
     "start": "npm run build:happ && AGENTS=2 npm run network",
     "spin": "npm run build:happ && AGENTS=2 npm run spin-network",
