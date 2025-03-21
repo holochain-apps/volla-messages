@@ -276,5 +276,3 @@
 >
   <p>{$t("common.delete_message_dialog_message")}</p>
 </DialogConfirm>
-
-
