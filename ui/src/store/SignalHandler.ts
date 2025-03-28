@@ -1,4 +1,4 @@
-import { encodeHashToBase64, type Signal, SignalType } from "@holochain/client";
+import { encodeHashToBase64, type AppSignal } from "@holochain/client";
 import { RelayClient } from "$store/RelayClient";
 import { type RelaySignal, type MessageSignal } from "$lib/types";
 import { encodeCellIdToBase64 } from "$lib/utils";
@@ -15,16 +15,15 @@ export function createSignalHandler(
 ) {
   client.client.on("signal", _handleSignalReceived);
 
-  async function _handleSignalReceived(signal: Signal) {
-    if (!(SignalType.App in signal)) return;
+  async function _handleSignalReceived(signal: AppSignal) {
 
-    const payload = signal[SignalType.App].payload as RelaySignal;
-    const cellIdB64 = encodeCellIdToBase64(signal[SignalType.App].cell_id);
+    const payload = signal.payload as RelaySignal;
+    const cellIdB64 = encodeCellIdToBase64(signal.cell_id);
 
     if (payload.type === "Message") {
       await conversationMessageStore.handleMessageSignalReceived(
         cellIdB64,
-        signal[SignalType.App].payload as MessageSignal,
+        signal.payload as MessageSignal,
       );
       // Mark conversation as unread
       // Unless user is currently viewing the conversation page.
