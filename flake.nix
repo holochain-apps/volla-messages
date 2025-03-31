@@ -8,7 +8,7 @@
     flake-parts.follows = "holonix/flake-parts";
     rust-overlay.follows = "holonix/rust-overlay";
 
-    p2p-shipyard.url = "github:darksoil-studio/p2p-shipyard";
+    p2p-shipyard.url = "github:darksoil-studio/p2p-shipyard/main-0.3";
   };
 
   outputs = inputs:
