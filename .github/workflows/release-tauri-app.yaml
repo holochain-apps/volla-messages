@@ -118,11 +118,11 @@ jobs:
 
       - name: Build android AAB
         run: |
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --aab --target aarch64 --target i686 --target x86_64"
+          nix develop .#androidDev --command bash -c "npm run tauri android build -- --aab --target aarch64 --target i686 --target x86_64"
 
       - name: Build android APKs
         run: |
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64"
+          nix develop .#androidDev --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --target i686 --target x86_64"
 
       - uses: AButler/upload-release-assets@v3.0
         with:
