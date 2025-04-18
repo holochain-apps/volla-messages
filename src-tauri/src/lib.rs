@@ -20,6 +20,7 @@ pub fn happ_bundle() -> anyhow::Result<AppBundle> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+eprintln!("[DEBUG] Setting up pub fn run");
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
@@ -42,6 +43,7 @@ pub fn run() {
     }
     builder
         .setup(|app| {
+            eprintln!("[DEBUG] Starting application setup");
             let handle = app.handle().clone();
             let handle_fail: AppHandle = app.handle().clone();
             app.handle()
@@ -50,6 +52,7 @@ pub fn run() {
                 });
             app.handle()
                 .listen("holochain://setup-completed", move |_event| {
+                eprintln!("[DEBUG] Holochain setup completed event received");
                     let handle = handle.clone();
                     tauri::async_runtime::spawn(async move {
                         setup(handle.clone()).await.expect("Failed to setup");
@@ -88,6 +91,7 @@ pub fn run() {
                             .expect("Failed to initiailze tauri_plugin_barcode_scanner");
                     });
                 });
+                eprintln!("[DEBUG] Setup listeners registered successfully");
 
             Ok(())
         })
@@ -105,18 +109,19 @@ pub fn run() {
 // You can modify this function to suit your needs if they become more complex
 async fn setup(handle: AppHandle) -> anyhow::Result<()> {
     let admin_ws = handle.holochain()?.admin_websocket().await?;
-
+    eprintln!("[DEBUG] let installed_apps = admin_ws " );
     let installed_apps = admin_ws
         .list_apps(None)
         .await
         .map_err(|err| tauri_plugin_holochain::Error::ConductorApiError(err))?;
-
+ eprintln!("[DEBUG] let installed_apps = admin_ws  DONE" );
     if installed_apps.len() == 0 {
         // we do this because we don't want to join everybody into the same dht!
         let random_seed = format!(
             "{}",
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros()
         );
+         eprintln!("[DEBUG] if installed_apps " );
         handle
             .holochain()?
             .install_app(
@@ -127,11 +132,14 @@ async fn setup(handle: AppHandle) -> anyhow::Result<()> {
                 Some(random_seed),
             )
             .await?;
+             eprintln!("[DEBUG] if installed_apps .awate completed" );
     } else {
+     eprintln!("[DEBUG] DEBUG] if installed_apps  esle " );
         handle
             .holochain()?
             .update_app_if_necessary(String::from(APP_ID), happ_bundle()?)
             .await?;
+             eprintln!("[DEBUG] DEBUG] if installed_apps  esle Done " );
     }
     Ok(())
 }
