@@ -7,6 +7,7 @@ import {
   type MessageRecord,
   type MessageSignal,
   type ProfileExtended,
+  type MessageCache,
 } from "$lib/types";
 import { encodeCellIdToBase64, decodeCellIdFromBase64, enqueueNotification } from "$lib/utils";
 import { FileStorageClient } from "@holochain-open-dev/file-storage";
@@ -33,6 +34,8 @@ import { derived, get } from "svelte/store";
 import type { GenericKeyValueStoreReadable } from "./generic/GenericKeyValueStore";
 import { TARGET_MESSAGES_COUNT } from "$config";
 import type { FileStore } from "./FileStore";
+import { persisted } from "./generic/GenericPersistedStore";
+import { CACHE_EXPIRY_MS, CACHE_KEY, CACHE_VERSION } from "$config";
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
@@ -55,6 +58,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
     key1: CellIdB64,
     actionHashB64: ActionHashB64,
   ) => Promise<void>;
+  clearCache: () => void;
 }
 
 export function createConversationMessageStore(
@@ -64,6 +68,14 @@ export function createConversationMessageStore(
   fileStore: FileStore,
 ): ConversationMessageStore {
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
+
+  const messageCache = persisted<MessageCache>(CACHE_KEY, {
+    metadata: {
+      version: CACHE_VERSION,
+      lastUpdated: Date.now(),
+    },
+    cells: {},
+  });
 
   // Filter out messages by agents who do not have a Contact nor Profile
   const { subscribe } = derived(
@@ -92,6 +104,65 @@ export function createConversationMessageStore(
     },
   );
 
+  function isCacheValid(): boolean {
+    const cache = get(messageCache);
+    if (!cache || !cache.metadata) return false;
+    return cache.metadata.version === CACHE_VERSION && (Date.now() - cache.metadata.lastUpdated) < CACHE_EXPIRY_MS;
+  }
+
+  function updateCache(cellIdB64: CellIdB64, messagesData?: Record<ActionHashB64, MessageExtended>) {
+    messageCache.update((cache) => {
+      const updatedCache = { ...cache };
+
+      updatedCache.metadata = {
+        version: CACHE_VERSION,
+        lastUpdated: Date.now(),
+      };
+
+      if (messagesData) {
+        updatedCache.cells = {
+          ...updatedCache.cells,
+          [cellIdB64]: {
+            ...(updatedCache.cells[cellIdB64] || {}),
+            ...messagesData,
+          },
+        };
+      }
+      return updatedCache;
+    });
+  }
+
+  function removeCache(cellIdB64: CellIdB64, actionHashB64: ActionHashB64) {
+    messageCache.update((cache) => {
+      if(!cache.cells[cellIdB64] || !cache.cells[cellIdB64][actionHashB64]) return cache;
+
+      const updatedCellMessages = { ...cache.cells[cellIdB64] };
+      delete updatedCellMessages[actionHashB64];
+
+      return {
+        ...cache,
+        metadata: {
+          ...cache.metadata,
+          lastUpdated: Date.now(),
+        },
+        cells: {
+          ...cache.cells,
+          [cellIdB64]: updatedCellMessages,
+        },
+      };
+    });
+  }
+
+  function clearCache() {
+    messageCache.set({
+      metadata: {
+        version: CACHE_VERSION,
+        lastUpdated: Date.now(),
+      },
+      cells: {},
+    });
+  }
+
   async function initialize() {
     const cellInfos = await client.getRelayClonedCellInfos();
 
@@ -108,6 +179,21 @@ export function createConversationMessageStore(
         .filter((p) => p.status === "fulfilled")
         .map((p) => p.value),
     );
+    
+    if (isCacheValid()) {
+      console.log("Loading messages from cache");
+      const cache = get(messageCache);
+
+      for (const cellIdB64 in Object.keys(messages)) {
+        if (cache.cells[cellIdB64]) {
+          messagesData[cellIdB64] = cache.cells[cellIdB64];
+        }
+      }
+    } else {
+      console.log("Cache is invalid, clearing cache");
+      clearCache();
+    }
+
     messages.set(messagesData);
 
     // Load a target count of 1 message, starting at current bucket
@@ -172,6 +258,10 @@ export function createConversationMessageStore(
         [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
       },
     }));
+
+    updateCache(key1, {
+      [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
+    });
   }
 
   /**
@@ -206,6 +296,8 @@ export function createConversationMessageStore(
         [key1]: k,
       };
     });
+
+    removeCache(key1, actionHashB64);
   }
 
   async function handleMessageDeletedSignalReceived(key1: CellIdB64, actionHashB64: ActionHashB64) {
@@ -292,6 +384,10 @@ export function createConversationMessageStore(
         [encodeHashToBase64(signal.action.hashed.hash)]: messageExtended,
       },
     }));
+
+    updateCache(key1, {
+      [encodeHashToBase64(signal.action.hashed.hash)]: messageExtended,
+    });
 
     // Get Profile of Message author
     const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
@@ -447,6 +543,7 @@ export function createConversationMessageStore(
       },
     }));
 
+    updateCache(key1, data);
     return count;
   }
 
@@ -498,6 +595,7 @@ export function createConversationMessageStore(
     subscribe,
     deleteMessage,
     handleMessageDeletedSignalReceived,
+    clearCache,
   };
 }
 
