@@ -12,6 +12,7 @@ import type {
   DeleteLink,
   MembraneProof,
   ClonedCell,
+  ActionHashB64,
 } from "@holochain/client";
 
 /**
@@ -265,4 +266,14 @@ export enum FileStatus {
 export interface FileExtended {
   file?: File;
   status: FileStatus;
+}
+
+export interface MessageCacheMetadata {
+  version: string;
+  lastUpdated: number;
+}
+
+export interface MessageCache {
+  metadata: MessageCacheMetadata;
+  cells: Record<CellIdB64, Record<ActionHashB64, MessageExtended>>;
 }
