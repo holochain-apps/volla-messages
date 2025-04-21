@@ -27,3 +27,8 @@ export const ZOME_NAME = "relay";
 // Polling intervals, used on conversations page
 export const POLLING_INTERVAL_SLOW = 30 * 1000;
 export const POLLING_INTERVAL_FAST = 2 * 1000;
+
+// Cache
+export const CACHE_KEY = "message_store_cache";
+export const CACHE_VERSION = "1";
+export const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 1 day
