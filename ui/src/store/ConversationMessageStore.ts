@@ -1,5 +1,4 @@
 import {
-  FileStatus,
   type CellIdB64,
   type LocalFile,
   type Message,
@@ -50,7 +49,12 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
     maxBucketsToFetch?: number,
   ) => Promise<number>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
+  deleteMessage: (key1: CellIdB64, messageContent: string) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
+  handleMessageDeletedSignalReceived: (
+    key1: CellIdB64,
+    actionHashB64: ActionHashB64,
+  ) => Promise<void>;
 }
 
 export function createConversationMessageStore(
@@ -119,12 +123,6 @@ export function createConversationMessageStore(
 
   async function sendMessage(key1: CellIdB64, content: string, files: LocalFile[]) {
     const cellId = decodeCellIdFromBase64(key1);
-    const fileStorageClient = new FileStorageClient(
-      client.client,
-      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
-      "file_storage",
-      cellId,
-    );
     const messageFiles = await Promise.all(
       files.map(async (file) => {
         const entryHash = await fileStore.upload(key1, file.file);
@@ -174,6 +172,56 @@ export function createConversationMessageStore(
         [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
       },
     }));
+  }
+
+  /**
+   * Delete Message
+   * and mark it as deleted in the store.
+   *
+   * @param key1 CellIdB64
+   * @param actionHashB64 ActionHashB64
+   * @returns
+   */
+
+  async function deleteMessage(key1: CellIdB64, actionHashB64: ActionHashB64): Promise<void> {
+    const cellId = decodeCellIdFromBase64(key1);
+
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
+      mergedProfileContactInviteStore,
+      key1,
+      encodeHashToBase64(client.client.myPubKey),
+    );
+    const agentPubKeys = get(mergedProfileContact).list.map(([a]) => decodeHashFromBase64(a));
+
+    await client.deleteMessage(cellId, {
+      original_message_hash: decodeHashFromBase64(actionHashB64),
+      agents: agentPubKeys,
+    });
+
+    messages.update((m) => {
+      const k = { ...m[key1] };
+      delete k[actionHashB64];
+      return {
+        ...m,
+        [key1]: k,
+      };
+    });
+  }
+
+  async function handleMessageDeletedSignalReceived(key1: CellIdB64, actionHashB64: ActionHashB64) {
+    const currentMessages = get(messages).data[key1];
+    if (currentMessages[actionHashB64] === undefined) {
+      return;
+    }
+
+    messages.update((m) => {
+      const k = { ...m[key1] };
+      delete k[actionHashB64];
+      return {
+        ...m,
+        [key1]: k,
+      };
+    });
   }
 
   /**
@@ -422,25 +470,22 @@ export function createConversationMessageStore(
     if (messageRecord.message === undefined)
       throw new Error("MessageRecord does not include message entry");
 
-    const fileStorageClient = new FileStorageClient(
-      client.client,
-      "UNUSED ROLE NAME", // this is not used when cellId is specified, but the FileStorageClient still requires the parameter
-      "file_storage",
-      cellId,
-    );
-
-    messageRecord.message.images.forEach((messageFile) =>
-      fileStore.download(
-        encodeCellIdToBase64(cellId),
-        encodeHashToBase64(messageFile.storage_entry_hash),
-      ),
-    );
-
-    return {
+    const baseMessage: MessageExtended = {
       message: messageRecord.message,
       authorAgentPubKeyB64: encodeHashToBase64(messageRecord.signed_action.hashed.content.author),
       timestamp: messageRecord.signed_action.hashed.content.timestamp,
     };
+
+    if (messageRecord.message.images.length > 0) {
+      messageRecord.message.images.forEach((messageFile) =>
+        fileStore.download(
+          encodeCellIdToBase64(cellId),
+          encodeHashToBase64(messageFile.storage_entry_hash),
+        ),
+      );
+    }
+
+    return baseMessage;
   }
 
   return {
@@ -451,6 +496,8 @@ export function createConversationMessageStore(
     sendMessage,
     handleMessageSignalReceived,
     subscribe,
+    deleteMessage,
+    handleMessageDeletedSignalReceived,
   };
 }
 
@@ -505,5 +552,7 @@ export function deriveCellConversationMessageStore(
       conversationMessageStore.sendMessage(key, content, files),
     handleMessageSignalReceived: (signal: MessageSignal) =>
       conversationMessageStore.handleMessageSignalReceived(key, signal),
+    deleteMessage: (key1: CellIdB64, actionHashB64: ActionHashB64) =>
+      conversationMessageStore.deleteMessage(key1, actionHashB64),
   };
 }

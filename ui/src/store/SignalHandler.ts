@@ -1,4 +1,5 @@
 import { encodeHashToBase64, type Signal, SignalType } from "@holochain/client";
+import { encodeHashToBase64, type Signal, SignalType } from "@holochain/client";
 import { RelayClient } from "$store/RelayClient";
 import { 
   type RelaySignal, 
@@ -46,6 +47,11 @@ export function createSignalHandler(
           await conversationStore.updateUnread(cellIdB64, true);
         }
         break;
+
+      case "MessageDeleted":
+        const originalActionHash = (signal[SignalType.App].payload as MessageSignal).original_action;
+        const originalActionHashB64 = encodeHashToBase64(originalActionHash);
+        conversationMessageStore.handleMessageDeletedSignalReceived(cellIdB64, originalActionHashB64);
 
       case "ConferenceInvite":
       case "ConferenceJoined":

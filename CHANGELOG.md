@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.7.6] - 2025-03-21
+
 - Fix: Display "unconfirmed" label for contacts that have not yet joined their private conversation.
 - Fix: In public converastion invitations, use the cell name as the conversation title when convesation config is not available.
 - Fix: Open external links in message content in system default browser or mail client.
@@ -14,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feat: CI builds a "rich" and "lite" version of the android app, where the "rich" version uses feature `holochain_bundled`, and the "lite" version uses feature `holochain_service`.
 - Fix: Use uuid network seed for provisioned cell, instead of system timestamp.
 - Fix: Ensure all npm scripts running the app in dev mode enable one of the required features `holochain_bundled`, and `holochain_service`.
+- Feat: CI now builds `.aab` files needed for Google Play Store release, generating two variants (`rich` and `lite`) analogous to APK builds.
+- Feat: Virtual Scrolling of messages in conversations page, to ensure smooth scrolling of a large collection of already-loaded messages.
+- Fix: Avoid rendering too many messages at once within a conversation, which could cause the app to crash.
+- Fix: Remove bottom loading spinner from message list when scrolling, and implement concurrent message loading.
+- Fix: Empty conversations with multiple peers display first message properly, without needing to reload after message is sent.
+- Feat: Users can delete the message they had sent by clicking "Delete".
 
 ## [0.7.5] - 2025-01-10
 

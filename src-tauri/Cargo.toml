@@ -1,6 +1,6 @@
 [package]
 name = "volla_messages"
-version = "0.7.5"
+version = "0.7.6"
 description = "Volla Messages"
 authors = ["Tibet Sprague", "Eric Harris-Braun"]
 license = ""
@@ -18,7 +18,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.3", default-features = false , features = [] }
 
 [dependencies]
-tauri = "2.2.2"
+tauri = { version = "2.2.2", features = [] }
 tauri-runtime = {version = "2.2.2", optional = true}
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/p2p-shipyard", branch = "main-0.4", optional = true }
 tauri-plugin-holochain-service-consumer = { git = "https://github.com/mattyg/p2p-shipyard", branch = "feat/foreground-service", optional = true }
