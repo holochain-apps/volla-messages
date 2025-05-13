@@ -1,18 +1,16 @@
 use crate::config::{APP_ID, HAPP_BUNDLE_BYTES};
 use holochain_types::prelude::AppBundle;
-use lair_keystore::dependencies::sodoken::{BufRead, BufWrite};
 use std::path::PathBuf;
 use tauri::{AppHandle, Builder, EventLoopMessage, Listener, Manager, Runtime};
-use tauri_plugin_holochain::{
-    GossipArcClamp, HolochainExt, HolochainPluginConfig, WANNetworkConfig,
-};
+use tauri_plugin_holochain::{HolochainExt, HolochainPluginConfig, vec_to_locked};
+use tauri_plugin_holochain::NetworkConfig;
 use uuid::Uuid;
+use serde_json::json;
 
-const SIGNAL_URL: &'static str = "wss://sbd.holo.host";
-const BOOTSTRAP_URL: &'static str = "https://bootstrap-0.infra.holochain.org";
+const SIGNAL_URL: &'static str = "wss://dev-test-bootstrap2.holochain.org/";
+const BOOTSTRAP_URL: &'static str = "https://dev-test-bootstrap2.holochain.org/";
 static ICE_URLS: &'static [&str] = &[
-    "stun:stun-0.main.infra.holo.host:443",
-    "stun:stun-1.main.infra.holo.host:443",
+    "stun://stun.l.google.com:19302"
 ];
 
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
@@ -28,9 +26,8 @@ where
 {
     builder
         .plugin(tauri_plugin_holochain::async_init(
-            vec_to_locked(vec![]).expect("Can't build passphrase"),
-            HolochainPluginConfig::new(holochain_dir(), wan_network_config())
-                .gossip_arc_clamp(GossipArcClamp::Full),
+            vec_to_locked(vec![]),
+            HolochainPluginConfig::new(holochain_dir(), network_config())
         ))
         .setup(|app| {
             let handle = app.handle().clone();
@@ -127,17 +124,12 @@ async fn setup<R: Runtime>(handle: AppHandle<R>) -> anyhow::Result<()> {
     }
     Ok(())
 }
-fn wan_network_config() -> Option<WANNetworkConfig> {
-    // Resolved at compile time to be able to point to local services
-    if tauri::is_dev() {
-        None
-    } else {
-        Some(WANNetworkConfig {
-            signal_url: url2::url2!("{}", SIGNAL_URL),
-            bootstrap_url: url2::url2!("{}", BOOTSTRAP_URL),
-            ice_servers_urls: ICE_URLS.into_iter().map(|v| url2::url2!("{}", v)).collect(),
-        })
-    }
+fn network_config() -> NetworkConfig {
+    let mut config = NetworkConfig::default();
+    config.signal_url = url2::url2!("{}", SIGNAL_URL);
+    config.bootstrap_url = url2::url2!("{}", BOOTSTRAP_URL);
+    config.webrtc_config = Some(json!({ "iceServers": [ { "urls": ICE_URLS }]}));
+    config
 }
 fn holochain_dir() -> PathBuf {
     if tauri::is_dev() {
@@ -173,22 +165,6 @@ fn holochain_dir() -> PathBuf {
         .expect("Could not get app root")
         .join("holochain")
         .join(get_version())
-    }
-}
-fn vec_to_locked(mut pass_tmp: Vec<u8>) -> std::io::Result<BufRead> {
-    match BufWrite::new_mem_locked(pass_tmp.len()) {
-        Err(e) => {
-            pass_tmp.fill(0);
-            Err(e.into())
-        }
-        Ok(p) => {
-            {
-                let mut lock = p.write_lock();
-                lock.copy_from_slice(&pass_tmp);
-                pass_tmp.fill(0);
-            }
-            Ok(p.to_read())
-        }
     }
 }
 

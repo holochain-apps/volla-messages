@@ -5043,6 +5043,91 @@
           "const": "fs:write-files"
         },
         {
+          "description": "Default permissions for the plugin",
+          "type": "string",
+          "const": "holochain:default"
+        },
+        {
+          "description": "Enables the get_locales command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-get-locales"
+        },
+        {
+          "description": "Enables the get_runtime_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-get-runtime-info"
+        },
+        {
+          "description": "Enables the install_web_app command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-install-web-app"
+        },
+        {
+          "description": "Enables the is_holochain_ready command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-is-holochain-ready"
+        },
+        {
+          "description": "Enables the list_apps command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-list-apps"
+        },
+        {
+          "description": "Enables the open_app command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-open-app"
+        },
+        {
+          "description": "Enables the sign_zome_call command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-sign-zome-call"
+        },
+        {
+          "description": "Enables the uninstall_web_app command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:allow-uninstall-web-app"
+        },
+        {
+          "description": "Denies the get_locales command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-get-locales"
+        },
+        {
+          "description": "Denies the get_runtime_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-get-runtime-info"
+        },
+        {
+          "description": "Denies the install_web_app command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-install-web-app"
+        },
+        {
+          "description": "Denies the is_holochain_ready command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-is-holochain-ready"
+        },
+        {
+          "description": "Denies the list_apps command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-list-apps"
+        },
+        {
+          "description": "Denies the open_app command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-open-app"
+        },
+        {
+          "description": "Denies the sign_zome_call command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-sign-zome-call"
+        },
+        {
+          "description": "Denies the uninstall_web_app command without any pre-configured scope.",
+          "type": "string",
+          "const": "holochain:deny-uninstall-web-app"
+        },
+        {
           "description": "Allows the log command",
           "type": "string",
           "const": "log:default"
