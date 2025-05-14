@@ -15,11 +15,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2.0.3", default-features = false , features = [] }
+tauri-build = { version = "2.2.0", default-features = false , features = [] }
 
 [dependencies]
-tauri = { version = "2.2.2", features = [] }
-tauri-runtime = {version = "2.2.2", optional = true}
+tauri = { version = "2.5.1", features = [] }
+tauri-runtime = {version = "2.6.0", optional = true}
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/p2p-shipyard", branch = "main-0.5", optional = true }
 tauri-plugin-holochain-service-consumer = { git = "https://github.com/mattyg/p2p-shipyard", branch = "feat/foreground-service", optional = true }
 
@@ -28,15 +28,15 @@ lair_keystore = "0.6.1"
 holochain_client = "0.7.0"
 
 log = "0.4"
-tauri-plugin-log = "2.0.2"
-tauri-plugin-notification = "2.0.1"
-tauri-plugin-clipboard-manager = "2.0.2"
+tauri-plugin-log = "2.4.0"
+tauri-plugin-notification = "2.2.2"
+tauri-plugin-clipboard-manager = "2.2.2"
 tauri-plugin-sharesheet = "0.0.1"
-tauri-plugin-shell = "2.0.0"
-tauri-plugin-barcode-scanner = "2.0.0"
-tauri-plugin-os = "2.0.0"
-tauri-plugin-fs = "2.1.1"
-tauri-plugin-dialog = "2.2.0"
+tauri-plugin-shell = "2.2.1"
+tauri-plugin-barcode-scanner = "2.2.0"
+tauri-plugin-os = "2.2.1"
+tauri-plugin-fs = "2.2.1"
+tauri-plugin-dialog = "2.2.1"
 url2 = "0.0.6"
 app_dirs2 = "2.5.5"
 tempdir = "0.3.7"
