@@ -128,8 +128,6 @@ pub fn get_latest_message(
     let latest_link = links
         .into_iter()
         .max_by(|link_a, link_b| link_a.timestamp.cmp(&link_b.timestamp));
-
-    debug!("latest_link {:?}", latest_link);
     let latest_message_hash = match latest_link {
         Some(link) => {
             link.target
