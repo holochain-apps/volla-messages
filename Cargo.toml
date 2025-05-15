@@ -24,7 +24,6 @@ hc_zome_file_storage_coordinator = { git = "https://github.com/holochain-open-de
 
 serde = "1.0"
 
-
 [workspace.dependencies.file_storage]
 path = "dnas/relay/zomes/coordinator/file_storage"
 
