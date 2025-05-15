@@ -9,7 +9,6 @@ import {
   type ProfileExtended,
 } from "$lib/types";
 import { encodeCellIdToBase64, decodeCellIdFromBase64, enqueueNotification } from "$lib/utils";
-import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import {
   decodeHashFromBase64,

@@ -109,8 +109,8 @@ export class RelayClient {
     const appInfo = await this.client.appInfo();
     if (!appInfo) throw new Error("Failed to get appInfo");
 
-    return appInfo.cell_info[ROLE_NAME].filter((c) => CellType.Cloned in c).map(
-      (c) => c[CellType.Cloned],
+    return appInfo.cell_info[ROLE_NAME].filter((c) => c.type === CellType.Cloned).map(
+      (c) => c.value,
     );
   }
 
@@ -118,10 +118,10 @@ export class RelayClient {
     const appInfo = await this.client.appInfo();
     if (!appInfo) throw new Error("Failed to get appInfo");
 
-    const cellInfo = appInfo.cell_info[ROLE_NAME].find((c) => CellType.Provisioned in c);
+    const cellInfo = appInfo.cell_info[ROLE_NAME].find((c) => c.type === CellType.Provisioned);
     if (!cellInfo) throw new Error("Provisioned relay cell not found in appInfo");
 
-    return cellInfo[CellType.Provisioned];
+    return cellInfo.value;
   }
 
   async createConversation(input: CreateConversationInput): Promise<ClonedCell> {
@@ -293,11 +293,11 @@ export class RelayClient {
   }
 
   public async disableConversationCell(cell_id: CellId) {
-    return this.client.disableCloneCell({ clone_cell_id: cell_id[0] });
+    return this.client.disableCloneCell({ clone_cell_id: { type: "dna_hash", value: cell_id[0] } });
   }
 
   public async enableConversationCell(cell_id: CellId) {
-    return this.client.enableCloneCell({ clone_cell_id: cell_id[0] });
+    return this.client.enableCloneCell({ clone_cell_id: { type: "dna_hash", value: cell_id[0] } });
   }
 
   /**
