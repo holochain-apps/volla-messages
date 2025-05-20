@@ -9,7 +9,7 @@ Core Structure
 - App starts from `app.html`, which sets up the HTML shell and loads the SvelteKit app.
 - SvelteKit's file based routing is used which is similar to Next.js's routing. 
 - Each file in `src/routes` directory corresponds to a route in the app.
-- `layout.svelte` provides the main layout for the app, handles the global state and handles the rendering of appropriate page or onboarding flow.
+- `+layout.svelte` provides the main layout for the app, handles the global state and handles the rendering of appropriate page or onboarding flow.
 - App uses a custom theme defined in `volla-theme.ts`.
 - Uses Svelte's stores for shared state management i.e. `src/store`.
 - Follows a component based architecture where each component is defined in `src/lib` and can be reused across the app.
