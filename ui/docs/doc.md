@@ -19,7 +19,7 @@ Core Structure
 ### App flow
 - On the launch of the app, it loads the `app.html` file.
 - The `app.html` file loads the SvelteKit app.
-- SvelteKit initialises, and the root layout `layout.svelte` is loaded
+- SvelteKit initialises, and the root layout `+layout.svelte` is loaded
 - `layout.svelte` sets up the global context, initialises all the stores, and handles theming
 
 #### Global context & Store Initialisation
