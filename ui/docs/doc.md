@@ -25,7 +25,7 @@ Core Structure
 #### Global context & Store Initialisation
 It compises of three main steps:
 1. **Holochain Client Connection**
-    - `layout.svelte` handles the connection with the Holochain backend using `initHolochainClient()` function, which 
+    - `+layout.svelte` handles the connection with the Holochain backend using `initHolochainClient()` function, which 
     - Connects the tauri app to the Holochain conductor using the `@holochain/client` library
     - Waits for the relay cell to be ready via `callZome` ping
     - Fetches app info and the provisioned relay cell ID
