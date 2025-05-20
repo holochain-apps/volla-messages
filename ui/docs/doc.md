@@ -42,7 +42,7 @@ It compises of three main steps:
 #### Onboarding Flow
 It has two different flows:
 1. **First time users**
-    - `layout.svelte` checks for the user profile, if it doesn't exist, it redirects to the onboarding flow'
+    - `+layout.svelte` checks for the user profile, if it doesn't exist, it redirects to the onboarding flow'
     - Onboarding flow is handled by `ProfileSetupName.svelte` and `ProfileSetupAvatar.svelte`, and profile is setted up via `ProfileStore.createProfile()`
 2. **Existing users**
     - If the user profile exists, client is connected and the stores are set up, it redirects to the main app flow
