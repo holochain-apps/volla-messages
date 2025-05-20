@@ -63,7 +63,7 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            libsoup-3.0-0
+            libsoup-3.0-dev
           
           # Pin webkitgtk to 2.46, as we get a blank screen on later versions.
           # See https://github.com/tauri-apps/tauri/issues/12431
