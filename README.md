@@ -39,9 +39,22 @@ To test with the released version of the `.happ`, run:
 
 The `.happ` release that is downloaded with this script can be changed in the `setup:happ-release` script in the [package.json](./package.json).
 
+### Publish a new happ release
+
+1. (optional) Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
+2. Create a git tag with the format `happ-vX.Y.Z`, where `X.Y.Z` is your happ version. This will trigger CI to create a draft github release, containing the built `.happ` file.
+3. Publish the draft github release.
+4. Copy the url of the `.happ` file in the github release, then paste it into the npm command `setup:happ-release` in `package.json`.
+
+### Publish a new Volla Messages release
+
+1. (optional) Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
+2. Create a git tag with the format `vX.Y.Z`, where `X.Y.Z` is your app version. This will trigger CI to create a draft github release, containing the built applications for all supported platforms.
+3. Publish the draft github release.
+
 ## License
 
-[Volla Licence 1.0](https://github.com/holochain-apps/volla-messages/blob/main/LICENSE.txt)
+[Volla License 1.0](https://github.com/holochain-apps/volla-messages/blob/main/LICENSE.txt)
 
 Copyright (C) 2023, Holochain Foundation
 
