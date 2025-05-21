@@ -48,9 +48,39 @@ The `.happ` release that is downloaded with this script can be changed in the `s
 
 ### Publish a new Volla Messages release
 
+1. Ensure the github repository has all required secrets defined (see [#Github Secrets](Github Secrets))
 1. (optional) Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
 2. Create a git tag with the format `vX.Y.Z`, where `X.Y.Z` is your app version. This will trigger CI to create a draft github release, containing the built applications for all supported platforms.
 3. Publish the draft github release.
+
+#### Github Secrets
+
+The following github secrets are required to building and publishing Volla Messages app releases in CI:
+
+##### Android Signing
+
+- ANDROID_KEY_ALIAS
+- **ANDROID_KEY_BASE64** A base64-encoding your `.jks` keystore file, corresponding to the file `storeFile` in your local `src-tauri/gen/android/keystore.properties`. The base64-encoded text can be generated with the command `base64 /path/to/your/keystore.jks`.
+- **ANDROID_KEY_PASSWORD** The key password and keystore password, which are expected to have the same value.
+
+##### Windows Signing
+
+CI is currently setup to use an EV Certificate for windows code signing, based on this guide:  https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/
+
+- AZURE_KEY_VAULT_URI
+- AZURE_CLIENT_ID
+- AZURE_TENANT_ID
+- AZURE_CLIENT_SECRET
+- AZURE_CERT_NAME
+
+##### macOS Signing
+
+- APPLE_CERTIFICATE
+- APPLE_CERTIFICATE_PASSWORD
+- APPLE_SIGNING_IDENTITY
+- APPLE_ID
+- APPLE_TEAM_ID
+- APPLE_PASSWORD
 
 ## License
 
