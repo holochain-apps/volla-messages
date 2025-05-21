@@ -41,17 +41,17 @@ The `.happ` release that is downloaded with this script can be changed in the `s
 
 ### Publish a new happ release
 
-1. (optional) Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
+1. Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
 2. Create a git tag with the format `happ-vX.Y.Z`, where `X.Y.Z` is your happ version. This will trigger CI to create a draft github release, containing the built `.happ` file.
 3. Publish the draft github release.
 4. Copy the url of the `.happ` file in the github release, then paste it into the npm command `setup:happ-release` in `package.json`.
 
 ### Publish a new Volla Messages release
 
-1. Ensure the github repository has all required secrets defined (see [#Github Secrets](Github Secrets))
-1. (optional) Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
-2. Create a git tag with the format `vX.Y.Z`, where `X.Y.Z` is your app version. This will trigger CI to create a draft github release, containing the built applications for all supported platforms.
-3. Publish the draft github release.
+1. Ensure the github repository has all required secrets defined (see [Github Secrets](#github-secrets))
+2. Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
+3. Create a git tag with the format `vX.Y.Z`, where `X.Y.Z` is your app version. This will trigger CI to create a draft github release, containing the built applications for all supported platforms.
+4. Publish the draft github release.
 
 #### Github Secrets
 
@@ -60,8 +60,8 @@ The following github secrets are required to building and publishing Volla Messa
 ##### Android Signing
 
 - ANDROID_KEY_ALIAS
-- **ANDROID_KEY_BASE64** A base64-encoding your `.jks` keystore file, corresponding to the file `storeFile` in your local `src-tauri/gen/android/keystore.properties`. The base64-encoded text can be generated with the command `base64 /path/to/your/keystore.jks`.
-- **ANDROID_KEY_PASSWORD** The key password and keystore password, which are expected to have the same value.
+- ANDROID_KEY_BASE64: A base64-encoding your `.jks` keystore file. The base64-encoded value can be generated with the command `base64 /path/to/your/keystore.jks`.
+- ANDROID_KEY_PASSWORD: The key password and keystore password, which are expected to have the same value.
 
 ##### Windows Signing
 
