@@ -10,32 +10,45 @@ Volla Messages is a Holochain application deployed using [p2pShipyard](https://d
 
 ### Dev Testing Desktop only
 
-`nix develop`
-`npm install`
-`npm run start`
+```bash
+nix develop
+npm install
+npm run start
+```
 
 ### Building and Testing on Android
 
+#### Setup App Signing
+
+1. Generate a signing keystore and key. See https://developer.android.com/studio/publish/app-signing
+2. Copy `src-tauri/gen/android/keystore.properties.example` to `src-tauri/gen/android/keystore.properties` and fill in with your signing keystore and key info. 
+
 #### Desktop and Android
 
-`nix develop .#androidDev`
-`npm install`
-`npm run network:android`
+```bash
+nix develop .#androidDev
+npm install
+npm run network:android
+```
 
 #### As an APK
 
-`nix develop .#androidDev`
-`npm install`
-`npm run tauri android build`
-`adb -s device install /path/to/relay.apk`
+```bash
+nix develop .#androidDev
+npm install
+npm run tauri android build
+adb -s device install /path/to/relay.apk
+```
 
 ### Testing with a .happ release 
 
 To test with the released version of the `.happ`, run:
 
-`nix develop`
-`npm run setup:happ-release`
-`AGENTS=2 npm run network`
+```bash
+nix develop
+npm run setup:happ-release
+AGENTS=2 npm run network
+```
 
 The `.happ` release that is downloaded with this script can be changed in the `setup:happ-release` script in the [package.json](./package.json).
 
