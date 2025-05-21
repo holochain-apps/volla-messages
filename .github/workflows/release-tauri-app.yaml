@@ -66,10 +66,9 @@ jobs:
           # We must pin webkitgtk to 2.46, as we get a blank screen on later versions.
           # See https://github.com/tauri-apps/tauri/issues/12431
           #
-          # Because libwebkit2gtk-4.1-dev version 2.46 has been removed from apt,
-          # we manually download the deb packages from launchpad to install sit.
+          # Because libwebkit2gtk-4.1-dev version 2.46 has been removed from the apt repositories,
+          # we must manually download the deb packages from launchpad to install it.
 
-          # download old versions because of EGL issues, see https://github.com/h3poteto/fedistar/issues/1717
           mkdir -p /tmp/ubuntu-packages
           cd /tmp/ubuntu-packages
           wget https://launchpadlibrarian.net/723972773/libwebkit2gtk-4.1-0_2.44.0-0ubuntu0.22.04.1_amd64.deb
