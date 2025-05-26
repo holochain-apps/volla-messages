@@ -1,4 +1,6 @@
 {
+  "productName": "Volla Messages",
+  "identifier": "com.volla.messages",
   "bundle": {
     "icon": [
       "icons/colon/32x32.png",

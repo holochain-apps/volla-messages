@@ -1,4 +1,6 @@
 {
+  "productName": "Volla Messages (Standalone)",
+  "identifier": "com.volla.messages.standalone",
   "bundle": {
     "icon": [
       "icons/squiggle/32x32.png",
