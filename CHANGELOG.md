@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - Added npm command to run app locally using production `.happ`.
-- The build features `holochain_bundled` and `holochain_service` now have different android package names, which allows them to both be installed on the same device (and thus prevent an install of one to replace the other). The build feature `holochain_bundled` now has a different app name of "Volla Messages (Standalone)" to distinguish it for the user.
+- CI release builds with the feature `holochain_service` now have a different android package name `org.volla.messages.service`. CI release builds with the feature `holochain_bundled` now have a different app name of "Volla Messages (Standalone)".
 
 ## [0.7.6] - 2025-03-21
 
