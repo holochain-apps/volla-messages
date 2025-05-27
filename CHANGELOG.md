@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Added npm command to run app locally using production `.happ`.
+
 ## [0.7.6] - 2025-03-21
 
 - Fix: Display "unconfirmed" label for contacts that have not yet joined their private conversation.
