@@ -8,12 +8,22 @@ Built with Holochain + Tauri + SvelteKit + TailWind + Skeleton
 
 Volla Messages is a Holochain application deployed using [p2pShipyard](https://darksoil.studio/p2p-shipyard/) for Mobile and Desktop.  
 
-### Dev Testing Desktop only
+### Run on desktop
 
 ```bash
 nix develop
 npm install
-npm run start
+npm run start:desktop
+```
+
+### Run on desktop with production happ
+
+To run locally using the *production* happ that is included in CI release builds, run:
+
+```bash
+nix develop
+npm install
+npm run start:desktop:happ-release
 ```
 
 ### Building and Testing on Android
