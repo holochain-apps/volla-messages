@@ -7,9 +7,11 @@ use tauri_plugin_holochain::NetworkConfig;
 use uuid::Uuid;
 use serde_json::json;
 
-const SIGNAL_URL: &'static str = "wss://dev-test-bootstrap2.holochain.org/";
-const BOOTSTRAP_URL: &'static str = "https://dev-test-bootstrap2.holochain.org/";
-static ICE_URLS: &'static [&str] = &[
+pub const SIGNAL_URL: &'static str = "wss://dev-test-bootstrap2.holochain.org/";
+
+pub const BOOTSTRAP_URL: &'static str = "https://dev-test-bootstrap2.holochain.org/";
+
+pub static ICE_URLS: &'static [&str] = &[
     "stun://stun.l.google.com:19302"
 ];
 

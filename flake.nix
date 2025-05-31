@@ -19,7 +19,6 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = [
               inputs'.p2p-shipyard.devShells.holochainTauriDev
-              inputs'.scaffolding.devShells.synchronized-pnpm
               inputs'.holonix.devShells.default
             ];
 
@@ -27,7 +26,6 @@
           devShells.androidDev = pkgs.mkShell {
             inputsFrom = [
               inputs'.p2p-shipyard.devShells.holochainTauriAndroidDev
-              inputs'.scaffolding.devShells.synchronized-pnpm
               inputs'.holonix.devShells.default
             ];
           };
