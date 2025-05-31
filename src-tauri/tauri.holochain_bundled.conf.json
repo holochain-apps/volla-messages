@@ -7,5 +7,18 @@
       "icons/squiggle/icon.icns",
       "icons/squiggle/icon.ico"
     ]
+  },
+  "app": {
+    "windows": [
+      {
+        "width": 360,
+        "height": 720,
+        "decorations": false,
+        "resizable": true,
+        "center": true,
+        "url": "splashscreen.html",
+        "label": "splashscreen"
+      }
+    ]
   }
 }
