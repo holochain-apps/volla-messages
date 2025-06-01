@@ -3,7 +3,6 @@ use tauri::{Builder, Runtime};
 use tauri_plugin_holochain_service_client::{HolochainServiceClientExt, SetupAppConfig};
 use uuid::Uuid;
 use std::collections::HashMap;
-use log::debug;
 
 pub fn setup_builder<R: Runtime>(builder: Builder<R>) -> Builder<R> {
     builder
