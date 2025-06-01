@@ -659,7 +659,7 @@ dependencies = [
  "bitflags 2.9.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -3427,6 +3427,8 @@ dependencies = [
 [[package]]
 name = "holochain-conductor-runtime-types-ffi"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9db9b665b1453f2c3558b8498c33eecc59325b86746bd401d0d4a7e8e0498ed"
 dependencies = [
  "hc_uniffi",
  "holochain_conductor_api",
@@ -4213,7 +4215,7 @@ dependencies = [
  "httpdate",
  "itoa 1.0.15",
  "pin-project-lite",
- "socket2 0.4.10",
+ "socket2 0.5.9",
  "tokio",
  "tower-service",
  "tracing",
@@ -6698,7 +6700,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.101",
@@ -9051,6 +9053,8 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-holochain-service-client"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "775dc9c43e2e90a4559ae57d5e58bd4158c0c94191fc2be709d5bd077d8e583a"
 dependencies = [
  "bytes",
  "holochain-conductor-runtime-types-ffi",
