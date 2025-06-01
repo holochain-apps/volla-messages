@@ -9,7 +9,6 @@ pub fn setup_builder<R: Runtime>(builder: Builder<R>) -> Builder<R> {
     builder
         .plugin(tauri_plugin_holochain_service_client::init())
         .setup(|app| {
-            debug!("holochain_service setup 1");
             app.handle()
                 .holochain_service_client()
                 .setup_app_main_window(
@@ -22,7 +21,6 @@ pub fn setup_builder<R: Runtime>(builder: Builder<R>) -> Builder<R> {
                     }
                 )?
                 .build()?;
-            debug!("holochain_service setup 2");
 
             // Load barcode scanner plugin
             // It is necessary to load this after we have created the new 'main' webview
@@ -30,7 +28,7 @@ pub fn setup_builder<R: Runtime>(builder: Builder<R>) -> Builder<R> {
             app.handle()
                 .plugin(tauri_plugin_barcode_scanner::init())
                 .expect("Failed to initiailze tauri_plugin_barcode_scanner");
-            debug!("holochain_service setup 3");
+
             Ok(())
         })
 }
