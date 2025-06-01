@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Added npm command to run app locally using production `.happ`.
+- CI release builds with the feature `holochain_service` now have a different android package name `org.volla.messages.service`. CI release builds with the feature `holochain_bundled` now have a different app name of "Volla Messages (Standalone)".
+- Upgrade to latest `tauri-plugin-holochain-service-client` on Holochain 0.5.
+
 ## [0.8.0] - 2025-05-20
 
 - **BREAKING CHANGE** Upgrade to Holochain 0.5
