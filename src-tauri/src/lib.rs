@@ -1,6 +1,7 @@
 mod builder;
 use builder::setup_builder;
 mod config;
+use log::debug;
 
 #[allow(unused_mut)]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

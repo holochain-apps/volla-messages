@@ -3,7 +3,6 @@ import { RelayClient } from "$store/RelayClient";
 import { type RelaySignal, type MessageSignal } from "$lib/types";
 import { encodeCellIdToBase64 } from "$lib/utils";
 import { type ConversationStore } from "./ConversationStore";
-import { isEqual } from "lodash-es";
 import type { ConversationMessageStore } from "./ConversationMessageStore";
 import { page } from "$app/stores";
 import { get } from "svelte/store";
@@ -16,15 +15,15 @@ export function createSignalHandler(
   client.client.on("signal", _handleSignalReceived);
 
   async function _handleSignalReceived(signal: Signal) {
-    if (!(SignalType.App in signal)) return;
+    if (signal.type !== SignalType.App) return;
 
-    const payload = signal[SignalType.App].payload as RelaySignal;
-    const cellIdB64 = encodeCellIdToBase64(signal[SignalType.App].cell_id);
+    const payload = signal.value.payload as RelaySignal;
+    const cellIdB64 = encodeCellIdToBase64(signal.value.cell_id);
 
     if (payload.type === "Message") {
       await conversationMessageStore.handleMessageSignalReceived(
         cellIdB64,
-        signal[SignalType.App].payload as MessageSignal,
+        signal.value.payload as MessageSignal,
       );
       // Mark conversation as unread
       // Unless user is currently viewing the conversation page.

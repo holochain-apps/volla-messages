@@ -230,14 +230,6 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         EntryTypes::Config(config) => {
                             validate_update_config(action, config)
                         }
-                        _ => {
-                            Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "Original and updated entry types must be the same"
-                                        .to_string(),
-                                ),
-                            )
-                        }
                     }
                 }
                 _ => Ok(ValidateCallbackResult::Valid),

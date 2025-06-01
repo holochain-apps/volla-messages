@@ -25,7 +25,7 @@ test('create Message', async () => {
     const testAppPath = process.cwd() + '/../workdir/relay.happ';
 
     // Set up the app to be installed 
-    const appSource = { appBundleSource: { path: testAppPath } };
+    const appSource = { appBundleSource: { type: "path", value: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
@@ -48,7 +48,7 @@ test('create and read Message', async () => {
     const testAppPath = process.cwd() + '/../workdir/relay.happ';
 
     // Set up the app to be installed 
-    const appSource = { appBundleSource: { path: testAppPath } };
+    const appSource = { appBundleSource: { type: "path", value: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
@@ -85,7 +85,7 @@ test('create and update Message', async () => {
     const testAppPath = process.cwd() + '/../workdir/relay.happ';
 
     // Set up the app to be installed 
-    const appSource = { appBundleSource: { path: testAppPath } };
+    const appSource = { appBundleSource: { type: "path", value: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
@@ -171,7 +171,7 @@ test('create and delete Message', async () => {
     const testAppPath = process.cwd() + '/../workdir/relay.happ';
 
     // Set up the app to be installed 
-    const appSource = { appBundleSource: { path: testAppPath } };
+    const appSource = { appBundleSource: { type: "path", value: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.

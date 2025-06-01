@@ -9,7 +9,6 @@ import {
   type ProfileExtended,
 } from "$lib/types";
 import { encodeCellIdToBase64, decodeCellIdFromBase64, enqueueNotification } from "$lib/utils";
-import { FileStorageClient } from "@holochain-open-dev/file-storage";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import {
   decodeHashFromBase64,
@@ -165,13 +164,18 @@ export function createConversationMessageStore(
       original_action: record.signed_action.hashed.hash,
       signed_action: record.signed_action,
     });
-    messages.update((m) => ({
-      ...m,
-      [key1]: {
-        ...(m[key1] || {}),
-        [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
-      },
-    }));
+    messages.update((m) => {
+      console.log("current messages", m);
+      let val = {
+        ...m,
+        [key1]: {
+          ...(m[key1] || {}),
+          [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
+        },
+      };
+      console.log("new messagse", val);
+      return val;
+    });
   }
 
   /**

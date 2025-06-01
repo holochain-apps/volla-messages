@@ -1,5 +1,7 @@
 {
-  "version": "0.7.6",
+  "productName": "Volla Messages",
+  "version": "0.8.1",
+  "identifier": "com.volla.messages.placeholder",
   "build": {
     "beforeBuildCommand": "npm run build -w ui",
     "devUrl": "http://localhost:1420",
@@ -10,17 +12,7 @@
     "security": {
       "csp": null
     },
-    "windows": [
-      {
-        "width": 360,
-        "height": 720,
-        "decorations": false,
-        "resizable": true,
-        "center": true,
-        "url": "splashscreen.html",
-        "label": "splashscreen"
-      }
-    ]
+    "windows": []
   },
   "bundle": {
     "active": true,
