@@ -425,6 +425,7 @@ export function createConversationMessageStore(
     const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
       cellId,
       actionHashB64s.map((a) => decodeHashFromBase64(a)),
+      false
     );
 
     // Transform Messages into MessageExtendeds
