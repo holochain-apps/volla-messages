@@ -6,7 +6,7 @@ export const handleError: HandleClientError = async ({ error, event, status, mes
   console.error(`Error ID: ${errorId}`, error, event, status, message);
 
   return {
-    message: `An error occurred: ${message}`,
+    message: `An error occurred: ${message} ${error}`,
     errorId,
   };
 };
