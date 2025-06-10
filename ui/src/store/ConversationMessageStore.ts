@@ -380,6 +380,7 @@ export function createConversationMessageStore(
               await client.getMessageHashes(cellId, {
                 bucket: b,
                 count: 0,
+                local: false,
               })
             ).map((a) => encodeHashToBase64(a)),
           })),

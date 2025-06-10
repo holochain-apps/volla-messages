@@ -50,14 +50,20 @@ pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
 pub struct BucketInput {
     pub bucket: u32,
     pub count: usize,
+    pub local: bool,
 }
 
 #[hdk_extern]
 pub fn get_message_hashes(input: BucketInput) -> ExternResult<Vec<ActionHash>> {
     let mut hashes: Vec<ActionHash> = Vec::new();
     let path: Path = messages_path(input.bucket);
+    let get_strategy = if input.local {
+        GetStrategy::Local
+    } else {
+        GetStrategy::Network
+    };
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.get_options(get_strategy)
             .build(),
     )?;
 
