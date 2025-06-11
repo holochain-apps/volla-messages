@@ -28,10 +28,18 @@ import {
   type MergedProfileContactInviteStore,
 } from "./MergedProfileContactInviteStore";
 import type { RelayClient } from "./RelayClient";
-import { derived, get } from "svelte/store";
+import { derived, get, writable } from "svelte/store";
 import type { GenericKeyValueStoreReadable } from "./generic/GenericKeyValueStore";
-import { TARGET_MESSAGES_COUNT } from "$config";
+import { TARGET_MESSAGES_COUNT, MESSAGES_PER_PAGE } from "$config";
 import type { FileStore } from "./FileStore";
+import { messageDB } from "./db/MessageDatabase";
+
+// Interface for pagination state
+interface PaginationState {
+  loadedPages: number;
+  totalMessages: number;
+  oldestLoadedTimestamp?: number;
+}
 
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
@@ -47,6 +55,7 @@ export interface ConversationMessageStore extends GenericKeyKeyValueStore<Messag
     bucketChunkSize?: number,
     maxBucketsToFetch?: number,
   ) => Promise<number>;
+  loadMoreMessages: (key1: CellIdB64) => Promise<number>;
   sendMessage: (key1: CellIdB64, content: string, files: LocalFile[]) => Promise<void>;
   deleteMessage: (key1: CellIdB64, messageContent: string) => Promise<void>;
   handleMessageSignalReceived: (key1: CellIdB64, signal: MessageSignal) => Promise<void>;
@@ -62,7 +71,11 @@ export function createConversationMessageStore(
   mergedProfileContactInviteStore: MergedProfileContactInviteStore,
   fileStore: FileStore,
 ): ConversationMessageStore {
+  // In-memory store holds only active messages (limited by pagination)
   const messages = createGenericKeyKeyValueStore<MessageExtended>();
+
+  // Track pagination state for each conversation
+  const paginationState = writable<{ [cellIdB64: CellIdB64]: PaginationState }>({});
 
   // Filter out messages by agents who do not have a Contact nor Profile
   const { subscribe } = derived(
@@ -94,30 +107,147 @@ export function createConversationMessageStore(
   async function initialize() {
     const cellInfos = await client.getRelayClonedCellInfos();
 
-    // Initialize messages
+    // Initialize empty messages for each conversation
     const messagesData = Object.fromEntries(
-      (
-        await Promise.allSettled(
-          cellInfos.map(async (cellInfo) => {
-            // Return [cellIdB64, {}]
-            return [encodeCellIdToBase64(cellInfo.cell_id), {}];
-          }),
-        )
-      )
-        .filter((p) => p.status === "fulfilled")
-        .map((p) => p.value),
+      cellInfos.map((cellInfo) => [encodeCellIdToBase64(cellInfo.cell_id), {}]),
     );
     messages.set(messagesData);
 
-    // Load a target count of 1 message, starting at current bucket
-    //
-    // This gives us a "latest message" to display on the Conversations list page,
-    // without attempting to load so much up front that it slows down app startup.
-    await Promise.allSettled(
-      cellInfos.map(async (cellInfo) =>
-        loadMessagesInCurrentBucketTargetCount(encodeCellIdToBase64(cellInfo.cell_id), 1, 5, 50),
-      ),
+    // Initialize pagination state
+    const initialPaginationState = Object.fromEntries(
+      cellInfos.map((cellInfo) => [
+        encodeCellIdToBase64(cellInfo.cell_id),
+        { loadedPages: 0, totalMessages: 0 },
+      ]),
     );
+    paginationState.set(initialPaginationState);
+
+    // Load initial messages from IndexedDB for each conversation
+    await Promise.allSettled(
+      cellInfos.map(async (cellInfo) => {
+        const cellIdB64 = encodeCellIdToBase64(cellInfo.cell_id);
+        await _loadMessagesFromDB(cellIdB64, 1); // Load first page
+
+        // If no messages in DB, try to fetch from network
+        const currentState = get(paginationState)[cellIdB64];
+        if (currentState.totalMessages === 0) {
+          await loadMessagesInCurrentBucketTargetCount(cellIdB64, 1, 5, 50);
+        }
+      }),
+    );
+  }
+
+  /**
+   * Load messages from IndexedDB into memory store with memory management
+   */
+  async function _loadMessagesFromDB(cellIdB64: CellIdB64, pagesToLoad: number): Promise<void> {
+    try {
+      const limit = pagesToLoad * MESSAGES_PER_PAGE;
+      const dbMessages = await messageDB.getMessages(cellIdB64, limit);
+
+      if (dbMessages.length > 0) {
+        // Sort messages by timestamp (newest to oldest) for natural chat order
+        const sortedMessages = dbMessages.sort(([, a], [, b]) => b.timestamp - a.timestamp);
+
+        // Apply memory management: keep only the most recent messages within limit based on loaded pages
+        const maxMessagesInMemory = pagesToLoad * MESSAGES_PER_PAGE;
+        const messagesToKeep = sortedMessages.slice(0, maxMessagesInMemory); // Keep from beginning (newest)
+        const messageData = Object.fromEntries(messagesToKeep);
+
+        messages.update((m) => ({
+          ...m,
+          [cellIdB64]: messageData,
+        }));
+
+        // Update pagination state
+        paginationState.update((state) => ({
+          ...state,
+          [cellIdB64]: {
+            ...state[cellIdB64],
+            loadedPages: pagesToLoad,
+            totalMessages: messagesToKeep.length,
+            oldestLoadedTimestamp: messagesToKeep[messagesToKeep.length - 1]?.[1].timestamp, // Last (oldest) message in memory
+          },
+        }));
+
+        console.log(
+          `Memory management: Keeping ${messagesToKeep.length} most recent messages out of ${sortedMessages.length} total (${pagesToLoad} pages loaded)`,
+        );
+      }
+    } catch (error) {
+      console.error("Error loading messages from DB:", error);
+    }
+  }
+
+  /**
+   * Load more messages (next page) for infinite scroll
+   */
+  async function loadMoreMessages(cellIdB64: CellIdB64): Promise<number> {
+    const currentState = get(paginationState)[cellIdB64];
+    if (!currentState?.oldestLoadedTimestamp) {
+      return 0;
+    }
+
+    try {
+      // First, try to load from IndexedDB
+      const olderMessages = await messageDB.getOlderMessages(
+        cellIdB64,
+        currentState.oldestLoadedTimestamp,
+        MESSAGES_PER_PAGE,
+      );
+
+      let loadedCount = 0;
+
+      if (olderMessages.length > 0) {
+        // Get current messages and sort them by timestamp (newest to oldest) for natural chat order
+        const currentMessages = get(messages).data[cellIdB64] || {};
+        const currentMessagesList = Object.entries(currentMessages).sort(
+          ([, a], [, b]) => b.timestamp - a.timestamp,
+        );
+
+        // Combine older messages with current ones - older messages go at the end (bottom)
+        const allMessages = [...currentMessagesList, ...olderMessages];
+
+        // Calculate new loaded pages count
+        const newLoadedPages = currentState.loadedPages + 1;
+        const maxMessagesInMemory = newLoadedPages * MESSAGES_PER_PAGE;
+
+        // Apply memory management: keep only the most recent messages within limit
+        const messagesToKeep = allMessages.slice(0, maxMessagesInMemory); // Keep from beginning (newest)
+        const updatedMessages = Object.fromEntries(messagesToKeep);
+
+        messages.update((m) => ({
+          ...m,
+          [cellIdB64]: updatedMessages,
+        }));
+
+        // Update pagination state
+        paginationState.update((state) => ({
+          ...state,
+          [cellIdB64]: {
+            ...state[cellIdB64],
+            loadedPages: newLoadedPages,
+            totalMessages: messagesToKeep.length,
+            oldestLoadedTimestamp: messagesToKeep[messagesToKeep.length - 1]?.[1].timestamp, // Last (oldest) of the messages in memory
+          },
+        }));
+
+        loadedCount = olderMessages.length;
+        console.log(
+          `Infinite scroll: Loaded ${loadedCount} older messages, keeping ${messagesToKeep.length} total messages in memory (${newLoadedPages} pages loaded)`,
+        );
+      }
+
+      // If no more messages in DB, try fetching from network
+      if (olderMessages.length === 0) {
+        loadedCount = await loadMessagesInPreviousBucketTargetCount(cellIdB64);
+      }
+
+      return loadedCount;
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+      return 0;
+    }
   }
 
   async function sendMessage(key1: CellIdB64, content: string, files: LocalFile[]) {
@@ -138,7 +268,6 @@ export function createConversationMessageStore(
     );
 
     // Get all AgentPubKeys in the conversation.
-    // We know about them only because they have published a Profile.
     const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
       mergedProfileContactInviteStore,
       key1,
@@ -164,28 +293,57 @@ export function createConversationMessageStore(
       original_action: record.signed_action.hashed.hash,
       signed_action: record.signed_action,
     });
+
+    const actionHashB64 = encodeHashToBase64(record.signed_action.hashed.hash);
+
+    // Store in IndexedDB first
+    await messageDB.storeMessage(key1, actionHashB64, messageExtended);
+
+    // Update in-memory store (add new message at the end - newest timestamp)
     messages.update((m) => {
-      console.log("current messages", m);
-      let val = {
+      const currentMessages = m[key1] || {};
+      const messagesList = Object.entries(currentMessages).sort(
+        ([, a], [, b]) => a.timestamp - b.timestamp, // oldest to newest
+      );
+
+      // Add new message at the end (it has the newest timestamp)
+      const updatedMessages = Object.fromEntries([
+        ...messagesList,
+        [actionHashB64, messageExtended],
+      ]);
+
+      return {
         ...m,
+        [key1]: updatedMessages,
+      };
+    });
+
+    // Apply memory management after adding new message
+    _applyMemoryManagement(key1);
+
+    // Update pagination state to reflect new message and potentially increase effective loaded pages
+    paginationState.update((state) => {
+      const currentState = state[key1] || { loadedPages: 1, totalMessages: 0 };
+      const newTotalMessages = (currentState.totalMessages || 0) + 1;
+
+      // If we're actively sending messages, consider that the user wants to see more recent content
+      // Increase effective loaded pages if we have more messages than current page limit
+      const currentLimit = currentState.loadedPages * MESSAGES_PER_PAGE;
+      const newLoadedPages =
+        newTotalMessages > currentLimit
+          ? Math.ceil(newTotalMessages / MESSAGES_PER_PAGE)
+          : currentState.loadedPages;
+
+      return {
+        ...state,
         [key1]: {
-          ...(m[key1] || {}),
-          [encodeHashToBase64(record.signed_action.hashed.hash)]: messageExtended,
+          ...currentState,
+          loadedPages: Math.max(newLoadedPages, currentState.loadedPages),
+          totalMessages: newTotalMessages,
         },
       };
-      console.log("new messagse", val);
-      return val;
     });
   }
-
-  /**
-   * Delete Message
-   * and mark it as deleted in the store.
-   *
-   * @param key1 CellIdB64
-   * @param actionHashB64 ActionHashB64
-   * @returns
-   */
 
   async function deleteMessage(key1: CellIdB64, actionHashB64: ActionHashB64): Promise<void> {
     const cellId = decodeCellIdFromBase64(key1);
@@ -202,6 +360,10 @@ export function createConversationMessageStore(
       agents: agentPubKeys,
     });
 
+    // Remove from IndexedDB
+    await messageDB.deleteMessage(actionHashB64);
+
+    // Remove from in-memory store
     messages.update((m) => {
       const k = { ...m[key1] };
       delete k[actionHashB64];
@@ -218,6 +380,10 @@ export function createConversationMessageStore(
       return;
     }
 
+    // Remove from IndexedDB
+    await messageDB.deleteMessage(actionHashB64);
+
+    // Remove from in-memory store
     messages.update((m) => {
       const k = { ...m[key1] };
       delete k[actionHashB64];
@@ -228,12 +394,79 @@ export function createConversationMessageStore(
     });
   }
 
+  async function handleMessageSignalReceived(key1: CellIdB64, signal: MessageSignal) {
+    // Make MessageExtended
+    const messageExtended = await _makeMessageExtended(decodeCellIdFromBase64(key1), {
+      message: signal.message,
+      original_action: signal.action.hashed.hash,
+      signed_action: signal.action,
+    });
+
+    const actionHashB64 = encodeHashToBase64(signal.action.hashed.hash);
+
+    // Store in IndexedDB first
+    await messageDB.storeMessage(key1, actionHashB64, messageExtended);
+
+    // Add to in-memory store (add new message at the end - newest timestamp)
+    messages.update((m) => {
+      const currentMessages = m[key1] || {};
+      const messagesList = Object.entries(currentMessages).sort(
+        ([, a], [, b]) => a.timestamp - b.timestamp, // oldest to newest
+      );
+
+      // Add new message at the end (it has the newest timestamp)
+      const updatedMessages = Object.fromEntries([
+        ...messagesList,
+        [actionHashB64, messageExtended],
+      ]);
+
+      return {
+        ...m,
+        [key1]: updatedMessages,
+      };
+    });
+
+    // Apply memory management after receiving new message
+    _applyMemoryManagement(key1);
+
+    // Update pagination state to reflect new message and potentially increase effective loaded pages
+    paginationState.update((state) => {
+      const currentState = state[key1] || { loadedPages: 1, totalMessages: 0 };
+      const newTotalMessages = (currentState.totalMessages || 0) + 1;
+
+      // If we're actively receiving messages, consider that the user wants to see more recent content
+      // Increase effective loaded pages if we have more messages than current page limit
+      const currentLimit = currentState.loadedPages * MESSAGES_PER_PAGE;
+      const newLoadedPages =
+        newTotalMessages > currentLimit
+          ? Math.ceil(newTotalMessages / MESSAGES_PER_PAGE)
+          : currentState.loadedPages;
+
+      return {
+        ...state,
+        [key1]: {
+          ...currentState,
+          loadedPages: Math.max(newLoadedPages, currentState.loadedPages),
+          totalMessages: newTotalMessages,
+        },
+      };
+    });
+
+    // Get Profile of Message author
+    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
+      mergedProfileContactInviteStore,
+      key1,
+      encodeHashToBase64(client.client.myPubKey),
+    );
+    const fromProfile = get(mergedProfileContact).data[encodeHashToBase64(signal.from)];
+
+    // Trigger a system notification
+    _triggerMessageNotification(messageExtended, fromProfile);
+  }
+
   /**
-   * Load messages, starting at the current bucket and working bakckwards,
+   * Load messages, starting at the current bucket and working backwards,
    * until at least a targetCount have been fetched.
-   *
-   * @param key1 CellIdB64
-   * @returns
    */
   async function loadMessagesInCurrentBucketTargetCount(
     key1: CellIdB64,
@@ -253,11 +486,8 @@ export function createConversationMessageStore(
   }
 
   /**
-   * Load messages, starting at the oldest stored message's bucket and working bakckwards,
+   * Load messages, starting at the oldest stored message's bucket and working backwards,
    * until at least a targetCount have been fetched.
-   *
-   * @param key1 CellIdB64
-   * @returns
    */
   async function loadMessagesInPreviousBucketTargetCount(
     key1: CellIdB64,
@@ -265,57 +495,25 @@ export function createConversationMessageStore(
     bucketChunkSize: number = 3,
     maxBucketsToFetch?: number,
   ): Promise<number> {
-    const messagesSorted = sortBy(Object.entries(get(messages).data[key1] || {}), [
-      ([, m]) => -1 * m.timestamp,
-    ]);
-    const oldestMessageLoaded = messagesSorted[messagesSorted.length - 1];
-    if (oldestMessageLoaded === undefined) return 0;
+    const currentState = get(paginationState)[key1];
+    if (!currentState?.oldestLoadedTimestamp) {
+      return 0;
+    }
+
+    // Find the bucket for the oldest loaded message
+    const oldestBucket = conversationStore.getBucket(key1, currentState.oldestLoadedTimestamp);
 
     return _loadMessagesFromBucketTargetCount(
       key1,
-      oldestMessageLoaded[1].message.bucket - 1,
+      oldestBucket - 1,
       targetCount,
       bucketChunkSize,
       maxBucketsToFetch,
     );
   }
 
-  async function handleMessageSignalReceived(key1: CellIdB64, signal: MessageSignal) {
-    // Make MessageExtended
-    const messageExtended = await _makeMessageExtended(decodeCellIdFromBase64(key1), {
-      message: signal.message,
-      original_action: signal.action.hashed.hash,
-      signed_action: signal.action,
-    });
-
-    // Add to writable
-    messages.update((m) => ({
-      ...m,
-      [key1]: {
-        ...(m[key1] || {}),
-        [encodeHashToBase64(signal.action.hashed.hash)]: messageExtended,
-      },
-    }));
-
-    // Get Profile of Message author
-    const mergedProfileContact = deriveCellMergedProfileContactInviteStore(
-      mergedProfileContactInviteStore,
-      key1,
-      encodeHashToBase64(client.client.myPubKey),
-    );
-    const fromProfile = get(mergedProfileContact).data[encodeHashToBase64(signal.from)];
-
-    // Trigger a system notification
-    _triggerMessageNotification(messageExtended, fromProfile);
-  }
-
   /**
-   * Main function for fetching and loads messages
-   *
-   * @param key1 CellIdB64
-   * @param bucket Bucket to start from
-   * @param targetCount Target number of messages to fetch
-   * @returns
+   * Main function for fetching and loading messages from network
    */
   async function _loadMessagesFromBucketTargetCount(
     key1: CellIdB64,
@@ -325,7 +523,6 @@ export function createConversationMessageStore(
     maxBucketsToFetch?: number,
   ): Promise<number> {
     // Fetch the list of buckets that contain the target count
-    // This step is split out so that buckets can be fetched in chunks, in parallel
     const bucketsToFetch = await _fetchBucketsTargetCount(
       key1,
       bucket,
@@ -335,21 +532,18 @@ export function createConversationMessageStore(
     );
     const actionHashB64s = flatten(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s));
 
-    // Filter only messages we are not storing already
-    const missingActionHashB64s = await _filterMissingMessages(key1, actionHashB64s);
+    // Filter only messages we are not storing already (check IndexedDB)
+    const missingActionHashB64s = await _filterMissingMessagesFromDB(key1, actionHashB64s);
 
-    // Fetch and save missing message data to store
+    // Fetch and save missing message data
     const count = await _loadMessages(key1, missingActionHashB64s);
 
     return count;
   }
 
   /**
-   * Fetch bucket's ActionHashes, starting at the given bucket and working bakckwards,
+   * Fetch bucket's ActionHashes, starting at the given bucket and working backwards,
    * until at least a targetCount of ActionHashes have been received.
-   *
-   * @param key1 CellIdB64
-   * @returns
    */
   async function _fetchBucketsTargetCount(
     key1: CellIdB64,
@@ -362,14 +556,10 @@ export function createConversationMessageStore(
 
     let bucketsToFetch: { bucket: number; actionHashB64s: ActionHashB64[] }[] = [];
     while (
-      // We have not reached the target count
       sum(bucketsToFetch.map(({ actionHashB64s }) => actionHashB64s.length)) <= targetCount &&
-      // There are still buckets available to fetch
       bucket >= 0 &&
-      // We have not fetched more than our maximum allowed
       (maxBucketsToFetch === undefined || bucketsToFetch.length <= maxBucketsToFetch)
     ) {
-      // Fetch message hashes for a chunk of buckets
       const bucketsChunk = range(bucket, bucket - bucketChunkSize).filter((b) => b >= 0);
       bucketsToFetch = [
         ...bucketsToFetch,
@@ -388,12 +578,7 @@ export function createConversationMessageStore(
       bucket -= 1;
     }
 
-    // Remove extra buckets that put us beyond our targetCount
-    // This is a necessary step because we are fetching buckets in chunks.
-    // And thus we may have overshot our target with the last chunk.
     while (
-      // If we can remove the last bucket and are still above the targetCount,
-      // then remove the last bucket
       sum(bucketsToFetch.slice(0, -1).map(({ actionHashB64s }) => actionHashB64s.length)) >
       targetCount
     ) {
@@ -404,54 +589,119 @@ export function createConversationMessageStore(
   }
 
   /**
-   * Determine which messages we are currently missing
-
-   * @param key1 
-   * @param actionHashB64s 
-   * @returns ActionHashB64[] of missing messages
+   * Determine which messages we are currently missing from IndexedDB
    */
-  async function _filterMissingMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]) {
-    const m = get(messages).data[key1];
+  async function _filterMissingMessagesFromDB(
+    key1: CellIdB64,
+    actionHashB64s: ActionHashB64[],
+  ): Promise<ActionHashB64[]> {
+    const missingMessages: ActionHashB64[] = [];
 
-    const storedActionHashB64s = Object.keys(m || {});
-    return difference(actionHashB64s, storedActionHashB64s);
+    for (const actionHashB64 of actionHashB64s) {
+      const exists = await messageDB.hasMessage(actionHashB64);
+      if (!exists) {
+        missingMessages.push(actionHashB64);
+      }
+    }
+
+    return missingMessages;
   }
 
   async function _loadMessages(key1: CellIdB64, actionHashB64s: ActionHashB64[]): Promise<number> {
+    if (actionHashB64s.length === 0) return 0;
+
     const cellId = decodeCellIdFromBase64(key1);
 
-    // Fetch missing messages
+    // Fetch missing messages from network
     const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
       cellId,
       actionHashB64s.map((a) => decodeHashFromBase64(a)),
     );
 
     // Transform Messages into MessageExtendeds
-    const data = Object.fromEntries(
-      (
-        await Promise.allSettled(
-          messageRecords.map(async (m) => [
-            encodeHashToBase64(m.original_action),
-            await _makeMessageExtended(cellId, m),
-          ]),
-        )
-      )
-        .filter((p) => p.status === "fulfilled")
-        .map((p) => p.value),
+    const messageEntries = await Promise.allSettled(
+      messageRecords.map(
+        async (m) =>
+          [encodeHashToBase64(m.original_action), await _makeMessageExtended(cellId, m)] as [
+            ActionHashB64,
+            MessageExtended,
+          ],
+      ),
     );
-    const count = Object.keys(data || {}).length;
-    if (count === 0) return 0;
 
-    // Update writable
-    messages.update((c) => ({
-      ...c,
-      [key1]: {
-        ...(c[key1] || {}),
-        ...data,
+    const validMessages = messageEntries
+      .filter((p) => p.status === "fulfilled")
+      .map((p) => p.value);
+
+    if (validMessages.length === 0) return 0;
+
+    // Store in IndexedDB first
+    await messageDB.storeMessages(key1, validMessages);
+
+    // Load appropriate messages into memory store based on current pagination
+    await _loadMessagesFromDB(key1, get(paginationState)[key1]?.loadedPages || 1);
+
+    // Apply memory management to keep only recent messages
+    _applyMemoryManagement(key1);
+
+    return validMessages.length;
+  }
+
+  /**
+   * Apply memory management when new messages arrive
+   * Keeps only the most recent messages and removes old ones based on loaded pages
+   */
+  function _applyMemoryManagement(cellIdB64: CellIdB64): void {
+    const currentMessages = get(messages).data[cellIdB64] || {};
+    const messagesList = Object.entries(currentMessages);
+
+    // Get current pagination state to determine memory limit
+    const currentPagination = get(paginationState)[cellIdB64];
+    const loadedPages = currentPagination?.loadedPages || 1;
+
+    // Calculate memory limit: ensure users can see at least 3 pages worth of recent messages
+    // even if they haven't explicitly loaded older pages via infinite scroll
+    const effectivePages = Math.max(loadedPages, 3);
+    const maxMessagesInMemory = effectivePages * MESSAGES_PER_PAGE;
+
+    console.log(
+      `Memory management check: ${messagesList.length} messages in memory, limit is ${maxMessagesInMemory} (${loadedPages} loaded pages, ${effectivePages} effective pages)`,
+    );
+
+    if (messagesList.length <= maxMessagesInMemory) {
+      console.log("No trimming needed - within memory limit");
+      return; // No need to trim
+    }
+
+    // Sort messages by timestamp (oldest to newest) and keep only the most recent ones
+    const sortedMessages = messagesList.sort(([, a], [, b]) => a.timestamp - b.timestamp);
+    const messagesToKeep = sortedMessages.slice(-maxMessagesInMemory);
+    const trimmedMessages = Object.fromEntries(messagesToKeep);
+
+    console.log(
+      `Trimming messages: keeping ${messagesToKeep.length} most recent out of ${sortedMessages.length} total`,
+    );
+
+    // Update the store with trimmed messages
+    messages.update((m) => ({
+      ...m,
+      [cellIdB64]: trimmedMessages,
+    }));
+
+    // Update pagination state
+    paginationState.update((state) => ({
+      ...state,
+      [cellIdB64]: {
+        ...state[cellIdB64],
+        totalMessages: messagesToKeep.length,
+        oldestLoadedTimestamp: messagesToKeep[0]?.[1].timestamp,
       },
     }));
 
-    return count;
+    const removedCount = messagesList.length - messagesToKeep.length;
+    console.log(
+      `Memory management: Removed ${removedCount} old messages, keeping ${messagesToKeep.length} recent messages (${loadedPages} loaded pages, ${effectivePages} effective pages)`,
+    );
   }
 
   async function _triggerMessageNotification(
@@ -497,6 +747,7 @@ export function createConversationMessageStore(
     initialize,
     loadMessagesInCurrentBucketTargetCount,
     loadMessagesInPreviousBucketTargetCount,
+    loadMoreMessages,
     sendMessage,
     handleMessageSignalReceived,
     subscribe,
@@ -518,6 +769,7 @@ export interface CellConversationMessageStore
     bucketChunkSize?: number,
     maxBucketsToFetch?: number,
   ) => Promise<number>;
+  loadMoreMessages: () => Promise<number>;
   sendMessage: (content: string, files: LocalFile[]) => Promise<void>;
   handleMessageSignalReceived: (signal: MessageSignal) => Promise<void>;
 }
@@ -526,7 +778,7 @@ export function deriveCellConversationMessageStore(
   conversationMessageStore: ConversationMessageStore,
   key: CellIdB64,
 ) {
-  const data = deriveGenericKeyValueStore(conversationMessageStore, key, [([, m]) => m.timestamp]);
+  const data = deriveGenericKeyValueStore(conversationMessageStore, key, [([, m]) => -m.timestamp]);
 
   return {
     ...data,
@@ -552,6 +804,7 @@ export function deriveCellConversationMessageStore(
         bucketChunkSize,
         maxBucketsToFetch,
       ),
+    loadMoreMessages: () => conversationMessageStore.loadMoreMessages(key),
     sendMessage: (content: string, files: LocalFile[]) =>
       conversationMessageStore.sendMessage(key, content, files),
     handleMessageSignalReceived: (signal: MessageSignal) =>
