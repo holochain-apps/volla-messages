@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.2] - 2025-05-31
+
+- Fix building for 'lite' and 'rich' variants with different android package names.
+
 ## [0.8.1] - 2025-05-31
 
 - Added npm command to run app locally using production `.happ`.
