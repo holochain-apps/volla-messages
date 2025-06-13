@@ -3,3 +3,6 @@
 /target/
 .cargo/config.toml
 gen/schemas
+
+# Excluded so we can replace it with the android directory for our build variant
+gen/android
