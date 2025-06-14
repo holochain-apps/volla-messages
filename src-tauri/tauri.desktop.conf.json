@@ -7,19 +7,6 @@
     "devUrl": "http://localhost:1420",
     "frontendDist": "../ui/build"
   },
-  "app": {
-    "windows": [
-      {
-        "width": 360,
-        "height": 720,
-        "decorations": false,
-        "resizable": true,
-        "center": true,
-        "url": "splashscreen.html",
-        "label": "splashscreen"
-      }
-    ]
-  },
   "bundle": {
     "active": true,
     "targets": "all",
@@ -33,5 +20,18 @@
     "macOS": {
       "entitlements": "entitlements.plist"
     }
+  },
+  "app": {
+    "windows": [
+      {
+        "width": 360,
+        "height": 720,
+        "decorations": false,
+        "resizable": true,
+        "center": true,
+        "url": "splashscreen.html",
+        "label": "splashscreen"
+      }
+    ]
   }
 }
