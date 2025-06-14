@@ -320,6 +320,7 @@ jobs:
       - name: Copy variant tauri config
         run: |
           cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json
+          ls -la
 
       - name: Build the App
         uses: tauri-apps/tauri-action@v0
