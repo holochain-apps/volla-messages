@@ -96,7 +96,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose --features holochain_bundled
+          args: --verbose --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json
 
   release-tauri-app-android:
     permissions: write-all
@@ -220,7 +220,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --verbose --features holochain_bundled
+          args: --verbose --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json
+
 
       - name: Sign the App
         run: |
@@ -318,4 +319,4 @@ jobs:
 
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose --features holochain_bundled
+          args: --verbose --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json
