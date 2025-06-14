@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Volla Messages</string>
+    <string name="app_name">Volla Messages (Standalone)</string>
     <string name="main_activity_title">Volla Messages</string>
 </resources>
