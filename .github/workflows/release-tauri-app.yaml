@@ -321,6 +321,7 @@ jobs:
         run: |
           cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json
           ls -la
+          ls -la src-tauri
 
       - name: Build the App
         uses: tauri-apps/tauri-action@v0
