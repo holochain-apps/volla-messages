@@ -90,13 +90,17 @@ jobs:
           npm install
           npm run setup:happ-release
 
+      - name: Copy variant tauri config
+        run: |
+          cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json
+
       - id: build-app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json
+          args: --verbose --features holochain_bundled
 
   release-tauri-app-android:
     permissions: write-all
@@ -149,6 +153,10 @@ jobs:
           echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           echo "storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+
+      - name: Copy variant tauri config
+        run: |
+          cp -f src-tauri/tauri.mobile.${{ matrix.feature }}.conf.json src-tauri/tauri.conf.json
 
       - name: Build android AAB
         run: |
@@ -215,13 +223,16 @@ jobs:
           npm install
           npm run setup:happ-release
 
+      - name: Copy variant tauri config
+        run: |
+          Copy-Item -Path src-tauri\tauri.desktop.conf.json -Destination src-tauri\tauri.conf.json
+
       - name: Build the App
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --verbose --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json
-
+          args: --verbose --features holochain_bundled
 
       - name: Sign the App
         run: |
@@ -306,6 +317,10 @@ jobs:
           npm install
           npm run setup:happ-release
 
+      - name: Copy variant tauri config
+        run: |
+          cp -f src-tauri/tauri.dekstop.conf.json src-tauri/tauri.conf.json
+
       - name: Build the App
         uses: tauri-apps/tauri-action@v0
         env:
@@ -319,4 +334,4 @@ jobs:
 
         with:
           releaseId: ${{ needs.create-release.outputs.releaseId }}
-          args: --verbose --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json
+          args: --verbose --features holochain_bundled

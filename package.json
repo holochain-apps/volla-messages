@@ -21,17 +21,17 @@
     "start:android:holochain_bundled": "npm run build:happ && BOOTSTRAP_PORT=$(port) INTERNAL_IP=$(internal-ip --ipv4) concurrently -k \"npm run local-services\" \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri:android:dev:holochain_bundled\"",
     "start:android:holochain_service": "npm run build:happ && BOOTSTRAP_PORT=$(port) INTERNAL_IP=$(internal-ip --ipv4) concurrently -k \"npm run local-services\" \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri:android:dev:holochain_sevice\"",
 
-    "start:desktop": "npm run build:happ && BOOTSTRAP_PORT=$(port) INTERNAL_IP=$(internal-ip --ipv4) concurrently -k \"npm run local-services\" \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri dev -- --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json\"",
+    "start:desktop": "cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json && npm run build:happ && BOOTSTRAP_PORT=$(port) INTERNAL_IP=$(internal-ip --ipv4) concurrently -k \"npm run local-services\" \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri dev -- --features holochain_bundled\"",
     "start:desktop:happ-release": "npm run setup:happ-release && concurrently -k \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri dev -- --release --features holochain_bundled\"",
     
     "launch": "concurrently-repeat \"npm run tauri dev -- --features holochain_bundled\" $AGENTS",
     "tauri": "tauri",
 
     "clean:android": "rm -rf src-tauri/gen/android",
-    "tauri:android:dev:holochain_bundled": "cp -Rf src-tauri/gen/android-holochain_bundled/* src-tauri/gen/android/ && npm run tauri android dev -- --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json",
-    "tauri:android:dev:holochain_service": "cp -Rf src-tauri/gen/android-holochain_service/* src-tauri/gen/android/ && npm run tauri android dev -- --features holochain_service --config src-tauri/tauri.holochain_service.conf.json",
-    "tauri:android:build:holochain_bundled": "cp -Rf src-tauri/gen/android-holochain_bundled/* src-tauri/gen/android/ && npm run tauri android build -- --features holochain_bundled --config src-tauri/tauri.holochain_bundled.conf.json",
-    "tauri:android:build:holochain_service": "cp -Rf src-tauri/gen/android-holochain_service/* src-tauri/gen/android/ && npm run tauri android build -- --features holochain_service --config src-tauri/tauri.holochain_service.conf.json",
+    "tauri:android:dev:holochain_bundled": "cp -Rf src-tauri/gen/android-holochain_bundled/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_bundled.conf.json src-tauri/tauri.conf.json && npm run tauri android dev -- --features holochain_bundled",
+    "tauri:android:dev:holochain_service": "cp -Rf src-tauri/gen/android-holochain_service/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_service.conf.json src-tauri/tauri.conf.json && npm run tauri android dev -- --features holochain_service",
+    "tauri:android:build:holochain_bundled": "cp -Rf src-tauri/gen/android-holochain_bundled/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_bundled.conf.json src-tauri/tauri.conf.json && npm run tauri android build -- --features holochain_bundled",
+    "tauri:android:build:holochain_service": "cp -Rf src-tauri/gen/android-holochain_service/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_service.conf.json src-tauri/tauri.conf.json && npm run tauri android build -- --features holochain_service",
 
     "setup:happ-release": "curl -L https://github.com/holochain-apps/volla-messages/releases/download/happ-v0.8.0/relay.happ -o workdir/relay.happ"
   },
