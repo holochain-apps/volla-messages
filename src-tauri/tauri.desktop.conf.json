@@ -33,6 +33,5 @@
     "macOS": {
       "entitlements": "entitlements.plist"
     }
-  },
-  
+  }
 }
