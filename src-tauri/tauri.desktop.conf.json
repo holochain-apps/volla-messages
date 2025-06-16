@@ -1,18 +1,11 @@
 {
   "productName": "Volla Messages",
-  "version": "0.8.1",
   "identifier": "com.volla.messages",
+  "version": "0.8.2",
   "build": {
     "beforeBuildCommand": "npm run build -w ui",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../ui/build"
-  },
-  "app": {
-    "withGlobalTauri": true,
-    "security": {
-      "csp": null
-    },
-    "windows": []
   },
   "bundle": {
     "active": true,
@@ -27,5 +20,18 @@
     "macOS": {
       "entitlements": "entitlements.plist"
     }
+  },
+  "app": {
+    "windows": [
+      {
+        "width": 360,
+        "height": 720,
+        "decorations": false,
+        "resizable": true,
+        "center": true,
+        "url": "splashscreen.html",
+        "label": "splashscreen"
+      }
+    ]
   }
 }

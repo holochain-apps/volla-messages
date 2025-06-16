@@ -3,3 +3,7 @@
 /target/
 .cargo/config.toml
 gen/schemas
+
+# Exclude the android project dir so we can replace it with one specific to our build variant
+gen/android/*
+!gen/android/.gitkeep

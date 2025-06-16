@@ -1,14 +1,25 @@
 {
   "productName": "Volla Messages (Standalone)",
   "identifier": "com.volla.messages",
+  "version": "0.8.2",
+  "build": {
+    "beforeBuildCommand": "npm run build -w ui",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../ui/build"
+  },
   "bundle": {
+    "active": true,
+    "targets": "all",
     "icon": [
       "icons/squiggle/32x32.png",
       "icons/squiggle/128x128.png",
       "icons/squiggle/128x128@2x.png",
       "icons/squiggle/icon.icns",
       "icons/squiggle/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": "entitlements.plist"
+    }
   },
   "app": {
     "windows": [
