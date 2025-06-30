@@ -11,5 +11,6 @@ name = "relay"
 hdk = { workspace = true }
 
 serde = { workspace = true }
+holochain_serialized_bytes = { workspace = true }
 
 relay_integrity = { workspace = true }
