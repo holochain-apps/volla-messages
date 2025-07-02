@@ -27,3 +27,6 @@ export const ZOME_NAME = "relay";
 // Polling intervals, used on conversations page
 export const POLLING_INTERVAL_SLOW = 30 * 1000;
 export const POLLING_INTERVAL_FAST = 2 * 1000;
+
+// Memory management for chat messages
+export const MESSAGES_PER_PAGE = 20;
