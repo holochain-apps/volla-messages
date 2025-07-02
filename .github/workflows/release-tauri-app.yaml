@@ -211,7 +211,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.83.0
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -305,7 +305,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.83.0
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
