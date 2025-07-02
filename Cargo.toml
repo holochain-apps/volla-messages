@@ -47,3 +47,7 @@ path = "dnas/relay/zomes/integrity/relay"
 edition = "2021"
 rust-version = "1.74.0"
 version = "0.5.0-beta"
+
+[patch.crates-io]
+wasmer-vm = { git = "https://github.com/guillemcordoba/wasmer", branch = "fix-x86" }
+wasmer-types = { git = "https://github.com/guillemcordoba/wasmer", branch = "fix-x86" }
