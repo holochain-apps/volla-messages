@@ -162,6 +162,19 @@
     loadingMessagesOld = false;
   }
 
+  async function loadMoreMessages() {
+    if (loadingMessagesOld) return;
+
+    loadingMessagesOld = true;
+    try {
+      const loadedCount = await messages.loadMoreMessages();
+      console.log(`Loaded ${loadedCount} more messages for infinite scroll`);
+    } catch (e) {
+      console.error("Error loading more messages:", e);
+    }
+    loadingMessagesOld = false;
+  }
+
   async function loadMessagesInCurrentBucket() {
     if (loadingMessagesNew) return;
     console.log("loadMessagesInCurrentBucket");
@@ -185,7 +198,7 @@
       await messages.sendMessage(text, files);
     } catch (e) {
       console.error(e);
-      toast.error(`${$t("common.error_sending_message")}: ${e.message}`);
+      toast.error(`${$t("common.error_sending_message")}: ${(e as Error).message || e}`);
     }
     sending = false;
   }
@@ -239,22 +252,19 @@
       <!-- No messages yet, display conversation header -->
       <ConversationHeader cellIdB64={$page.params.id} />
     {:else}
-      <!-- Display conversation messages -->
-      {#if loadingMessagesOld}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
-        </div>
-      {/if}
-      <ConversationMessages
-        loadingTop={loadingMessagesOld}
-        cellIdB64={$page.params.id}
-        messages={$messages.list}
-        on:delete={(e) => {
-          deleteMessageActionHashB64 = e.detail;
-          showDeleteDialog = true;
-        }}
-        on:scrollAtTop={loadMessagesInPreviousBucket}
-      />
+      <!-- Display conversation messages with proper height container -->
+      <div class="w-full flex-1 overflow-hidden">
+        <ConversationMessages
+          loadingTop={loadingMessagesOld}
+          cellIdB64={$page.params.id}
+          messages={$messages.list}
+          on:delete={(e) => {
+            deleteMessageActionHashB64 = e.detail;
+            showDeleteDialog = true;
+          }}
+          on:scrollAtTop={loadMoreMessages}
+        />
+      </div>
     {/if}
   </div>
 </div>
