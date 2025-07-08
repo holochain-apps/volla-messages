@@ -289,7 +289,11 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
-          - platform: 'macos-13' # for Intel based macs.
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
 
     runs-on: ${{ matrix.platform }}
 
