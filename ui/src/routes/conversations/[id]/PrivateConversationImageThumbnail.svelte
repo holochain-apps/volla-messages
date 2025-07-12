@@ -15,6 +15,8 @@
 
   export let cellIdB64: CellIdB64;
 
+  const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => string }>("myPubKey").getMyPubKeyB64();
+
   let joined = deriveCellMergedProfileContactInviteJoinedStore(
     mergedProfileContactInviteJoinedStore,
     cellIdB64,
@@ -29,7 +31,13 @@
       <SvgIcon icon="group" />
     </span>
   {:else if $joined.count === 2}
-    <Avatar {cellIdB64} agentPubKeyB64={$joined.list[1][0]} size={40} />
+        <Avatar
+      {cellIdB64}
+      agentPubKeyB64={$joined.list.filter(
+        ([agentPubKeyB64]) => agentPubKeyB64 !== myPubKeyB64,
+      )[0][0]}
+      size={40}
+    />
   {:else if $joined.count === 3}
     {#each $joined.list.slice(1, 3) as [agentPubKeyB64], i (agentPubKeyB64)}
       <Avatar {cellIdB64} {agentPubKeyB64} size={22} moreClasses={i === 0 ? "" : "-ml-1"} />
