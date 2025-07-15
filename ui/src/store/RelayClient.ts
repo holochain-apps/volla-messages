@@ -56,30 +56,34 @@ export class RelayClient {
     });
   }
 
-  async getAgentProfile(cellId: CellId, agentPubKey: AgentPubKey): Promise<Record | undefined> {
+  async getAgentProfile(
+    cellId: CellId,
+    agentPubKey: AgentPubKey,
+    local?: boolean,
+  ): Promise<Record | undefined> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: "profiles",
       fn_name: "get_agent_profile",
-      payload: agentPubKey,
+      payload: { input: agentPubKey, local },
     });
   }
 
-  async getAgentsWithProfile(cellId: CellId): Promise<AgentPubKey[]> {
+  async getAgentsWithProfile(cellId: CellId, local?: boolean): Promise<AgentPubKey[]> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: "profiles",
       fn_name: "get_agents_with_profile",
-      payload: null,
+      payload: { input: null, local },
     });
   }
 
-  async getAllProfiles(cellId: CellId): Promise<ProfileExtended[]> {
-    const agentPubKeys = await this.getAgentsWithProfile(cellId);
+  async getAllProfiles(cellId: CellId, local: boolean): Promise<ProfileExtended[]> {
+    const agentPubKeys = await this.getAgentsWithProfile(cellId, local);
     const profileExtendeds = (
       await Promise.allSettled(
         agentPubKeys.map(async (a) => {
-          const record = await this.getAgentProfile(cellId, a);
+          const record = await this.getAgentProfile(cellId, a, local);
           if (record === undefined)
             throw new Error(
               `Failed to get agent profile for cellId [${encodeCellIdToBase64(cellId)} and agent ${encodeHashToBase64(a)}`,
@@ -173,13 +177,13 @@ export class RelayClient {
   public async getMessageEntries(
     cell_id: CellId,
     hashes: Array<ActionHash>,
-    local: boolean,
+    local?: boolean,
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_message_entries",
-      payload: {hashes, local}
+      payload: { input: hashes, local },
     });
   }
 
@@ -227,12 +231,12 @@ export class RelayClient {
     });
   }
 
-  async getConfig(cell_id: CellId): Promise<Config | undefined> {
+  async getConfig(cell_id: CellId, local?: boolean): Promise<Config | undefined> {
     const config = await this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_config",
-      payload: null,
+      payload: { input: null, local },
     });
     return config ? new EntryRecord<Config>(config).entry : undefined;
   }

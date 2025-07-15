@@ -102,7 +102,7 @@ Every feature of the app is managed by a store, which is a Svelte Store. Each st
 - `create(input)` creates a new conversation
 - `join(input)` joins a conversation via invitation
 - `enable(key)`,`disable(key)` enables/disables a conversation cell
-- `loadConfig(key)` loads the configuration for a conversation
+- `loadConfig(key, local)` loads the configuration for a conversation either from local or network
 - `updateConfig(key, value)` updates the configuration
 - `updateUnread(key, value)` sets the unread status
 - `makePrivateInviteCode(key, agentPubKeyB64, title)` generates a private invite code
