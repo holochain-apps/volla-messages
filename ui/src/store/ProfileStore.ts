@@ -29,7 +29,7 @@ export interface ProfileStore extends GenericKeyKeyValueStore<ProfileExtended> {
   initialize: () => Promise<void>;
   createProfile: (val: CreateProfileInputUI) => Promise<void>;
   updateProfile: (val: CreateProfileInputUI) => Promise<void>;
-  load: (key: CellIdB64) => Promise<void>;
+  load: (key: CellIdB64, local: boolean) => Promise<void>;
   subscribe: (
     this: void,
     run: Subscriber<GenericKeyValueStoreDataExtended<GenericKeyValueStoreData<ProfileExtended>>>,
@@ -63,7 +63,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
       await Promise.allSettled(
         cellInfos.map(async (cellInfo) => [
           encodeCellIdToBase64(cellInfo.cell_id),
-          await _loadProfiles(cellInfo),
+          await _loadProfiles(cellInfo, true), // on initialize load only local
         ]),
       )
     )
@@ -158,7 +158,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
     });
   }
 
-  async function load(key: CellIdB64) {
+  async function load(key: CellIdB64, local: boolean) {
     // Get all relay cells
     const cellInfos = flatten(
       await Promise.all([client.getRelayClonedCellInfos(), client.getRelayProvisionedCellInfo()]),
@@ -169,14 +169,15 @@ export function createProfileStore(client: RelayClient): ProfileStore {
     if (!cellInfo) throw new Error(`Failed to get CellInfo for cellIdB64 ${key}`);
 
     // Fetch profiles for cell
-    const data = await _loadProfiles(cellInfo);
+    const data = await _loadProfiles(cellInfo, local);
     profiles.setKeyValue(key, data);
   }
 
   async function _loadProfiles(
     cellInfo: ClonedCell | ProvisionedCell,
+    local: boolean,
   ): Promise<{ [agentPubKeyB64: string]: ProfileExtended }> {
-    const profilesExtended = await client.getAllProfiles(cellInfo.cell_id);
+    const profilesExtended = await client.getAllProfiles(cellInfo.cell_id, local);
 
     return Object.fromEntries(profilesExtended.map((p) => [p.publicKeyB64, p]));
   }
@@ -191,7 +192,7 @@ export function createProfileStore(client: RelayClient): ProfileStore {
 }
 
 export interface CellProfileStore extends GenericKeyValueStore<ProfileExtended> {
-  load: () => Promise<void>;
+  load: (local: boolean) => Promise<void>;
 }
 
 export function deriveCellProfileStore(
@@ -202,6 +203,6 @@ export function deriveCellProfileStore(
 
   return {
     ...store,
-    load: () => profileStore.load(cellIdB64),
+    load: (local: boolean) => profileStore.load(cellIdB64, local),
   };
 }

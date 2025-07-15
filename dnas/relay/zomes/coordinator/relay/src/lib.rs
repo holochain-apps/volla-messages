@@ -1,6 +1,7 @@
-pub mod contact;
-pub mod message;
 pub mod config;
+pub mod contact;
+pub mod helper;
+pub mod message;
 pub mod ping;
 use hdk::prelude::*;
 use relay_integrity::*;
@@ -98,34 +99,24 @@ pub fn post_commit(committed_actions: Vec<SignedActionHashed>) {
 fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
     match action.hashed.content.clone() {
         Action::CreateLink(create_link) => {
-            if let Ok(Some(link_type)) = LinkTypes::from_type(
-                create_link.zome_index,
-                create_link.link_type,
-            ) {
-                emit_signal(Signal::LinkCreated {
-                    action,
-                    link_type,
-                })?;
+            if let Ok(Some(link_type)) =
+                LinkTypes::from_type(create_link.zome_index, create_link.link_type)
+            {
+                emit_signal(Signal::LinkCreated { action, link_type })?;
             }
             Ok(())
         }
         Action::DeleteLink(delete_link) => {
-            let record = get(
-                    delete_link.link_add_address.clone(),
-                    GetOptions::default(),
-                )?
-                .ok_or(
-                    wasm_error!(
-                        WasmErrorInner::Guest("Failed to fetch CreateLink action"
-                        .to_string())
-                    ),
-                )?;
+            let record = get(delete_link.link_add_address.clone(), GetOptions::default())?.ok_or(
+                wasm_error!(WasmErrorInner::Guest(
+                    "Failed to fetch CreateLink action".to_string()
+                )),
+            )?;
             match record.action() {
                 Action::CreateLink(create_link) => {
-                    if let Ok(Some(link_type)) = LinkTypes::from_type(
-                        create_link.zome_index,
-                        create_link.link_type,
-                    ) {
+                    if let Ok(Some(link_type)) =
+                        LinkTypes::from_type(create_link.zome_index, create_link.link_type)
+                    {
                         emit_signal(Signal::LinkDeleted {
                             action,
                             link_type,
@@ -134,29 +125,22 @@ fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
                     }
                     Ok(())
                 }
-                _ => {
-                    Err(
-                        wasm_error!(
-                            WasmErrorInner::Guest("Create Link should exist".to_string())
-                        ),
-                    )
-                }
+                _ => Err(wasm_error!(WasmErrorInner::Guest(
+                    "Create Link should exist".to_string()
+                ))),
             }
         }
         Action::Create(_create) => {
             if let Ok(Some(app_entry)) = get_entry_for_action(&action.hashed.hash) {
-                emit_signal(Signal::EntryCreated {
-                    action,
-                    app_entry,
-                })?;
+                emit_signal(Signal::EntryCreated { action, app_entry })?;
             }
             Ok(())
         }
         Action::Update(update) => {
             if let Ok(Some(app_entry)) = get_entry_for_action(&action.hashed.hash) {
-                if let Ok(Some(original_app_entry)) = get_entry_for_action(
-                    &update.original_action_address,
-                ) {
+                if let Ok(Some(original_app_entry)) =
+                    get_entry_for_action(&update.original_action_address)
+                {
                     emit_signal(Signal::EntryUpdated {
                         action,
                         app_entry,
@@ -167,9 +151,7 @@ fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
             Ok(())
         }
         Action::Delete(delete) => {
-            if let Ok(Some(original_app_entry)) = get_entry_for_action(
-                &delete.deletes_address,
-            ) {
+            if let Ok(Some(original_app_entry)) = get_entry_for_action(&delete.deletes_address) {
                 emit_signal(Signal::EntryDeleted {
                     action,
                     original_app_entry,
@@ -194,9 +176,11 @@ fn get_entry_for_action(action_hash: &ActionHash) -> ExternResult<Option<EntryTy
         }
     };
     let (zome_index, entry_index) = match record.action().entry_type() {
-        Some(EntryType::App(AppEntryDef { zome_index, entry_index, .. })) => {
-            (zome_index, entry_index)
-        }
+        Some(EntryType::App(AppEntryDef {
+            zome_index,
+            entry_index,
+            ..
+        })) => (zome_index, entry_index),
         _ => {
             return Ok(None);
         }
@@ -209,7 +193,7 @@ pub fn generate_membrane_proof(input: MembraneProofData) -> ExternResult<Seriali
     let me: HoloHash<holo_hash::hash_type::Agent> = agent_info()?.agent_initial_pubkey;
 
     let result = MembraneProofEnvelope {
-        signature: sign(me,input.clone())?,
+        signature: sign(me, input.clone())?,
         data: input,
     };
     let proof = SerializedBytes::try_from(result).map_err(|e| wasm_error!(e))?;
@@ -220,34 +204,28 @@ pub fn generate_membrane_proof(input: MembraneProofData) -> ExternResult<Seriali
 pub fn get_membrane_proof(agent: AgentPubKey) -> ExternResult<Option<MembraneProofData>> {
     match get_details(agent, GetOptions::default())? {
         None => Ok(None),
-        Some(details) => {
-            match details {
-                Details::Entry(entry_details) => {
-                    let prev = entry_details.actions[0].action().prev_action().unwrap();
-                    let maybe_record = get(prev.clone(), GetOptions::default())?;
-                    match maybe_record {
-                        None => Err(wasm_error!("expected agent validation record")),
-                        Some(record) => {
-                            match record.action() {
-                                Action::AgentValidationPkg(
-                                    AgentValidationPkg { membrane_proof, .. },
-                                ) => match membrane_proof {
-                                    Some(proof) => {
-                                        let envelope = MembraneProofEnvelope::try_from((**proof).clone()).map_err(|e| wasm_error!(e))?;
-                                        Ok(Some(envelope.data))
-                                    }
-                                    None => Ok(None)
-                                },
-                                _ => {
-                                    Err(wasm_error!("expected AgentValidationPkg"))
-                                }
+        Some(details) => match details {
+            Details::Entry(entry_details) => {
+                let prev = entry_details.actions[0].action().prev_action().unwrap();
+                let maybe_record = get(prev.clone(), GetOptions::default())?;
+                match maybe_record {
+                    None => Err(wasm_error!("expected agent validation record")),
+                    Some(record) => match record.action() {
+                        Action::AgentValidationPkg(AgentValidationPkg {
+                            membrane_proof, ..
+                        }) => match membrane_proof {
+                            Some(proof) => {
+                                let envelope = MembraneProofEnvelope::try_from((**proof).clone())
+                                    .map_err(|e| wasm_error!(e))?;
+                                Ok(Some(envelope.data))
                             }
+                            None => Ok(None),
                         },
-                    }
-                },
-                _ => Err(wasm_error!("unexpected entry type"))
+                        _ => Err(wasm_error!("expected AgentValidationPkg")),
+                    },
+                }
             }
-        }
+            _ => Err(wasm_error!("unexpected entry type")),
+        },
     }
 }
-

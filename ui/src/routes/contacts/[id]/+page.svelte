@@ -54,10 +54,14 @@
     $contact !== undefined &&
     $profiles?.list.find(([key]) => key === $contact.publicKeyB64) !== undefined;
 
+  let isFirstProfilesLoad = true;
+
   async function loadProfiles() {
     if (!profiles) return;
 
-    await profiles.load();
+    await profiles.load(isFirstProfilesLoad);
+    isFirstProfilesLoad = false;
+
     if (!hasAgentJoinedDht) {
       pollInterval = setTimeout(() => {
         loadProfiles();

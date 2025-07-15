@@ -7392,7 +7392,7 @@ dependencies = [
 
 [[package]]
 name = "relay"
-version = "0.5.0-beta"
+version = "0.6.0"
 dependencies = [
  "hdk",
  "holochain_serialized_bytes",
@@ -7402,7 +7402,7 @@ dependencies = [
 
 [[package]]
 name = "relay_integrity"
-version = "0.5.0-beta"
+version = "0.6.0"
 dependencies = [
  "hdi",
  "holochain_serialized_bytes",
@@ -10415,7 +10415,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "volla_messages"
-version = "0.8.5"
+version = "0.9.0-rc.1"
 dependencies = [
  "anyhow",
  "app_dirs2",
