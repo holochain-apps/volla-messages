@@ -173,12 +173,13 @@ export class RelayClient {
   public async getMessageEntries(
     cell_id: CellId,
     hashes: Array<ActionHash>,
+    local: boolean,
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_message_entries",
-      payload: hashes,
+      payload: {hashes, local}
     });
   }
 

@@ -50,14 +50,20 @@ pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
 pub struct BucketInput {
     pub bucket: u32,
     pub count: usize,
+    pub local: bool,
 }
 
 #[hdk_extern]
 pub fn get_message_hashes(input: BucketInput) -> ExternResult<Vec<ActionHash>> {
     let mut hashes: Vec<ActionHash> = Vec::new();
     let path: Path = messages_path(input.bucket);
+    let get_strategy = if input.local {
+        GetStrategy::Local
+    } else {
+        GetStrategy::Network
+    };
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.get_options(get_strategy)
             .build(),
     )?;
 
@@ -89,11 +95,17 @@ struct GetAgenProfileInput {
     agent_key: AgentPubKey,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetMessageEntriesInput {
+    pub hashes: Vec<ActionHash>,
+    pub local: bool,
+}
+
 #[hdk_extern]
-pub fn get_message_entries(hashes: Vec<ActionHash>) -> ExternResult<Vec<MessageRecord>> {
+pub fn get_message_entries(input: GetMessageEntriesInput) -> ExternResult<Vec<MessageRecord>> {
     let mut results: Vec<MessageRecord> = Vec::new();
-    for hash in hashes {
-        if let Some(r) = get_latest_message(hash)? {
+    for hash in input.hashes {
+        if let Some(r) = _get_latest_message(hash, input.local)? {
             results.push (r);
         }
     }
@@ -106,7 +118,7 @@ pub fn get_messages_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<MessageRe
     let mut results: Vec<MessageRecord> = Vec::new();
     for l in links {
         let hash  = ActionHash::try_from(l.target).map_err(|e|wasm_error!(e))?;
-        if let Some(r) = get_latest_message(hash)? {
+        if let Some(r) = _get_latest_message(hash, false)? {
             results.push(r);
         }
     }
@@ -118,12 +130,26 @@ pub fn get_messages_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<MessageRe
 pub fn get_latest_message(
     original_message_hash: ActionHash,
 ) -> ExternResult<Option<MessageRecord>> {
+    _get_latest_message(original_message_hash, false)
+}
+
+pub fn _get_latest_message(
+    original_message_hash: ActionHash,
+    local: bool,
+) -> ExternResult<Option<MessageRecord>> {
+
+    let get_strategy = if local {
+        GetStrategy::Local
+    } else {
+        GetStrategy::Network
+    };
+
     let links = get_links(
         GetLinksInputBuilder::try_new(
                 original_message_hash.clone(),
                 LinkTypes::MessageUpdates,
             )?
-            .build(),
+            .get_options(get_strategy).build(),
     )?;
     let latest_link = links
         .into_iter()
