@@ -51,26 +51,21 @@ pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
 pub struct BucketInput {
     pub bucket: u32,
     pub count: usize,
-    pub local: bool,
 }
 
 #[hdk_extern]
-pub fn get_message_hashes(input: BucketInput) -> ExternResult<Vec<ActionHash>> {
+pub fn get_message_hashes(bucket: ZomeFnInput<BucketInput>) -> ExternResult<Vec<ActionHash>> {
     let mut hashes: Vec<ActionHash> = Vec::new();
-    let path: Path = messages_path(input.bucket);
-    let get_strategy = if input.local {
-        GetStrategy::Local
-    } else {
-        GetStrategy::Network
-    };
+    let path: Path = messages_path(bucket.input.bucket);
+
     let links = get_links(
         GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
-            .get_options(get_strategy)
+            .get_options(bucket.get_strategy())
             .build(),
     )?;
 
     // only return the hashes if the counts don't match
-    if links.len() != input.count {
+    if links.len() != bucket.input.count {
         for l in links {
             hashes.push(ActionHash::try_from(l.target).map_err(|e| wasm_error!(e))?);
         }

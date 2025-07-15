@@ -136,7 +136,6 @@ export interface ConversationExtended {
 export type BucketInput = {
   bucket: number;
   count: number;
-  local: boolean;
 };
 
 // UI type only
