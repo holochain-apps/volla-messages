@@ -71,6 +71,7 @@
 
   let isFirstConfigLoad = true;
   let isFirstProfilesLoad = true;
+  let isFirstLoadMessages = true;
 
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
 
@@ -136,7 +137,8 @@
    */
   async function loadMessages() {
     clearTimeout(messageTimeout);
-    await loadMessagesInCurrentBucket();
+    await loadMessagesInCurrentBucket(isFirstLoadMessages);
+    isFirstLoadMessages = false;
 
     if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
@@ -160,7 +162,7 @@
 
     loadingMessagesOld = true;
     try {
-      await messages.loadMessagesInPreviousBucketTargetCount();
+      await messages.loadMessagesInPreviousBucketTargetCount(false); //TODO: is this ok to always be from network?
     } catch (e) {
       console.error(e);
     }
@@ -180,12 +182,12 @@
     loadingMessagesOld = false;
   }
 
-  async function loadMessagesInCurrentBucket() {
+  async function loadMessagesInCurrentBucket(local: boolean) {
     if (loadingMessagesNew) return;
     console.log("loadMessagesInCurrentBucket");
     loadingMessagesNew = true;
     try {
-      await messages.loadMessagesInCurrentBucketTargetCount();
+      await messages.loadMessagesInCurrentBucketTargetCount(local);
     } catch (e) {
       console.error(e);
     }

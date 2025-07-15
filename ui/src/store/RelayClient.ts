@@ -165,12 +165,16 @@ export class RelayClient {
     return cellInfo;
   }
 
-  public async getMessageHashes(cell_id: CellId, payload: BucketInput): Promise<Array<ActionHash>> {
+  public async getMessageHashes(
+    cell_id: CellId,
+    bucket: BucketInput,
+    local?: boolean,
+  ): Promise<Array<ActionHash>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_message_hashes",
-      payload,
+      payload: { input: bucket, local },
     });
   }
 
@@ -313,12 +317,12 @@ export class RelayClient {
    *
    */
 
-  public async getAllContacts(): Promise<ContactRecord[]> {
+  public async getAllContacts(local?: boolean): Promise<ContactRecord[]> {
     return this.client.callZome({
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "get_all_contact_entries",
-      payload: null,
+      payload: { input: null, local },
     });
   }
 
