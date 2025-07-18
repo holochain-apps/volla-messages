@@ -23,7 +23,9 @@
 
     "start:desktop": "cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json && npm run build:happ && BOOTSTRAP_PORT=$(port) INTERNAL_IP=$(internal-ip --ipv4) concurrently -k \"npm run local-services\" \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri dev -- --features holochain_bundled\"",
     "start:desktop:happ-release": "npm run setup:happ-release && concurrently -k \"UI_PORT=1420 npm run -w ui start\" \"npm run tauri dev -- --release --features holochain_bundled\"",
-    
+
+    "build:desktop:happ-release": "npm run tauri build -- --verbose --features holochain_bundled",
+
     "launch": "concurrently-repeat \"npm run tauri dev -- --features holochain_bundled\" $AGENTS",
     "tauri": "tauri",
 

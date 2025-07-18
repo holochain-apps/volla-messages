@@ -1,19 +1,26 @@
 use crate::config::{APP_ID, HAPP_BUNDLE_BYTES};
 use holochain_types::prelude::AppBundle;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::path::PathBuf;
 use tauri::{AppHandle, Builder, EventLoopMessage, Listener, Manager, Runtime};
-use tauri_plugin_holochain::{HolochainExt, HolochainPluginConfig, vec_to_locked};
-use tauri_plugin_holochain::NetworkConfig;
+use tauri_plugin_holochain::{vec_to_locked, HolochainExt, HolochainPluginConfig, NetworkConfig};
+use url2::Url2;
 use uuid::Uuid;
-use serde_json::json;
 
-pub const SIGNAL_URL: &'static str = "wss://dev-test-bootstrap2.holochain.org/";
+pub const DEFAULT_SIGNAL_URL: &'static str = "wss://dev-test-bootstrap2.holochain.org/";
 
-pub const BOOTSTRAP_URL: &'static str = "https://dev-test-bootstrap2.holochain.org/";
+pub const DEFAULT_BOOTSTRAP_URL: &'static str = "https://dev-test-bootstrap2.holochain.org/";
 
-pub static ICE_URLS: &'static [&str] = &[
-    "stun://stun.l.google.com:19302"
-];
+pub static DEFAULT_ICE_URLS: &'static [&str] = &["stun://stun.l.google.com:19302"];
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct UserNetworkConfig {
+    bootstrap_url: Option<Url2>,
+    signal_url: Option<Url2>,
+    ice_servers: Option<Vec<Url2>>,
+}
 
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
     let bundle = AppBundle::decode(HAPP_BUNDLE_BYTES)?;
@@ -27,9 +34,14 @@ where
     >>::WindowBuilder: std::marker::Send,
 {
     builder
+        .invoke_handler(tauri::generate_handler![
+            default_user_network_config,
+            get_user_network_config,
+            set_user_network_config
+        ])
         .plugin(tauri_plugin_holochain::async_init(
             vec_to_locked(vec![]),
-            HolochainPluginConfig::new(holochain_dir(), network_config())
+            HolochainPluginConfig::new(holochain_dir(), network_config()),
         ))
         .setup(|app| {
             let handle = app.handle().clone();
@@ -126,13 +138,31 @@ async fn setup<R: Runtime>(handle: AppHandle<R>) -> anyhow::Result<()> {
     }
     Ok(())
 }
+
 fn network_config() -> NetworkConfig {
     let mut config = NetworkConfig::default();
-    config.signal_url = url2::url2!("{}", SIGNAL_URL);
-    config.bootstrap_url = url2::url2!("{}", BOOTSTRAP_URL);
-    config.webrtc_config = Some(json!({ "iceServers": [ { "urls": ICE_URLS }]}));
+    if let Ok(Some(user_network_config)) = read_user_network_config() {
+        if let Some(bootstrap_url) = user_network_config.bootstrap_url {
+            config.bootstrap_url = bootstrap_url;
+        }
+        if let Some(signal_url) = user_network_config.signal_url {
+            config.signal_url = signal_url;
+        }
+        if let Some(ice_servers) = user_network_config.ice_servers {
+            config.webrtc_config = Some(json!({ "iceServers": [ { "urls": ice_servers }]}));
+        }
+    } else {
+        config.signal_url = url2::url2!("{}", DEFAULT_SIGNAL_URL);
+        config.bootstrap_url = url2::url2!("{}", DEFAULT_BOOTSTRAP_URL);
+        config.webrtc_config = Some(json!({ "iceServers": [ { "urls": DEFAULT_ICE_URLS }]}));
+    }
+    // // Don't hold any slice of the DHT in mobile
+    // if cfg!(mobile) {
+    //     config.target_arc_factor = 0;
+    // }
     config
 }
+
 fn holochain_dir() -> PathBuf {
     if tauri::is_dev() {
         #[cfg(target_os = "android")]
@@ -183,4 +213,73 @@ fn get_version() -> String {
     }
     let v: Vec<&str> = semver.split(".").collect();
     return format!("{}", v[0]);
+}
+
+#[tauri::command]
+pub fn set_user_network_config<R: Runtime>(
+    app: AppHandle<R>,
+    bootstrap_url: Url2,
+    signal_url: Url2,
+    ice_servers: Vec<Url2>,
+) -> Result<(), String> {
+    let config = UserNetworkConfig {
+        bootstrap_url: Some(bootstrap_url),
+        signal_url: Some(signal_url),
+        ice_servers: Some(ice_servers),
+    };
+    write_user_network_config(config).map_err(|e| e.to_string())?;
+
+    app.restart();
+    // Ok(())
+}
+
+#[tauri::command]
+fn get_user_network_config() -> Result<Option<UserNetworkConfig>, String> {
+    let config = read_user_network_config().map_err(|e| e.to_string())?;
+    Ok(config)
+}
+
+#[tauri::command]
+fn default_user_network_config() -> UserNetworkConfig {
+    let config = UserNetworkConfig {
+        bootstrap_url: Some(url2::url2!("{}", DEFAULT_BOOTSTRAP_URL)),
+        signal_url: Some(url2::url2!("{}", DEFAULT_SIGNAL_URL)),
+        ice_servers: Some(
+            DEFAULT_ICE_URLS
+                .into_iter()
+                .map(|url| url2::url2!("{}", url))
+                .collect(),
+        ),
+    };
+    config
+}
+
+fn user_network_config_path() -> PathBuf {
+    app_dirs2::app_root(
+        app_dirs2::AppDataType::UserData,
+        &app_dirs2::AppInfo {
+            name: APP_ID,
+            author: std::env!("CARGO_PKG_AUTHORS"),
+        },
+    )
+    .expect("Could not get app root")
+    .join("user-network-config.json")
+}
+
+fn write_user_network_config(config: UserNetworkConfig) -> anyhow::Result<()> {
+    let contents = serde_json::to_string(&config)?;
+
+    std::fs::write(user_network_config_path(), contents)?;
+    Ok(())
+}
+
+fn read_user_network_config() -> anyhow::Result<Option<UserNetworkConfig>> {
+    let path = user_network_config_path();
+    if !std::fs::exists(&path)? {
+        return Ok(None);
+    }
+    let contents = std::fs::read_to_string(path)?;
+
+    let config: UserNetworkConfig = serde_json::from_str(contents.as_str())?;
+    Ok(Some(config))
 }

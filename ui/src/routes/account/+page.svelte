@@ -11,6 +11,14 @@
   import ButtonIconBare from "$lib/ButtonIconBare.svelte";
   import InputImageAvatar from "$lib/InputImageAvatar.svelte";
   import { type CellProfileStore, type ProfileStore } from "$store/ProfileStore";
+  import { invoke } from "@tauri-apps/api/core";
+  import Button from "$lib/Button.svelte";
+
+  type UserNetworkSettings = {
+    bootstrapUrl: string | undefined;
+    signalUrl: string | undefined;
+    iceServers: Array<string> | undefined;
+  };
 
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
   const provisionedRelayCellProfileStore = getContext<{
@@ -41,6 +49,28 @@
     }
     saving = false;
     editingName = false;
+  }
+  async function setUserNetworkConfig(settings: UserNetworkSettings) {
+    return invoke("set_user_network_config", settings);
+  }
+  async function getUserNetworkConfig(): Promise<UserNetworkSettings> {
+    return invoke("get_user_network_config");
+  }
+  async function defaultUserNetworkConfig(): Promise<UserNetworkSettings> {
+    return invoke("default_user_network_config");
+  }
+
+  // TODO: remove this and create actual UI for updating the setting along with notification
+  // that doing so will restart the app.
+  async function testUpdateSettings() {
+    let currentSettings: UserNetworkSettings | null = await getUserNetworkConfig();
+    if (currentSettings === null) {
+      console.log("no user settings have been set, getting defaults");
+      currentSettings = await defaultUserNetworkConfig();
+      console.log("setting defaults as custom setting for testing purposes");
+      await setUserNetworkConfig(currentSettings);
+    }
+    console.log(JSON.stringify(currentSettings));
   }
 </script>
 
@@ -98,5 +128,8 @@
       copyLabel={$t("common.copy_your_contact_code")}
       shareLabel={$t("common.share_your_contact_code")}
     />
+    <Button style="margin-top:5px" on:click={async () => await testUpdateSettings()}
+      >Settings</Button
+    >
   </div>
 </div>
