@@ -179,6 +179,7 @@
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactInviteStore,
+        myPubKeyB64
       );
 
       // Initialize store data
