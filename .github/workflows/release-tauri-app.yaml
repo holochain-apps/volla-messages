@@ -147,6 +147,7 @@ jobs:
 
       - name: setup Android signing
         run: |
+          mkdir src-tauri/gen/android
           cd src-tauri/gen/android
           base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
