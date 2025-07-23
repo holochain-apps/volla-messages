@@ -27,10 +27,10 @@ android {
         }
     }
     compileSdk = 34
-    namespace = "com.volla.messages.service"
+    namespace = "com.volla.messages"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "true"
-        applicationId = "com.volla.messages.service"
+        applicationId = "com.volla.messages"
         minSdk = 27
         targetSdk = 34
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
