@@ -15,6 +15,8 @@ import {
   encodeHashToBase64,
   type ActionHashB64,
   type CellId,
+  type NetworkMetrics,
+  type TransportStats,
 } from "@holochain/client";
 import { difference, flatten, range, sortBy, sum } from "lodash-es";
 import type { ConversationStore } from "./ConversationStore";
