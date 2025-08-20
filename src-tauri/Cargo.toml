@@ -1,6 +1,6 @@
 [package]
 name = "volla_messages"
-version = "0.9.0-rc.2"
+version = "0.9.0-rc.3"
 description = "Volla Messages"
 authors = ["Tibet Sprague", "Eric Harris-Braun"]
 license = ""
@@ -22,8 +22,9 @@ tauri = { version = "2.5.1", features = ["devtools"] }
 tauri-runtime = {version = "2.6.0", optional = true}
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/tauri-plugin-holochain", branch = "main-0.5", optional = true }
 tauri-plugin-holochain-service-client = { version = "0.2.0", optional = true }
+holochain = "0.5.5"
 
-holochain_types = "0.5.4"
+holochain_types = "0.5.5"
 lair_keystore = "0.6.2"
 holochain_client = "0.7.1"
 
