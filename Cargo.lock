@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "Inflector"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
-dependencies = [
- "lazy_static",
- "regex",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -76,12 +66,6 @@ checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
 dependencies = [
  "memchr",
 ]
-
-[[package]]
-name = "aliasable"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
 name = "alloc-no-stdlib"
@@ -3096,9 +3080,9 @@ dependencies = [
 
 [[package]]
 name = "hc_deepkey_sdk"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8234c5bf61380a153a3ef9d3e2cb96cdb30a78126d2dc0e8419e878bcfbb9b37"
+checksum = "c9caf7a44d590b8b7c0245be97c5b9047433f5fdad6bef8b02577358b4302059"
 dependencies = [
  "hc_deepkey_types",
  "hdk",
@@ -3109,9 +3093,9 @@ dependencies = [
 
 [[package]]
 name = "hc_deepkey_types"
-version = "0.9.5"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6b5fa669512a78fb4aa7a95e3c82611057fd3a305241f683df0e20396fbb32a"
+checksum = "a5816de53c24480350a6cd653e600ffb2af24bd8c32651d51cd6b63464855816"
 dependencies = [
  "hdi",
  "holo_hash",
@@ -3371,9 +3355,9 @@ dependencies = [
 
 [[package]]
 name = "holochain"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ca7c52dcf57247afdeae22ba77268cb192407acd2bf2ca7d272f65a21e32558"
+checksum = "b20c4c755a7fb14f5b8e3bcc0095865ee6f567cb5144b127c66723d3eaea4bbd"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3477,9 +3461,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_cascade"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be79df0ed2709cff0a1ec4e361b79d873f250ca141b58a3479932b5acc5777e6"
+checksum = "3d8785cb43390a9c716d6abe96ad08b440ca48a0be44ccc2add6692fc62e3578"
 dependencies = [
  "async-trait",
  "fixt",
@@ -3505,9 +3489,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_chc"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d14eb79c698945b653d515011e671418794d6a3ed52c89646655ef8a73b7d006"
+checksum = "70a5389a02a8277b5637c8f696955bc819554264611b2909726180717c4ab313"
 dependencies = [
  "async-trait",
  "derive_more 0.99.20",
@@ -3556,9 +3540,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_conductor_api"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f0765715fa1cc7fee3aae8673d1e21cb141cd089cae04532e60603887ee85d"
+checksum = "0775b7eee42ae41cf24fd8c47ddf2fd00c5b6a00f7df5e2a3dd05fc484adb5b9"
 dependencies = [
  "cfg-if 1.0.1",
  "derive_more 0.99.20",
@@ -3584,9 +3568,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_conductor_config"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab03ae4f798d4138c8233c87918853c02969a69573a39893f316a6ea6f712996"
+checksum = "5c20135521926a3370c20b2bf140f9c8c56b86e434ba74b80db5b425ed2c3300"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -3602,9 +3586,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_conductor_services"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc86518ac7b92158a360b903c5a6efe30d96b0bf3ab4edf39944824ceafc5aa8"
+checksum = "cbe8bab8b982133db2c00942746de5434f96ee2c5c0e9839ef657fffdd791876"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3652,9 +3636,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_keystore"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd3def7072cea93b25e9e508f49d53d98ced8eb18159340f6180995b65498a0"
+checksum = "a09bacf364c23b57e574132b90ef3b6638b132e07bcfb7eefeb1c6a51ef1ceb3"
 dependencies = [
  "base64 0.22.1",
  "derive_more 0.99.20",
@@ -3682,9 +3666,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_metrics"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b96ebe62a854325ee8984e1ccf972214b0b03dd9ba6c27bb6546c4b36a607f6"
+checksum = "040b34b60a76c86a45413e858bd7429a673d0559b86902330a921068b5ba964a"
 dependencies = [
  "influxive",
  "opentelemetry_api",
@@ -3704,9 +3688,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_p2p"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd4151623e9ec89b38c57742b64c513128fd37e98ae90adf75007b78a33c7cc2"
+checksum = "03be4501a50eadce9409166f1c9ef04eac8c09d219492392c87ae10a6754dc47"
 dependencies = [
  "async-trait",
  "blake2b_simd",
@@ -3819,9 +3803,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_sqlite"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "535ed908c3f0b53e79bf2c3af701e67f5a8a2d9e19daa6d29c486294389d8f95"
+checksum = "f5c55a3d3ddca43ff03652e53116df6b25af273fc09c6cdf4a93c0d8eeea84d6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3863,9 +3847,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_state"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9efceddcd84454df1fd49ba3ee8e4c006837145a1a02ad88c98ec46ca94713c"
+checksum = "4238743ddbce05b251be93c7a7ee9bd2b01e5285806b8eb815a7a973ab889986"
 dependencies = [
  "async-recursion",
  "chrono",
@@ -3895,9 +3879,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_state_types"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48a1eecaddbcc607185027d06f1e566f812243779f8411c18229fcaa732c4359"
+checksum = "0957775ab0db6994dd85ac29bbebe6e665c859d49f72c87da654abc2870c2c48"
 dependencies = [
  "holo_hash",
  "holochain_integrity_types",
@@ -3917,9 +3901,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_trace"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7f207dbe8300a0932325c1331038284d31c75f73425922ae5200e62f5ec9069"
+checksum = "b6a6db75a7f432b22a246d7182971a81267d6afd0ebb8f31e86b72ef77aaf10f"
 dependencies = [
  "chrono",
  "derive_more 0.99.20",
@@ -3935,9 +3919,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_types"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63885d90992a579ce264523f6c2beafe684e8a91b2f7c79d820cf028921714f2"
+checksum = "199594a6ea6fb21cbf5ee18e542693ff57676e13096ad707aeaac3212e6d2017"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4007,9 +3991,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_wasm_test_utils"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b87c60908172677bf9f2e5304066f08ac1e50509b1b7e72c5077855458f22bf3"
+checksum = "48703023d5aa33f53432248c19eab174738011c24f1080283881df6d5120db51"
 dependencies = [
  "holochain_types",
  "holochain_util",
@@ -4065,9 +4049,9 @@ dependencies = [
 
 [[package]]
 name = "holochain_websocket"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dc374208f862cb39c89c64f8c5e8cb99c90a1683d84eb66b7cd6a3ea6b8992f"
+checksum = "ae0e4793fac1b0addeaee2aca50effeb38fd657f7810115ec86f1318b88e3fbb"
 dependencies = [
  "async-trait",
  "futures",
@@ -4609,9 +4593,9 @@ dependencies = [
 
 [[package]]
 name = "influxive"
-version = "0.0.4-alpha.1"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3680518e6abe9c1d1f7d9983dcf2c4d4b3b0bcc1b34c2c02f375e9f7d467a68"
+checksum = "b6d0b6985380cf881e6b3228a6f80cddcda367def4db1789905917625a217998"
 dependencies = [
  "influxive-child-svc",
  "influxive-otel",
@@ -4620,9 +4604,9 @@ dependencies = [
 
 [[package]]
 name = "influxive-child-svc"
-version = "0.0.4-alpha.1"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73581cf719096a1d127ecd0c166eac4479fd64cc25e9950700ef2d3904e95cfd"
+checksum = "1cbd657d59c9e4ad6c37f80ac253bed584cbfe64a17802ef99724c24daa490b3"
 dependencies = [
  "hex-literal",
  "influxive-core",
@@ -4635,15 +4619,15 @@ dependencies = [
 
 [[package]]
 name = "influxive-core"
-version = "0.0.4-alpha.1"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "516f0d73d7c5c0268aafc343ff95f9536dd49c29057ee2d752acd3808e7df8ce"
+checksum = "c055d67219b8b73dcb777fb46acb7b812ad83b9007af9b2713b21d663c21aeaa"
 
 [[package]]
 name = "influxive-downloader"
-version = "0.0.4-alpha.1"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8dd10c3e1416f5d99c447fa238f452f4c6353a48cff6b3be7afa17850e4bb7e"
+checksum = "db841bcd61baa5670e37b992bc3e1ad3de720f38ecc1ba68bc5e8cdaa7423817"
 dependencies = [
  "base64 0.22.1",
  "digest",
@@ -4663,9 +4647,9 @@ dependencies = [
 
 [[package]]
 name = "influxive-otel"
-version = "0.0.4-alpha.1"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5d8e663336807ed8864618db6cb4d3c05309535323d7be429224ba7f952a282"
+checksum = "93bddd13d48687fabfcb920638f7113c4b35acddcec7eeacd54b6201c9c724c8"
 dependencies = [
  "influxive-core",
  "opentelemetry_api",
@@ -4683,9 +4667,9 @@ dependencies = [
 
 [[package]]
 name = "influxive-writer"
-version = "0.0.4-alpha.1"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48ac6efbbfafec11613fc1264214a1add55c02063716f2d448080eac9097e62b"
+checksum = "1120f1a6467ee14139cca30bc0222b3593331d58a2c1b066cc29b7aae2d2daed"
 dependencies = [
  "influxdb",
  "influxive-core",
@@ -5580,9 +5564,9 @@ checksum = "7843ec2de400bcbc6a6328c958dc38e5359da6e93e72e37bc5246bf1ae776389"
 
 [[package]]
 name = "mr_bundle"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73237abe40db8c6515cd56664d3958632ca4c376190c96574cf2019bde3d6a7f"
+checksum = "78eee7262e4a015f26f953ac907b6253ede03207b449f6abeb4b7d1d0a7cc995"
 dependencies = [
  "derive_more 0.99.20",
  "flate2",
@@ -6247,29 +6231,6 @@ checksum = "db335f4760b14ead6290116f2427bf33a14d4f0617d49f78a246de10c1831224"
 dependencies = [
  "libc",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "ouroboros"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1358bd1558bd2a083fed428ffeda486fbfb323e698cdda7794259d592ca72db"
-dependencies = [
- "aliasable",
- "ouroboros_macro",
-]
-
-[[package]]
-name = "ouroboros_macro"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f7d21ccd03305a674437ee1248f3ab5d4b1db095cf1caf49f1713ddf61956b7"
-dependencies = [
- "Inflector",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -10090,7 +10051,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tx5-core",
- "tx5-go-pion",
  "tx5-signal",
 ]
 
@@ -10110,36 +10070,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "tx5-go-pion"
-version = "0.3.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ca373f98a8ff67ed9bc95331ebd0a7bad28fbed6a573fbb427043623763f6a4"
-dependencies = [
- "futures",
- "tokio",
- "tracing",
- "tx5-go-pion-sys",
-]
-
-[[package]]
-name = "tx5-go-pion-sys"
-version = "0.3.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9848cbcb082af6ab8f07f9066df04a9830734bc5ef0ed53520641f4a3e88257"
-dependencies = [
- "Inflector",
- "base64 0.22.1",
- "libc",
- "libloading 0.8.8",
- "once_cell",
- "ouroboros",
- "sha2",
- "tracing",
- "tx5-core",
- "zip 0.6.6",
 ]
 
 [[package]]

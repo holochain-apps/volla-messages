@@ -22,9 +22,14 @@ tauri = { version = "2.5.1", features = ["devtools"] }
 tauri-runtime = {version = "2.6.0", optional = true}
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/tauri-plugin-holochain", branch = "main-0.5", optional = true }
 tauri-plugin-holochain-service-client = { version = "0.2.0", optional = true }
-holochain = {version = "0.5.5", default-features = false, features = ["sqlite-encrypted", "wasmer_sys", "backend-go-pion"] }
 
-holochain_types = "0.5.5"
+# datachanel webrtc backend
+holochain = "0.5.6"
+
+# go-pion webrtc back-end
+#holochain = {version = "0.5.6", default-features = false, features = ["sqlite-encrypted", "wasmer_sys", "backend-go-pion"] }
+
+holochain_types = "0.5.6"
 lair_keystore = "0.6.2"
 holochain_client = "0.7.1"
 
