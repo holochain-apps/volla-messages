@@ -5,7 +5,7 @@
   "add_to_conversation_error": "Kontakt kann nicht zur Konversation hinzugefügt werden",
   "admin": "Admin",
   "app_name" : "Volla Messages",
-  "archive" : "Archiv"
+  "archive" : "Archiv",
   "camera_permission_error": "Die Abfrage der Kamerarechte ist fehlgeschlagen. Bitte versuchen Sie es erneut oder erteilen Sie die Berechtigungen manuell in den Einstellungen.",
   "cancel": "Abbrechen",
   "cant_add_yourself": "Sie können nicht sich selbst als Kontakt hinzufügen",
@@ -14,7 +14,7 @@
   "contact_code": "Kontakt-Code",
   "confirm": "Bestätigen",
   "copy": "Kopieren",
-  "copy_error": "Kopieren in die Zwischenablage fehlgeschlagen"
+  "copy_error": "Kopieren in die Zwischenablage fehlgeschlagen",
   "copy_invite": "Einladung kopieren",
   "copy_invite_code": "Kontakt-Code kopieren",
   "copy_success": "In die Zwischenablage kopiert",
