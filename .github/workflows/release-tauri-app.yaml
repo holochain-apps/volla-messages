@@ -159,6 +159,7 @@ jobs:
 
       - name: Copy variant tauri config
         run: |
+          cp -Rf src-tauri/gen/android-${{ matrix.feature }}/* src-tauri/gen/android/
           cp -f src-tauri/tauri.mobile.${{ matrix.feature }}.conf.json src-tauri/tauri.conf.json
 
       - name: Build android AAB
