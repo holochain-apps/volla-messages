@@ -64,7 +64,7 @@ The `.happ` release that is downloaded with this script can be changed in the `s
 
 ### Publish a new happ release
 
-1. Use search-and-replace to bump the version number in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. 
+1. Use search-and-replace to bump the version number in `src-tauri/tauri.*.conf.json`, `src-tauri/Cargo.toml`, and all `package.json` files. Note that the release process chooses the version in `src-tauri/tauri.desktop.conf.json`
 2. Create a git tag with the format `happ-vX.Y.Z`, where `X.Y.Z` is your happ version. This will trigger CI to create a draft github release, containing the built `.happ` file.
 3. Publish the draft github release.
 4. Copy the url of the `.happ` file in the github release, then paste it into the npm command `setup:happ-release` in `package.json`.

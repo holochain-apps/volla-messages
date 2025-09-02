@@ -24,7 +24,7 @@ import { BUCKET_RANGE_MS } from "$config";
 
 export interface ConversationStore extends GenericKeyValueStore<ConversationExtended> {
   initialize: () => Promise<void>;
-  loadConfig: (key: CellIdB64) => Promise<void>;
+  loadConfig: (key: CellIdB64, local: boolean) => Promise<void>;
   create: (input: CreateConversationInput) => Promise<CellIdB64>;
   join(input: Invitation): Promise<CellIdB64>;
   updateConfig: (key: CellIdB64, val: Config) => Promise<void>;
@@ -56,7 +56,7 @@ export function createConversationStore(client: RelayClient): ConversationStore 
             // Return [cellIdB64, ConversationExtended]
             return [
               encodeCellIdToBase64(cellInfo.cell_id),
-              await _makeConversationExtended(cellInfo),
+              await _makeConversationExtended(cellInfo, true),
             ];
           }),
         )
@@ -72,7 +72,8 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     await client.setConfig(cellInfo.cell_id, input.config);
     await client.setMyProfileForConversation(cellInfo.cell_id);
 
-    const conversationExtended = await _makeConversationExtended(cellInfo);
+    // just created the conversation so don't go to the network
+    const conversationExtended = await _makeConversationExtended(cellInfo, true);
     const cellIdB64 = encodeCellIdToBase64(cellInfo.cell_id);
     conversations.update((c) => ({
       ...c,
@@ -86,7 +87,8 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     const cellInfo = await client.joinConversation(input);
     await client.setMyProfileForConversation(cellInfo.cell_id);
 
-    const conversationExtended = await _makeConversationExtended(cellInfo);
+    // joining the conversation so go to the network for the config
+    const conversationExtended = await _makeConversationExtended(cellInfo, false);
     const cellIdB64 = encodeCellIdToBase64(cellInfo.cell_id);
     conversations.update((c) => ({
       ...c,
@@ -115,12 +117,12 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     }));
   }
 
-  async function loadConfig(key: CellIdB64): Promise<void> {
+  async function loadConfig(key: CellIdB64, local: boolean): Promise<void> {
     const cellInfos = await client.getRelayClonedCellInfos();
     const cellInfo = cellInfos.find((c) => encodeCellIdToBase64(c.cell_id) === key);
     if (cellInfo === undefined) throw new Error(`Failed to get cellInfo for cellIdB64 ${key}`);
 
-    const conversationExtended = await _makeConversationExtended(cellInfo);
+    const conversationExtended = await _makeConversationExtended(cellInfo, local);
     conversations.update((c) => ({
       ...c,
       [key]: conversationExtended,
@@ -185,10 +187,13 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     return Math.round((timestamp - c.dnaProperties.created) / BUCKET_RANGE_MS);
   }
 
-  async function _makeConversationExtended(cellInfo: ClonedCell): Promise<ConversationExtended> {
+  async function _makeConversationExtended(
+    cellInfo: ClonedCell,
+    local: boolean,
+  ): Promise<ConversationExtended> {
     const key = encodeCellIdToBase64(cellInfo.cell_id);
     const dnaProperties = decode(cellInfo.dna_modifiers.properties) as RelayDnaProperties;
-    const config = cellInfo.enabled ? await client.getConfig(cellInfo.cell_id) : undefined;
+    const config = cellInfo.enabled ? await client.getConfig(cellInfo.cell_id, local) : undefined;
 
     // Generate a public invite code
     // If the conversation is Private, this is undefined
@@ -231,7 +236,7 @@ export function createConversationStore(client: RelayClient): ConversationStore 
 }
 
 export interface CellConversationStore extends GenericValueStore<ConversationExtended> {
-  loadConfig: () => Promise<void>;
+  loadConfig: (local: boolean) => Promise<void>;
   enable: () => Promise<void>;
   disable: () => Promise<void>;
   updateConfig: (val: Config) => Promise<void>;
@@ -250,7 +255,7 @@ export function deriveCellConversationStore(
     ...data,
     enable: () => conversationStore.enable(key),
     disable: () => conversationStore.disable(key),
-    loadConfig: () => conversationStore.loadConfig(key),
+    loadConfig: (local: boolean) => conversationStore.loadConfig(key, local),
     updateConfig: (val: Config) => conversationStore.updateConfig(key, val),
     updateUnread: (val: boolean) => conversationStore.updateUnread(key, val),
     makePrivateInviteCode: (a: AgentPubKeyB64, title: string) =>

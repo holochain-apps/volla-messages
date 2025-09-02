@@ -1,3 +1,3 @@
-package com.volla.messages.service
+package com.volla.messages.bundled
 
 class MainActivity : TauriActivity()

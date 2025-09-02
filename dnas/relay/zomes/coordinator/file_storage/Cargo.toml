@@ -11,6 +11,7 @@ name = "file_storage"
 hdk = { workspace = true }
 
 serde = { workspace = true }
+holochain_serialized_bytes = { workspace = true }
 
 file_storage_integrity = { workspace = true }
 hc_zome_file_storage_coordinator = { workspace = true }

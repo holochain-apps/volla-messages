@@ -44,7 +44,7 @@ jobs:
 
       - name: Retrieve version
         run: |
-          echo "APP_VERSION=$(cat src-tauri/tauri.conf.json | grep -oP '(?<="version": ")[^"]*')" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=$(cat src-tauri/tauri.desktop.conf.json | grep -oP '(?<="version": ")[^"]*')" >> $GITHUB_OUTPUT
         id: version
 
       - id: create-release

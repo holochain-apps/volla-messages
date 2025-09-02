@@ -69,6 +69,10 @@
   let deleteMessageActionHashB64: undefined | ActionHashB64 = undefined;
   let isDeletingMessage = false;
 
+  let isFirstConfigLoad = true;
+  let isFirstProfilesLoad = true;
+  let isFirstLoadMessages = true;
+
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
 
   async function handleDeleteMessage() {
@@ -91,7 +95,8 @@
    * Fetch agent profiles every 2s, until at least 2 profiles are received.
    */
   async function loadProfiles() {
-    await profiles.load();
+    await profiles.load(isFirstProfilesLoad);
+    isFirstProfilesLoad = false;
     clearTimeout(agentTimeout);
 
     if ($joined.count < 2) {
@@ -112,7 +117,8 @@
    * navigating away from and back to this page.
    */
   async function loadConfig() {
-    await conversation.loadConfig();
+    await conversation.loadConfig(isFirstConfigLoad);
+    isFirstConfigLoad = false;
     clearTimeout(configTimeout);
 
     if ($conversation.config === undefined) {
@@ -131,7 +137,8 @@
    */
   async function loadMessages() {
     clearTimeout(messageTimeout);
-    await loadMessagesInCurrentBucket();
+    await loadMessagesInCurrentBucket(isFirstLoadMessages);
+    isFirstLoadMessages = false;
 
     if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
@@ -155,7 +162,7 @@
 
     loadingMessagesOld = true;
     try {
-      await messages.loadMessagesInPreviousBucketTargetCount();
+      await messages.loadMessagesInPreviousBucketTargetCount(false); //TODO: is this ok to always be from network?
     } catch (e) {
       console.error(e);
     }
@@ -175,12 +182,12 @@
     loadingMessagesOld = false;
   }
 
-  async function loadMessagesInCurrentBucket() {
+  async function loadMessagesInCurrentBucket(local: boolean) {
     if (loadingMessagesNew) return;
     console.log("loadMessagesInCurrentBucket");
     loadingMessagesNew = true;
     try {
-      await messages.loadMessagesInCurrentBucketTargetCount();
+      await messages.loadMessagesInCurrentBucketTargetCount(local);
     } catch (e) {
       console.error(e);
     }

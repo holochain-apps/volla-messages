@@ -8,11 +8,17 @@
   import type { EntryHashB64 } from "@holochain/client";
   import { page } from "$app/stores";
   import { type FileStore, deriveCellFileStore } from "$store/FileStore";
-  import { getContext } from "svelte";
+  import { getContext, onMount } from "svelte";
+
+  onMount(async () => {
+    await cellFileStore.download(entryHashB64);
+  });
+
   const fileStore = getContext<{
     getStore: () => FileStore;
   }>("fileStore").getStore();
-  let cellFileStore = deriveCellFileStore(fileStore, $page.params.id);
+
+  $: cellFileStore = deriveCellFileStore(fileStore, $page.params.id);
 
   export let entryHashB64: EntryHashB64;
   export let align: Alignment = Alignment.Left;
@@ -20,15 +26,15 @@
 
   $: fileExtended = $cellFileStore.data[entryHashB64];
 
-  $: isLoaded = fileExtended.status === FileStatus.Loaded && fileExtended?.file !== undefined;
+  $: isLoaded = fileExtended?.status === FileStatus.Loaded && fileExtended?.file !== undefined;
   $: isImage =
     fileExtended !== undefined &&
     fileExtended.file !== undefined &&
     fileExtended.file.type.startsWith("image/");
   $: isLoading =
-    fileExtended.status === FileStatus.Loading || fileExtended.status === FileStatus.Pending;
-  $: isError = fileExtended.status === FileStatus.Error;
-  $: objectUrl = fileExtended?.file !== undefined ? URL.createObjectURL(fileExtended.file) : "";
+    fileExtended?.status === FileStatus.Loading || fileExtended?.status === FileStatus.Pending;
+  $: isError = fileExtended?.status === FileStatus.Error;
+  $: objectUrl = fileExtended && fileExtended.file ? URL.createObjectURL(fileExtended.file) : "";
 </script>
 
 <div class="relative {moreClasses}">

@@ -44,12 +44,14 @@ interface PaginationState {
 export interface ConversationMessageStore extends GenericKeyKeyValueStore<MessageExtended> {
   initialize: () => Promise<void>;
   loadMessagesInCurrentBucketTargetCount: (
+    local: boolean,
     key1: CellIdB64,
     targetCount?: number,
     bucketChunkSize?: number,
     maxBucketsToFetch?: number,
   ) => Promise<number>;
   loadMessagesInPreviousBucketTargetCount: (
+    local: boolean,
     key1: CellIdB64,
     targetCount?: number,
     bucketChunkSize?: number,
@@ -131,7 +133,8 @@ export function createConversationMessageStore(
         // If no messages in DB, try to fetch from network
         const currentState = get(paginationState)[cellIdB64];
         if (currentState.totalMessages === 0) {
-          await loadMessagesInCurrentBucketTargetCount(cellIdB64, 1, 5, 50);
+          // when first initializing go local
+          await loadMessagesInCurrentBucketTargetCount(true, cellIdB64, 1, 5, 50);
         }
       }),
     );
@@ -240,7 +243,7 @@ export function createConversationMessageStore(
 
       // If no more messages in DB, try fetching from network
       if (olderMessages.length === 0) {
-        loadedCount = await loadMessagesInPreviousBucketTargetCount(cellIdB64);
+        loadedCount = await loadMessagesInPreviousBucketTargetCount(false, cellIdB64);
       }
 
       return loadedCount;
@@ -469,6 +472,7 @@ export function createConversationMessageStore(
    * until at least a targetCount have been fetched.
    */
   async function loadMessagesInCurrentBucketTargetCount(
+    local: boolean,
     key1: CellIdB64,
     targetCount = TARGET_MESSAGES_COUNT,
     bucketChunkSize: number = 3,
@@ -477,6 +481,7 @@ export function createConversationMessageStore(
     let bucket = conversationStore.getBucket(key1, new Date().getTime());
 
     return _loadMessagesFromBucketTargetCount(
+      local,
       key1,
       bucket,
       targetCount,
@@ -490,6 +495,7 @@ export function createConversationMessageStore(
    * until at least a targetCount have been fetched.
    */
   async function loadMessagesInPreviousBucketTargetCount(
+    local: boolean,
     key1: CellIdB64,
     targetCount = TARGET_MESSAGES_COUNT,
     bucketChunkSize: number = 3,
@@ -504,6 +510,7 @@ export function createConversationMessageStore(
     const oldestBucket = conversationStore.getBucket(key1, currentState.oldestLoadedTimestamp);
 
     return _loadMessagesFromBucketTargetCount(
+      local,
       key1,
       oldestBucket - 1,
       targetCount,
@@ -516,6 +523,7 @@ export function createConversationMessageStore(
    * Main function for fetching and loading messages from network
    */
   async function _loadMessagesFromBucketTargetCount(
+    local: boolean,
     key1: CellIdB64,
     bucket: number,
     targetCount: number = TARGET_MESSAGES_COUNT,
@@ -526,6 +534,7 @@ export function createConversationMessageStore(
     const bucketsToFetch = await _fetchBucketsTargetCount(
       key1,
       bucket,
+      local,
       targetCount,
       bucketChunkSize,
       maxBucketsToFetch,
@@ -548,6 +557,7 @@ export function createConversationMessageStore(
   async function _fetchBucketsTargetCount(
     key1: CellIdB64,
     bucket: number,
+    local: boolean,
     targetCount: number = TARGET_MESSAGES_COUNT,
     bucketChunkSize: number = 3,
     maxBucketsToFetch?: number,
@@ -567,10 +577,14 @@ export function createConversationMessageStore(
           bucketsChunk.map(async (b) => ({
             bucket: b,
             actionHashB64s: (
-              await client.getMessageHashes(cellId, {
-                bucket: b,
-                count: 0,
-              })
+              await client.getMessageHashes(
+                cellId,
+                {
+                  bucket: b,
+                  count: 0,
+                },
+                local,
+              )
             ).map((a) => encodeHashToBase64(a)),
           })),
         )),
@@ -616,6 +630,7 @@ export function createConversationMessageStore(
     const messageRecords: Array<MessageRecord> = await client.getMessageEntries(
       cellId,
       actionHashB64s.map((a) => decodeHashFromBase64(a)),
+      false,
     );
 
     // Transform Messages into MessageExtendeds
@@ -760,11 +775,13 @@ export interface CellConversationMessageStore
   extends GenericKeyValueStoreReadable<MessageExtended> {
   initialize: () => Promise<void>;
   loadMessagesInCurrentBucketTargetCount: (
+    local: boolean,
     targetCount?: number,
     bucketChunkSize?: number,
     maxBucketsToFetch?: number,
   ) => Promise<number>;
   loadMessagesInPreviousBucketTargetCount: (
+    local: boolean,
     targetCount?: number,
     bucketChunkSize?: number,
     maxBucketsToFetch?: number,
@@ -783,22 +800,26 @@ export function deriveCellConversationMessageStore(
   return {
     ...data,
     loadMessagesInCurrentBucketTargetCount: (
+      local: boolean,
       targetCount?: number,
       bucketChunkSize?: number,
       maxBucketsToFetch?: number,
     ) =>
       conversationMessageStore.loadMessagesInCurrentBucketTargetCount(
+        local,
         key,
         targetCount,
         bucketChunkSize,
         maxBucketsToFetch,
       ),
     loadMessagesInPreviousBucketTargetCount: (
+      local: boolean,
       targetCount?: number,
       bucketChunkSize?: number,
       maxBucketsToFetch?: number,
     ) =>
       conversationMessageStore.loadMessagesInPreviousBucketTargetCount(
+        local,
         key,
         targetCount,
         bucketChunkSize,

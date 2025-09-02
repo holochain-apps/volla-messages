@@ -102,7 +102,7 @@ Every feature of the app is managed by a store, which is a Svelte Store. Each st
 - `create(input)` creates a new conversation
 - `join(input)` joins a conversation via invitation
 - `enable(key)`,`disable(key)` enables/disables a conversation cell
-- `loadConfig(key)` loads the configuration for a conversation
+- `loadConfig(key, local)` loads the configuration for a conversation either from local or network
 - `updateConfig(key, value)` updates the configuration
 - `updateUnread(key, value)` sets the unread status
 - `makePrivateInviteCode(key, agentPubKeyB64, title)` generates a private invite code
@@ -116,8 +116,8 @@ Every feature of the app is managed by a store, which is a Svelte Store. Each st
 - Handles message sending, deletion, and signal processing for real time updates
 - Provides derived stores for accessing messages in a specific conversation
 - `initialize()` initializes the message store
-- `loadMessagesInCurrentBucketTargetCount(key, ...)` loads messages in the current bucket up to a target count
-- `loadMessagesInPreviousBucketTargetCount(key, ...)` loads older messages
+- `loadMessagesInCurrentBucketTargetCount(local, key, ...)` loads messages in the current bucket up to a target count
+- `loadMessagesInPreviousBucketTargetCount(local, key, ...)` loads older messages
 - `sendMessage(key, content, files)` sends a message (optionally with files)
 - `deleteMessage(key, actionHashB64)` deletes a message
 - `handleMessageSignalReceived(key, signal)` handles incoming message signals

@@ -10,3 +10,4 @@ name = "profiles_integrity"
 
 [dependencies]
 hc_zome_profiles_integrity = { workspace = true }
+holochain_serialized_bytes = { workspace = true }

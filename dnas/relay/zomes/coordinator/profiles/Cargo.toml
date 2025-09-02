@@ -10,3 +10,4 @@ name = "profiles"
 
 [dependencies]
 hc_zome_profiles_coordinator = { workspace = true }
+holochain_serialized_bytes = { workspace = true }

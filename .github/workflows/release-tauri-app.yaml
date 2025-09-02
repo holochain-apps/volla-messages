@@ -44,7 +44,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.83.0
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -53,6 +53,8 @@ jobs:
 
       - name: install dependencies (ubuntu only)
         run: |
+          sudo apt-get update
+          
           sudo apt-get install -y \
             build-essential \
             curl \
@@ -147,6 +149,7 @@ jobs:
 
       - name: setup Android signing
         run: |
+          mkdir src-tauri/gen/android
           cd src-tauri/gen/android
           base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
@@ -156,6 +159,7 @@ jobs:
 
       - name: Copy variant tauri config
         run: |
+          cp -Rf src-tauri/gen/android-${{ matrix.feature }}/* src-tauri/gen/android/
           cp -f src-tauri/tauri.mobile.${{ matrix.feature }}.conf.json src-tauri/tauri.conf.json
 
       - name: Build android AAB
@@ -211,7 +215,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.83.0
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -289,7 +293,11 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
-          - platform: 'macos-13' # for Intel based macs.
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
 
     runs-on: ${{ matrix.platform }}
 
@@ -305,7 +313,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.83.0
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
