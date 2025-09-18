@@ -7,11 +7,11 @@ use tauri_plugin_holochain::NetworkConfig;
 use tauri_plugin_holochain::{vec_to_locked, HolochainExt, HolochainPluginConfig};
 use uuid::Uuid;
 
-pub const SIGNAL_URL: &'static str = "wss://relay.volla.tech/";
+// pub const SIGNAL_URL: &'static str = "wss://relay.volla.tech/";
 
-pub const BOOTSTRAP_URL: &'static str = "https://relay.volla.tech/";
+// pub const BOOTSTRAP_URL: &'static str = "https://relay.volla.tech/";
 
-pub static ICE_URLS: &'static [&str] = &["stun://stun.nextcloud.com:443"];
+// pub static ICE_URLS: &'static [&str] = &["stun://stun.nextcloud.com:443"];
 
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
     let bundle = AppBundle::decode(HAPP_BUNDLE_BYTES)?;
@@ -126,9 +126,10 @@ async fn setup<R: Runtime>(handle: AppHandle<R>) -> anyhow::Result<()> {
 }
 fn network_config() -> NetworkConfig {
     let mut config = NetworkConfig::default();
-    println!("NETWORK CONFIG: {:?}", config);
     //    config.signal_url = url2::url2!("{}", SIGNAL_URL);
-    config.bootstrap_url = url2::url2!("{}", BOOTSTRAP_URL);
+    config.bootstrap_url = url2::Url2::parse("https://dev-test-bootstrap2.holochain.org/");
+
+    // config.bootstrap_url = url2::url2!("{}", BOOTSTRAP_URL);
     //    config.webrtc_config = Some(json!({ "iceServers": [ { "urls": ICE_URLS }]}));
     config
 }
