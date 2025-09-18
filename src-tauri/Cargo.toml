@@ -1,6 +1,6 @@
 [package]
 name = "volla_messages"
-version = "0.9.0-rc.5"
+version = "0.9.0"
 description = "Volla Messages"
 authors = ["Tibet Sprague", "Eric Harris-Braun"]
 license = ""
