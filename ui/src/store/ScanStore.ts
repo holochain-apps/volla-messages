@@ -1,7 +1,7 @@
 import { derived, get, writable, type Invalidator, type Subscriber, type Unsubscriber } from "svelte/store";
-import { platform } from "@tauri-apps/plugin-os";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
+import { getPlatform } from "$lib/utils";
 
 // tarui-plugin-barcode-scanner launches the scanner as a fullscreen View
 // In order to display our overlay upon it, we must have a fully transparent background.
@@ -27,8 +27,8 @@ export interface ScanStore {
 
 
 function  createScanStore() {
-  const currentPlatform = platform();
-  const isSupported = writable(
+ let currentPlatform = getPlatform()
+ const isSupported = writable(
     Boolean(currentPlatform === "ios" || currentPlatform === "android"),
   );
   const value = writable<string | null>(null);

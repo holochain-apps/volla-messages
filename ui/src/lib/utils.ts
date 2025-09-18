@@ -34,10 +34,15 @@ export function shareText(text: string): Promise<void> {
  * @returns
  */
 export function copyToClipboard(text: string): Promise<void> {
+
   const normalized = text.trim();
   if (normalized.length === 0) throw Error("Text is empty");
 
-  return writeText(text);
+  if (getPlatform() == "non-tauri") {
+    return navigator.clipboard.writeText(text)
+  } else {
+    return writeText(text);
+  }
 }
 
 /**
@@ -61,13 +66,22 @@ export async function enqueueNotification(title: string, body: string) {
   }
 }
 
+export function getPlatform(): string {
+  let currentPlatform = "non-tauri"
+  try {
+    currentPlatform = platform();
+  }  catch(e) {
+  }
+  return currentPlatform
+}
+
 /**
  * Is app running on mobile?
  *
  * @returns
  */
 export function isMobile(): boolean {
-  const val = platform();
+  const val = getPlatform();
   return val === "android" || val === "ios";
 }
 
