@@ -389,7 +389,6 @@
                     )}; timeouts: {JSON.stringify(peer.peer_timeouts)}
                   </div>
                 </div>
-                horizontal={true}
               {/each}
             </div>
             <h5>local agents</h5>
