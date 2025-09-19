@@ -302,7 +302,7 @@
 </Header>
 {#if showDebugPane}
   <div
-    style="mx-auto flex w-full flex-1 flex-col items-center justify-center; border-bottom: solid 1px white;width 100%;max-height:400px;overflow: scroll;"
+    style="mx-auto flex w-full flex-1 flex-col items-center justify-center; border-bottom: solid 1px white;width 100%;max-height:400px;max-width:100%;overflow: scroll;"
   >
     {#if networkStats}
       <h3>{stats}</h3>
