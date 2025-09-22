@@ -3,167 +3,173 @@
   import type { ActionHashB64 } from "@holochain/client";
   import type { MessageExtended, CellIdB64 } from "$lib/types";
   import BaseMessage from "./Message.svelte";
-  import { createEventDispatcher, onMount } from "svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
+  import { createVirtualizer } from "@tanstack/svelte-virtual";
+  import { afterUpdate, beforeUpdate, createEventDispatcher, onMount, tick } from "svelte";
 
-  const dispatch = createEventDispatcher<{ scrollAtTop: null; scrollAtBottom: null }>();
+  const dispatch = createEventDispatcher<{
+    scrollAtTop: null;
+    scrollAtBottom: null;
+  }>();
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
   export let loadingTop = false;
 
   let selected: ActionHashB64 | undefined;
-  let containerEl: HTMLDivElement;
+  let containerEl: HTMLDivElement | null = null;
+  let initialScrollReady = false;
 
-  // --- REFACTORED LOGIC ---
-  // Create a chronological version of the messages array to simplify all logic.
-  // This array is sorted from OLDEST to NEWEST.
-  $: chronologicalMessages = messages.slice().reverse();
+  $: chronologicalMessages = messages;
 
-  // Virtual list configuration
-  const ITEM_HEIGHT_ESTIMATE = 40;
-  const BUFFER_SIZE = 5; // Slightly larger buffer for smoother scrolling
-  const SCROLL_THRESHOLD_PERCENTAGE = 0.4; // 40% of viewport height - much larger threshold to prevent header flashing
-  const VIRTUALIZATION_THRESHOLD = 50; // Only virtualize if we have more than this many messages
+  const MESSAGE_FIXED_HEIGHT = 40;
+  const UPDATE_TRIGGER_VIEW_OFFSET = 250;
+  const BUFFER_COUNT = 10;
 
-  // Dynamic scroll threshold based on container height
-  $: scrollThreshold = Math.max(250, Math.min(800, containerHeight * SCROLL_THRESHOLD_PERCENTAGE));
+  let virtualizer = createVirtualizer({
+    count: chronologicalMessages?.length,
+    getScrollElement: () => containerEl,
+    estimateSize: () => MESSAGE_FIXED_HEIGHT,
+    overscan: BUFFER_COUNT,
+    useAnimationFrameWithResizeObserver: true,
+  });
+  // Update virtualizer count when messages change
+  $: if ($virtualizer) $virtualizer.setOptions({ count: chronologicalMessages?.length });
 
-  // Virtual list state
-  let containerHeight = 0;
-  let scrollTop = 0;
-  let startIndex = 0;
-  let endIndex = 0;
-  let visibleMessages: [ActionHashB64, MessageExtended][] = [];
-  let topSpacerHeight = 0;
-  let bottomSpacerHeight = 0;
+  function measure(node: HTMLElement) {
+    const index = Number(node.dataset.index);
+    if (isNaN(index)) return;
 
-  // Scroll position tracking
+    if (!$virtualizer) return;
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        $virtualizer.measureElement(node);
+      });
+    });
+
+    observer.observe(node);
+
+    return {
+      destroy() {
+        observer.disconnect();
+      },
+    };
+  }
+
   let isAtBottom = true;
-  let wasAtBottom = true; // Used to detect if user was at bottom *before* new messages arrived
-  let previousScrollHeight = 0;
-  let shouldMaintainScrollPosition = false;
-  let initialScrollCompleted = false; // Track if initial scroll has been done
-  let isInitializing = true; // Track if component is still initializing
+  let wasAtBottom = true;
+  let isAtTop = false;
+  let wasAtTop = false;
 
-  // Determine if we should use virtualization
-  $: shouldVirtualize = chronologicalMessages.length > VIRTUALIZATION_THRESHOLD;
+  onMount(async () => {
+    if (chronologicalMessages.length > 0 && containerEl) {
+      isAtBottom = true;
+      wasAtBottom = true;
+      isAtTop = false;
+      wasAtTop = false;
 
-  // Set visible messages based on virtualization mode
-  $: {
-    if (!shouldVirtualize) {
-      // When not virtualizing, show all messages immediately
-      visibleMessages = chronologicalMessages;
-      topSpacerHeight = 0;
-      bottomSpacerHeight = 0;
-      startIndex = 0;
-      endIndex = chronologicalMessages.length - 1;
-    }
-  }
-
-  // Recalculate the visible range when scroll or container size changes (only for virtualization)
-  $: {
-    if (containerEl && shouldVirtualize && containerHeight > 0) {
-      calculateVisibleRange(containerHeight, scrollTop, chronologicalMessages.length);
-    }
-  }
-
-  // The core function to calculate which messages to show.
-  // Now works with the chronologically sorted array, making logic much simpler.
-  function calculateVisibleRange(height: number, scroll: number, totalCount: number) {
-    if (totalCount === 0 || height === 0) {
-      visibleMessages = [];
-      topSpacerHeight = 0;
-      bottomSpacerHeight = 0;
-      return;
-    }
-
-    // Calculate visible range based on scroll position
-    const visibleStart = Math.floor(scroll / ITEM_HEIGHT_ESTIMATE);
-    const visibleEnd = Math.ceil((scroll + height) / ITEM_HEIGHT_ESTIMATE);
-
-    // Add buffer to reduce re-renders during scroll
-    startIndex = Math.max(0, visibleStart - BUFFER_SIZE);
-    endIndex = Math.min(totalCount - 1, visibleEnd + BUFFER_SIZE);
-
-    // Get the visible subset from the chronological array
-    visibleMessages = chronologicalMessages.slice(startIndex, endIndex + 1);
-
-    // Spacer heights are now simple and intuitive
-    topSpacerHeight = startIndex * ITEM_HEIGHT_ESTIMATE;
-    bottomSpacerHeight = Math.max(0, (totalCount - 1 - endIndex) * ITEM_HEIGHT_ESTIMATE);
-  }
-
-  // Detect scroll position to dispatch events (e.g., for loading more messages)
-  function checkScrollPosition(scroll: number, height: number) {
-    if (!containerEl || !height) return;
-
-    const scrollHeight = containerEl.scrollHeight;
-
-    // Detect if we are near the top (for loading older messages)
-    if (scroll <= scrollThreshold && !loadingTop) {
-      dispatch("scrollAtTop");
-    }
-
-    // Detect if we are at the bottom
-    wasAtBottom = isAtBottom;
-    isAtBottom = scroll + height >= scrollHeight - scrollThreshold;
-
-    if (isAtBottom) {
-      dispatch("scrollAtBottom");
-    }
-  }
-
-  // This function is crucial for preventing the view from jumping when older messages are loaded.
-  function handleScrollPositionMaintenance() {
-    // 1. Before loading starts, save the current scroll height.
-    if (loadingTop && containerEl) {
-      previousScrollHeight = containerEl.scrollHeight;
-      shouldMaintainScrollPosition = true;
-    }
-
-    // 2. After loading is finished, calculate the height of the new content and adjust scroll position.
-    if (shouldMaintainScrollPosition && containerEl && !loadingTop) {
-      const currentScrollHeight = containerEl.scrollHeight;
-      const heightDifference = currentScrollHeight - previousScrollHeight;
-
-      if (heightDifference > 0) {
-        // We added content at the top, so we move the scrollbar down by the same amount.
-        containerEl.scrollTop = scrollTop + heightDifference;
-      }
-      shouldMaintainScrollPosition = false;
-    }
-  }
-
-  // Watch for `loadingTop` changes to trigger scroll maintenance
-  $: loadingTop, handleScrollPositionMaintenance();
-
-  // Scroll to bottom on initial mount
-  onMount(() => {
-    // Set initial scroll completion flag immediately to prevent interference
-    initialScrollCompleted = false;
-
-    if (chronologicalMessages.length > 0) {
-      // Use a longer delay to ensure everything is fully rendered
-      setTimeout(() => {
-        if (containerEl) {
-          scrollToBottom();
-          initialScrollCompleted = true;
-          isInitializing = false;
-        }
-      }, 100);
-    } else {
-      initialScrollCompleted = true;
-      isInitializing = false;
+      await scrollToBottom();
     }
   });
 
-  // --- User Interaction & Helpers ---
+  // to resolve glitch when (fetching older msgs from hc + loading msgs to store from localDB)
+  let previousScrollHeight = 0;
+  let previousItemCount = 0;
+  let shouldMaintainScroll = false;
+  let isFirstFetch = true;
 
-  function scrollToBottom() {
-    if (containerEl) {
-      containerEl.scrollTop = containerEl.scrollHeight;
+
+  beforeUpdate(() => {
+    // only capture the scrollHeight if a maintenance request is active.
+    if (shouldMaintainScroll && containerEl) {
+      previousScrollHeight = containerEl.scrollHeight;
     }
+  });
+
+  // applying manual scroll maintainance
+  afterUpdate(() => {
+    if (shouldMaintainScroll && containerEl) {
+      shouldMaintainScroll = false;
+
+      const newScrollHeight = containerEl.scrollHeight;
+
+            const heightDifference =
+        newScrollHeight - previousScrollHeight + (!isFirstFetch ? 20 * 40 : 0);
+
+      if (isFirstFetch) isFirstFetch = false;
+
+      containerEl.scrollTop = heightDifference;
+    }
+  });
+
+  // logic for triggering fetch event, newly_added_items-scroll-down logic
+  $: {
+    const currentItemCount = chronologicalMessages.length;
+
+    if (containerEl && initialScrollReady) {
+      const { scrollTop, scrollHeight, clientHeight } = containerEl;
+      const scrollBottom = scrollHeight - scrollTop - clientHeight;
+
+      const isAtBottom = scrollBottom < 5;
+      const isAtTop = scrollTop <= UPDATE_TRIGGER_VIEW_OFFSET;
+
+      if (wasAtBottom && currentItemCount > previousItemCount) {
+        scrollToBottom("smooth");
+      }
+
+      if (isAtTop && !wasAtTop && !loadingTop) {
+        shouldMaintainScroll = true;
+
+        dispatch("scrollAtTop");
+      }
+
+      wasAtBottom = isAtBottom;
+      wasAtTop = isAtTop;
+    }
+
+    previousItemCount = currentItemCount;
+  }
+
+  async function scrollToBottom(behavior?: "auto" | "smooth") {
+    await waitForListLoad();
+
+    const lastIndex = chronologicalMessages.length - 1;
+    if (lastIndex < 0) return;
+
+    let attempts = 0;
+    while (attempts < 5) {
+      // making sure the initial scroll lands completely at bottom edge of the container
+      $virtualizer.scrollToIndex(lastIndex + 999, {
+        align: "start",
+        behavior,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      attempts++;
+    }
+
+    requestAnimationFrame(() => {
+      initialScrollReady = true;
+    });
+  }
+
+  async function waitForListLoad() {
+    await tick();
+
+    return new Promise((resolve) => {
+      const check = () => {
+        const lastIndex = chronologicalMessages?.length - 1;
+
+        if ($virtualizer.getVirtualItems().length > 0 && lastIndex >= 0) {
+          resolve({});
+        } else {
+          requestAnimationFrame(check); // keep checking on next frame
+        }
+      };
+
+      check();
+    });
   }
 
   function handleClick(e: MouseEvent, actionHashB64: ActionHashB64) {
@@ -181,105 +187,90 @@
     }
   }
 
-  // Optimized scroll handler using requestAnimationFrame
-  let scrollUpdateScheduled = false;
-  function handleScroll() {
-    if (scrollUpdateScheduled || !containerEl) return;
+  function shouldShowDaySeparator(currentIndex: number) {
+    if (currentIndex === 0) return true;
 
-    scrollUpdateScheduled = true;
-    requestAnimationFrame(() => {
-      if (containerEl) {
-        scrollTop = containerEl.scrollTop;
-        checkScrollPosition(scrollTop, containerHeight);
-      }
-      scrollUpdateScheduled = false;
-    });
+    const currentMsg = chronologicalMessages?.[currentIndex]?.[1];
+    const prevMsg = chronologicalMessages?.[currentIndex - 1]?.[1];
+
+    if (!currentMsg || !prevMsg) return true;
+
+    return !isSameDay(new Date(currentMsg.timestamp / 1000), new Date(prevMsg.timestamp / 1000));
   }
 
-  // Auto-scroll to bottom when new messages arrive, but only if the user was already at the bottom.
-  let lastMessageLength = 0;
-  $: {
-    if (
-      chronologicalMessages.length > lastMessageLength &&
-      wasAtBottom &&
-      containerEl &&
-      initialScrollCompleted &&
-      !isInitializing
-    ) {
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
-    }
-    lastMessageLength = chronologicalMessages.length;
+  function shouldShowAuthor(currentIndex: number) {
+    if (currentIndex === 0) return true;
+
+    const currentMsg = chronologicalMessages[currentIndex][1];
+    const prevMsg = chronologicalMessages[currentIndex - 1][1];
+
+    if (!currentMsg || !prevMsg) return true;
+
+    return (
+      currentMsg.authorAgentPubKeyB64 !== prevMsg.authorAgentPubKeyB64 ||
+      !isWithinFiveMinutes(
+        new Date(currentMsg.timestamp / 1000),
+        new Date(prevMsg.timestamp / 1000),
+      )
+    );
   }
 </script>
 
 <div
-  class="flex h-full w-full transform-gpu touch-pan-y flex-col overflow-y-auto overflow-x-hidden will-change-scroll"
+  class="flex h-full w-full flex-col overflow-y-auto overflow-x-hidden"
   bind:this={containerEl}
-  bind:clientHeight={containerHeight}
-  on:scroll={handleScroll}
-  style="opacity: {isInitializing ? 0 : 1}; transition: opacity 0.1s ease-in-out;"
+  style={`overflow-anchor: none; ${initialScrollReady ? "opacity: 1" : "opacity: 0"}`}
 >
-  <!-- Top spacer for virtual scrolling (only when virtualizing) -->
-  {#if shouldVirtualize}
-    <div style="height: {topSpacerHeight}px; flex-shrink: 0;"></div>
-  {/if}
+  <!-- Fixed Conversation Header (not virtualized) -->
+  <div class="flex h-4 items-center justify-center"></div>
+  <ConversationHeader {cellIdB64} />
+  <div class="flex h-4 items-center justify-center"></div>
 
-  <!-- Rendered messages -->
-  {#each visibleMessages as [actionHashB64, messageExtended], i (actionHashB64)}
-    {@const currentIndex = shouldVirtualize ? startIndex + i : i}
-    {@const prevMessageExtended =
-      currentIndex > 0 ? chronologicalMessages[currentIndex - 1][1] : undefined}
+  <!-- This inner div effectively holds the virtualizer's content scroll height -->
+  <div style="height: {$virtualizer.getTotalSize()}px; position: relative; width: 100%;">
+    <!-- Virtualized message items -->
+    {#each $virtualizer.getVirtualItems() as virtualRow (virtualRow.key)}
+      {@const currentIndex = virtualRow.index}
+      {@const [actionHashB64, messageExtended] = chronologicalMessages[currentIndex]}
+      <div
+        class="absolute left-0 top-0 w-full"
+        style="transform: translateY({virtualRow.start}px);"
+        data-index={virtualRow.index}
+        use:measure
+      >
+        <div class="flex flex-shrink-0 flex-col">
+          <!-- Day separator -->
+          {#if shouldShowDaySeparator(currentIndex)}
+            <div class="text-secondary-400 dark:text-secondary-300 my-4 px-4 text-center text-xs">
+              {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </div>
+          {/if}
 
-    <div class="flex flex-shrink-0 flex-col">
-      <!-- Show conversation header at the very beginning of the chat -->
-      {#if currentIndex === 0}
-        <div class="flex h-4 items-center justify-center"></div>
-        <ConversationHeader {cellIdB64} />
-        <div class="flex h-4 items-center justify-center"></div>
-      {/if}
+          <!-- Message content -->
+          <div class="mt-3 px-4">
+            <BaseMessage
+              {cellIdB64}
+              message={messageExtended}
+              isSelected={selected === actionHashB64}
+              showAuthor={shouldShowAuthor(currentIndex)}
+              {actionHashB64}
+              on:press={() => handlePress(actionHashB64)}
+              on:click={(e) => handleClick(e, actionHashB64)}
+              on:clickoutside={handleClickOutside}
+              on:delete
+            />
+          </div>
 
-      <!-- Show day separator if the day is different from the previous message -->
-      {#if prevMessageExtended === undefined || !isSameDay(new Date(messageExtended.timestamp / 1000), new Date(prevMessageExtended.timestamp / 1000))}
-        <div class="text-secondary-400 dark:text-secondary-300 my-4 px-4 text-center text-xs">
-          {new Date(messageExtended.timestamp / 1000).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
+          <!-- Padding at the very end of the chat -->
+          {#if currentIndex === chronologicalMessages?.length - 1}
+            <div class="flex h-4 items-center justify-center"></div>
+          {/if}
         </div>
-      {/if}
-
-      <!-- Message content -->
-      <div class="mt-3 px-4">
-        <BaseMessage
-          {cellIdB64}
-          message={messageExtended}
-          isSelected={selected === actionHashB64}
-          showAuthor={prevMessageExtended === undefined ||
-            messageExtended.authorAgentPubKeyB64 !== prevMessageExtended.authorAgentPubKeyB64 ||
-            !isWithinFiveMinutes(
-              new Date(messageExtended.timestamp / 1000),
-              new Date(prevMessageExtended.timestamp / 1000),
-            )}
-          {actionHashB64}
-          on:press={() => handlePress(actionHashB64)}
-          on:click={(e) => handleClick(e, actionHashB64)}
-          on:clickoutside={handleClickOutside}
-          on:delete
-        />
       </div>
-
-      <!-- Show padding at the very end of the chat -->
-      {#if currentIndex === chronologicalMessages.length - 1}
-        <div class="flex h-4 items-center justify-center"></div>
-      {/if}
-    </div>
-  {/each}
-
-  <!-- Bottom spacer for virtual scrolling (only when virtualizing) -->
-  {#if shouldVirtualize}
-    <div style="height: {bottomSpacerHeight}px; flex-shrink: 0;"></div>
-  {/if}
+    {/each}
+  </div>
 </div>
