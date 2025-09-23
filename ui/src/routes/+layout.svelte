@@ -132,7 +132,7 @@
     } catch (e) {
       isClientConnectionFailed = true;
       console.error("Failed to init holochain", e);
-      toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
+      // toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
       throw e;
     }
   }
