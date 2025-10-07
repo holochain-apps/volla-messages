@@ -15,9 +15,15 @@ members = ["dnas/*/zomes/coordinator/*", "dnas/*/zomes/integrity/*", "src-tauri"
 resolver = "2"
 
 [workspace.dependencies]
-hdi = "0.5.0-rc"
-hdk = "0.4.0-rc"
+hdi = "0.6.6"
+hdk = "0.5.6"
+hc_zome_profiles_integrity = { git = "https://github.com/holochain-open-dev/profiles", branch = "for-hdk-0.5.4" }
+hc_zome_profiles_coordinator = { git = "https://github.com/holochain-open-dev/profiles", branch = "for-hdk-0.5.4" }
+hc_zome_file_storage_integrity = { git = "https://github.com/holochain-open-dev/file-storage", branch = "for-hdk-0.5.4" }
+hc_zome_file_storage_coordinator = { git = "https://github.com/holochain-open-dev/file-storage", branch = "for-hdk-0.5.4" }
+
 serde = "1.0"
+holochain_serialized_bytes = "0.0.56"
 
 [workspace.dependencies.file_storage]
 path = "dnas/relay/zomes/coordinator/file_storage"
@@ -41,3 +47,7 @@ path = "dnas/relay/zomes/integrity/relay"
 edition = "2021"
 rust-version = "1.74.0"
 version = "0.5.0-beta"
+
+[patch.crates-io]
+wasmer-vm = { git = "https://github.com/guillemcordoba/wasmer", branch = "fix-x86" }
+wasmer-types = { git = "https://github.com/guillemcordoba/wasmer", branch = "fix-x86" }

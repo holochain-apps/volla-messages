@@ -72,6 +72,10 @@
   let deleteMessageActionHashB64: undefined | ActionHashB64 = undefined;
   let isDeletingMessage = false;
 
+  let isFirstConfigLoad = true;
+  let isFirstProfilesLoad = true;
+  let isFirstLoadMessages = true;
+
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
   $: isGroupChat = $joined.count > 2;
   $: participants = $joined.list.map(([, profileExtended]) => profileExtended.publicKeyB64);
@@ -96,7 +100,8 @@
    * Fetch agent profiles every 2s, until at least 2 profiles are received.
    */
   async function loadProfiles() {
-    await profiles.load();
+    await profiles.load(isFirstProfilesLoad);
+    isFirstProfilesLoad = false;
     clearTimeout(agentTimeout);
 
     if ($joined.count < 2) {
@@ -117,7 +122,8 @@
    * navigating away from and back to this page.
    */
   async function loadConfig() {
-    await conversation.loadConfig();
+    await conversation.loadConfig(isFirstConfigLoad);
+    isFirstConfigLoad = false;
     clearTimeout(configTimeout);
 
     if ($conversation.config === undefined) {
@@ -136,7 +142,8 @@
    */
   async function loadMessages() {
     clearTimeout(messageTimeout);
-    await loadMessagesInCurrentBucket();
+    await loadMessagesInCurrentBucket(isFirstLoadMessages);
+    isFirstLoadMessages = false;
 
     if ($messages.count === 0) {
       messageTimeout = setTimeout(() => {
@@ -160,19 +167,32 @@
 
     loadingMessagesOld = true;
     try {
-      await messages.loadMessagesInPreviousBucketTargetCount();
+      await messages.loadMessagesInPreviousBucketTargetCount(false); //TODO: is this ok to always be from network?
     } catch (e) {
       console.error(e);
     }
     loadingMessagesOld = false;
   }
 
-  async function loadMessagesInCurrentBucket() {
+  async function loadMoreMessages() {
+    if (loadingMessagesOld) return;
+
+    loadingMessagesOld = true;
+    try {
+      const loadedCount = await messages.loadMoreMessages();
+      console.log(`Loaded ${loadedCount} more messages for infinite scroll`);
+    } catch (e) {
+      console.error("Error loading more messages:", e);
+    }
+    loadingMessagesOld = false;
+  }
+
+  async function loadMessagesInCurrentBucket(local: boolean) {
     if (loadingMessagesNew) return;
     console.log("loadMessagesInCurrentBucket");
     loadingMessagesNew = true;
     try {
-      await messages.loadMessagesInCurrentBucketTargetCount();
+      await messages.loadMessagesInCurrentBucketTargetCount(local);
     } catch (e) {
       console.error(e);
     }
@@ -190,7 +210,7 @@
       await messages.sendMessage(text, files);
     } catch (e) {
       console.error(e);
-      toast.error(`${$t("common.error_sending_message")}: ${e.message}`);
+      toast.error(`${$t("common.error_sending_message")}: ${(e as Error).message || e}`);
     }
     sending = false;
   }
@@ -262,22 +282,19 @@
       <!-- No messages yet, display conversation header -->
       <ConversationHeader cellIdB64={$page.params.id} />
     {:else}
-      <!-- Display conversation messages -->
-      {#if loadingMessagesOld}
-        <div class="flex items-center justify-center">
-          <SvgIcon icon="spinner" moreClasses="!h-4 mt-4" />
-        </div>
-      {/if}
-      <ConversationMessages
-        loadingTop={loadingMessagesOld}
-        cellIdB64={$page.params.id}
-        messages={$messages.list}
-        on:delete={(e) => {
-          deleteMessageActionHashB64 = e.detail;
-          showDeleteDialog = true;
-        }}
-        on:scrollAtTop={loadMessagesInPreviousBucket}
-      />
+      <!-- Display conversation messages with proper height container -->
+      <div class="w-full flex-1 overflow-hidden">
+        <ConversationMessages
+          loadingTop={loadingMessagesOld}
+          cellIdB64={$page.params.id}
+          messages={$messages.list}
+          on:delete={(e) => {
+            deleteMessageActionHashB64 = e.detail;
+            showDeleteDialog = true;
+          }}
+          on:scrollAtTop={loadMoreMessages}
+        />
+      </div>
     {/if}
   </div>
 </div>

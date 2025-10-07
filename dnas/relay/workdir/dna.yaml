@@ -4,7 +4,6 @@ name: relay
 integrity:
   network_seed: ~
   properties: ~
-  origin_time: "2024-04-22T00:00:00Z"
   zomes:
     - name: profiles_integrity
       hash: ~

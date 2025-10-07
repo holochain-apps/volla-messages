@@ -4,6 +4,7 @@ import { type MergedProfileContactInviteStore } from "./MergedProfileContactInvi
 import { Privacy, type CellIdB64, type ProfileExtended } from "$lib/types";
 import { persisted } from "./generic/GenericPersistedStore";
 import type { GenericKeyValueStoreData } from "./generic/GenericKeyValueStore";
+import type { HoloHashB64 } from "@holochain/client";
 
 export interface ConversationTitleStore {
   subscribe: (
@@ -16,6 +17,7 @@ export interface ConversationTitleStore {
 export function createConversationTitleStore(
   conversationStore: ConversationStore,
   mergedProfileContactInviteStore: MergedProfileContactInviteStore,
+  myPubKeyB64: HoloHashB64,
 ): ConversationTitleStore {
   const persistedData = persisted<{ [cellIdB64: CellIdB64]: string }>("CONVERSATION.TITLE", {});
 
@@ -38,6 +40,7 @@ export function createConversationTitleStore(
             ) {
               title = makePrivateConversationTitle(
                 Object.values($mergedProfileContactInviteStore.data[cellIdB64] || {}),
+                myPubKeyB64,
               );
             }
             // If we have a Config, use that title
@@ -87,11 +90,11 @@ export function deriveCellConversationTitleStore(
   );
 }
 
-function makePrivateConversationTitle(profiles: ProfileExtended[]) {
+function makePrivateConversationTitle(profiles: ProfileExtended[], myPubKeyB64: HoloHashB64) {
   let title;
   if (profiles.length === 2) {
     // Full name of the one other person in the chat
-    title = profiles[1].profile.nickname;
+    title = profiles.filter((p) => p.publicKeyB64 !== myPubKeyB64)[0].profile.nickname;
   } else if (profiles.length === 3) {
     // First names of all participants, excluding self
     title = profiles

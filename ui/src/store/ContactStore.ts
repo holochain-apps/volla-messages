@@ -95,7 +95,7 @@ export function createContactStore(client: RelayClient): ContactStore {
    * Fetch contacts data and load into writable
    */
   async function initialize() {
-    const contactRecords = await client.getAllContacts();
+    const contactRecords = await client.getAllContacts(true); // contact data is always local
     const $cellIds = get(cellIds);
 
     // Set contacts writables

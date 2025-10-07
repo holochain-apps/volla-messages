@@ -1,6 +1,7 @@
 pub mod conference;
 pub mod config;
 pub mod contact;
+pub mod helper;
 pub mod message;
 pub mod ping;
 use hdk::prelude::*;
@@ -242,7 +243,7 @@ fn get_entry_for_action(action_hash: &ActionHash) -> ExternResult<Option<EntryTy
 
 #[hdk_extern]
 pub fn generate_membrane_proof(input: MembraneProofData) -> ExternResult<SerializedBytes> {
-    let me: HoloHash<holo_hash::hash_type::Agent> = agent_info()?.agent_latest_pubkey;
+    let me: HoloHash<holo_hash::hash_type::Agent> = agent_info()?.agent_initial_pubkey;
 
     let result = MembraneProofEnvelope {
         signature: sign(me, input.clone())?,

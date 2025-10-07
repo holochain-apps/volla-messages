@@ -44,7 +44,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.80.1
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -53,8 +53,9 @@ jobs:
 
       - name: install dependencies (ubuntu only)
         run: |
-          sudo apt update
-          sudo apt install libwebkit2gtk-4.1-dev \
+          sudo apt-get update
+          
+          sudo apt-get install -y \
             build-essential \
             curl \
             wget \
@@ -64,10 +65,36 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
+          # We must pin webkitgtk to 2.46, as we get a blank screen on later versions.
+          # See https://github.com/tauri-apps/tauri/issues/12431
+          #
+          # Because libwebkit2gtk-4.1-dev version 2.46 has been removed from the apt repositories,
+          # we must manually download the deb packages from launchpad to install it.
+
+          mkdir -p /tmp/ubuntu-packages
+          cd /tmp/ubuntu-packages
+          wget https://launchpadlibrarian.net/723972773/libwebkit2gtk-4.1-0_2.44.0-0ubuntu0.22.04.1_amd64.deb
+          wget https://launchpadlibrarian.net/723972761/libwebkit2gtk-4.1-dev_2.44.0-0ubuntu0.22.04.1_amd64.deb
+          wget https://launchpadlibrarian.net/723972770/libjavascriptcoregtk-4.1-0_2.44.0-0ubuntu0.22.04.1_amd64.deb
+          wget https://launchpadlibrarian.net/723972746/libjavascriptcoregtk-4.1-dev_2.44.0-0ubuntu0.22.04.1_amd64.deb
+          wget https://launchpadlibrarian.net/723972735/gir1.2-javascriptcoregtk-4.1_2.44.0-0ubuntu0.22.04.1_amd64.deb
+          wget https://launchpadlibrarian.net/723972739/gir1.2-webkit2-4.1_2.44.0-0ubuntu0.22.04.1_amd64.deb
+          wget https://launchpadlibrarian.net/606433947/libicu70_70.1-2ubuntu1_amd64.deb
+          wget https://launchpadlibrarian.net/606433941/libicu-dev_70.1-2ubuntu1_amd64.deb
+          wget https://launchpadlibrarian.net/606433945/icu-devtools_70.1-2ubuntu1_amd64.deb
+          wget https://launchpadlibrarian.net/595623693/libjpeg8_8c-2ubuntu10_amd64.deb
+          wget https://launchpadlibrarian.net/587202140/libjpeg-turbo8_2.1.2-0ubuntu1_amd64.deb
+          wget https://launchpadlibrarian.net/592959859/xdg-desktop-portal-gtk_1.14.0-1build1_amd64.deb
+          sudo apt-get install -y /tmp/ubuntu-packages/*.deb
+
       - name: Install and prepare
         run: |
           npm install
           npm run setup:happ-release
+
+      - name: Copy variant tauri config
+        run: |
+          cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json
 
       - id: build-app
         uses: tauri-apps/tauri-action@v0
@@ -122,6 +149,7 @@ jobs:
 
       - name: setup Android signing
         run: |
+          mkdir src-tauri/gen/android
           cd src-tauri/gen/android
           base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
@@ -129,25 +157,30 @@ jobs:
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           echo "storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
 
+      - name: Copy variant tauri config
+        run: |
+          cp -Rf src-tauri/gen/android-${{ matrix.feature }}/* src-tauri/gen/android/
+          cp -f src-tauri/tauri.mobile.${{ matrix.feature }}.conf.json src-tauri/tauri.conf.json
+
       - name: Build android AAB
         run: |
           cargo clean
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --aab --target aarch64 --target i686 --target x86_64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri:android:build:${{ matrix.feature }} -- --aab --target aarch64 --target i686 --target x86_64"
 
       - name: Build android APK (aarch64)
         run: |
           cargo clean
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target aarch64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri:android:build:${{ matrix.feature }} -- --apk --split-per-abi --target aarch64"
 
       - name: Build android APK (i684)
         run: |
           cargo clean
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target i686 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri:android:build:${{ matrix.feature }} -- --apk --split-per-abi --target i686"
       
       - name: Build android APK (x86_64)
         run: |
           cargo clean
-          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri android build -- --apk --split-per-abi --target x86_64 --features ${{ matrix.feature }} --config src-tauri/tauri.${{ matrix.feature }}.conf.json"
+          nix develop .#androidDev --no-update-lock-file --command bash -c "npm run tauri:android:build:${{ matrix.feature }} -- --apk --split-per-abi --target x86_64"
 
       - name: Rename android APKs and ABBs
         run: |
@@ -182,7 +215,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.80.1
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -193,6 +226,10 @@ jobs:
         run: |
           npm install
           npm run setup:happ-release
+
+      - name: Copy variant tauri config
+        run: |
+          Copy-Item -Path src-tauri\tauri.desktop.conf.json -Destination src-tauri\tauri.conf.json
 
       - name: Build the App
         uses: tauri-apps/tauri-action@v0
@@ -256,7 +293,11 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
-          - platform: 'macos-13' # for Intel based macs.
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
 
     runs-on: ${{ matrix.platform }}
 
@@ -272,7 +313,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.80.1
+          toolchain: 1.85.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -283,6 +324,12 @@ jobs:
         run: |
           npm install
           npm run setup:happ-release
+
+      - name: Copy variant tauri config
+        run: |
+          cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json
+          ls -la
+          ls -la src-tauri
 
       - name: Build the App
         uses: tauri-apps/tauri-action@v0

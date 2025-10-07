@@ -1,3 +1,4 @@
+use crate::helper::*;
 use hdk::prelude::*;
 use relay_integrity::*;
 
@@ -28,7 +29,11 @@ pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
 
     // Signal other agents that a message was created
     let my_pub_key = agent_info()?.agent_initial_pubkey;
-    let agents = input.agents.into_iter().filter(|a| a != &my_pub_key).collect();
+    let agents = input
+        .agents
+        .into_iter()
+        .filter(|a| a != &my_pub_key)
+        .collect();
     let _ = send_remote_signal(
         MessageRecord {
             message: Some(input.message),
@@ -49,15 +54,18 @@ pub struct BucketInput {
 }
 
 #[hdk_extern]
-pub fn get_message_hashes(input: BucketInput) -> ExternResult<Vec<ActionHash>> {
+pub fn get_message_hashes(bucket: ZomeFnInput<BucketInput>) -> ExternResult<Vec<ActionHash>> {
     let mut hashes: Vec<ActionHash> = Vec::new();
-    let path: Path = messages_path(input.bucket);
+    let path: Path = messages_path(bucket.input.bucket);
+
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.build(),
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
+            .get_options(bucket.get_strategy())
+            .build(),
     )?;
 
     // only return the hashes if the counts don't match
-    if links.len() != input.count {
+    if links.len() != bucket.input.count {
         for l in links {
             hashes.push(ActionHash::try_from(l.target).map_err(|e| wasm_error!(e))?);
         }
@@ -84,10 +92,15 @@ struct GetAgenProfileInput {
 }
 
 #[hdk_extern]
-pub fn get_message_entries(hashes: Vec<ActionHash>) -> ExternResult<Vec<MessageRecord>> {
+pub fn get_message_entries(
+    hashes: ZomeFnInput<Vec<ActionHash>>,
+) -> ExternResult<Vec<MessageRecord>> {
     let mut results: Vec<MessageRecord> = Vec::new();
-    for hash in hashes {
-        if let Some(r) = get_latest_message(hash)? {
+    for hash in hashes.input {
+        if let Some(r) = get_latest_message(ZomeFnInput {
+            input: hash,
+            local: hashes.local,
+        })? {
             results.push(r);
         }
     }
@@ -100,7 +113,10 @@ pub fn get_messages_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<MessageRe
     let mut results: Vec<MessageRecord> = Vec::new();
     for l in links {
         let hash = ActionHash::try_from(l.target).map_err(|e| wasm_error!(e))?;
-        if let Some(r) = get_latest_message(hash)? {
+        if let Some(r) = get_latest_message(ZomeFnInput {
+            input: hash,
+            local: None,
+        })? {
             results.push(r);
         }
     }
@@ -110,11 +126,15 @@ pub fn get_messages_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<MessageRe
 
 #[hdk_extern]
 pub fn get_latest_message(
-    original_message_hash: ActionHash,
+    original_message_hash: ZomeFnInput<ActionHash>,
 ) -> ExternResult<Option<MessageRecord>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(original_message_hash.clone(), LinkTypes::MessageUpdates)?
-            .build(),
+        GetLinksInputBuilder::try_new(
+            original_message_hash.input.clone(),
+            LinkTypes::MessageUpdates,
+        )?
+        .get_options(original_message_hash.get_strategy())
+        .build(),
     )?;
     let latest_link = links
         .into_iter()
@@ -128,12 +148,12 @@ pub fn get_latest_message(
                     "No action hash associated with link".to_string()
                 )))?
         }
-        None => original_message_hash.clone(),
+        None => original_message_hash.input.clone(),
     };
 
     match get(latest_message_hash, GetOptions::default())? {
         Some(record) => Ok(Some(MessageRecord {
-            original_action: original_message_hash,
+            original_action: original_message_hash.input,
             signed_action: record.signed_action().clone(),
             message: record.entry().to_app_option().map_err(|e| wasm_error!(e))?,
         })),
@@ -248,7 +268,11 @@ pub fn delete_message(input: DeleteMessageInput) -> ExternResult<ActionHash> {
 
     // Signal other agents that a message was created
     let my_pub_key = agent_info()?.agent_initial_pubkey;
-    let agents = input.agents.into_iter().filter(|a| a != &my_pub_key).collect();
+    let agents = input
+        .agents
+        .into_iter()
+        .filter(|a| a != &my_pub_key)
+        .collect();
     let _ = send_remote_signal(
         MessageRecord {
             message: None,
@@ -290,4 +314,3 @@ pub fn get_oldest_delete_for_message(
     });
     Ok(deletes.first().cloned())
 }
-

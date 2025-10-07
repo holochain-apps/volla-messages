@@ -122,11 +122,11 @@
 
       // Get provisioned relay CellId
       const provisionedRelayCellInfo = appInfo.cell_info[ROLE_NAME].find(
-        (c) => CellType.Provisioned in c,
+        (c) => c.type === CellType.Provisioned,
       );
       if (provisionedRelayCellInfo === undefined)
         throw new Error("Failed to get CellInfo for cell 'relay'");
-      provisionedRelayCellId = provisionedRelayCellInfo[CellType.Provisioned].cell_id;
+      provisionedRelayCellId = provisionedRelayCellInfo.value.cell_id;
       provisionedRelayCellIdB64 = encodeCellIdToBase64(provisionedRelayCellId);
 
       isClientConnected = true;
@@ -134,7 +134,7 @@
     } catch (e) {
       isClientConnectionFailed = true;
       console.error("Failed to init holochain", e);
-      toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
+      // toast.error(`${$t("common.holochain_connect_error")}: ${e}`);
       throw e;
     }
   }
@@ -182,6 +182,7 @@
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactInviteStore,
+        myPubKeyB64
       );
 
       // Initialize store data

@@ -61,30 +61,34 @@ export class RelayClient {
     });
   }
 
-  async getAgentProfile(cellId: CellId, agentPubKey: AgentPubKey): Promise<Record | undefined> {
+  async getAgentProfile(
+    cellId: CellId,
+    agentPubKey: AgentPubKey,
+    local?: boolean,
+  ): Promise<Record | undefined> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: "profiles",
       fn_name: "get_agent_profile",
-      payload: agentPubKey,
+      payload: { input: agentPubKey, local },
     });
   }
 
-  async getAgentsWithProfile(cellId: CellId): Promise<AgentPubKey[]> {
+  async getAgentsWithProfile(cellId: CellId, local?: boolean): Promise<AgentPubKey[]> {
     return this.client.callZome({
       cell_id: cellId,
       zome_name: "profiles",
       fn_name: "get_agents_with_profile",
-      payload: null,
+      payload: { input: null, local },
     });
   }
 
-  async getAllProfiles(cellId: CellId): Promise<ProfileExtended[]> {
-    const agentPubKeys = await this.getAgentsWithProfile(cellId);
+  async getAllProfiles(cellId: CellId, local: boolean): Promise<ProfileExtended[]> {
+    const agentPubKeys = await this.getAgentsWithProfile(cellId, local);
     const profileExtendeds = (
       await Promise.allSettled(
         agentPubKeys.map(async (a) => {
-          const record = await this.getAgentProfile(cellId, a);
+          const record = await this.getAgentProfile(cellId, a, local);
           if (record === undefined)
             throw new Error(
               `Failed to get agent profile for cellId [${encodeCellIdToBase64(cellId)} and agent ${encodeHashToBase64(a)}`,
@@ -114,8 +118,8 @@ export class RelayClient {
     const appInfo = await this.client.appInfo();
     if (!appInfo) throw new Error("Failed to get appInfo");
 
-    return appInfo.cell_info[ROLE_NAME].filter((c) => CellType.Cloned in c).map(
-      (c) => c[CellType.Cloned],
+    return appInfo.cell_info[ROLE_NAME].filter((c) => c.type === CellType.Cloned).map(
+      (c) => c.value,
     );
   }
 
@@ -123,10 +127,10 @@ export class RelayClient {
     const appInfo = await this.client.appInfo();
     if (!appInfo) throw new Error("Failed to get appInfo");
 
-    const cellInfo = appInfo.cell_info[ROLE_NAME].find((c) => CellType.Provisioned in c);
+    const cellInfo = appInfo.cell_info[ROLE_NAME].find((c) => c.type === CellType.Provisioned);
     if (!cellInfo) throw new Error("Provisioned relay cell not found in appInfo");
 
-    return cellInfo[CellType.Provisioned];
+    return cellInfo.value;
   }
 
   async createConversation(input: CreateConversationInput): Promise<ClonedCell> {
@@ -166,24 +170,29 @@ export class RelayClient {
     return cellInfo;
   }
 
-  public async getMessageHashes(cell_id: CellId, payload: BucketInput): Promise<Array<ActionHash>> {
+  public async getMessageHashes(
+    cell_id: CellId,
+    bucket: BucketInput,
+    local?: boolean,
+  ): Promise<Array<ActionHash>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_message_hashes",
-      payload,
+      payload: { input: bucket, local },
     });
   }
 
   public async getMessageEntries(
     cell_id: CellId,
     hashes: Array<ActionHash>,
+    local?: boolean,
   ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_message_entries",
-      payload: hashes,
+      payload: { input: hashes, local },
     });
   }
 
@@ -231,12 +240,12 @@ export class RelayClient {
     });
   }
 
-  async getConfig(cell_id: CellId): Promise<Config | undefined> {
+  async getConfig(cell_id: CellId, local?: boolean): Promise<Config | undefined> {
     const config = await this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
       fn_name: "get_config",
-      payload: null,
+      payload: { input: null, local },
     });
     return config ? new EntryRecord<Config>(config).entry : undefined;
   }
@@ -298,11 +307,11 @@ export class RelayClient {
   }
 
   public async disableConversationCell(cell_id: CellId) {
-    return this.client.disableCloneCell({ clone_cell_id: cell_id[0] });
+    return this.client.disableCloneCell({ clone_cell_id: { type: "dna_hash", value: cell_id[0] } });
   }
 
   public async enableConversationCell(cell_id: CellId) {
-    return this.client.enableCloneCell({ clone_cell_id: cell_id[0] });
+    return this.client.enableCloneCell({ clone_cell_id: { type: "dna_hash", value: cell_id[0] } });
   }
 
   /**
@@ -313,12 +322,12 @@ export class RelayClient {
    *
    */
 
-  public async getAllContacts(): Promise<ContactRecord[]> {
+  public async getAllContacts(local?: boolean): Promise<ContactRecord[]> {
     return this.client.callZome({
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "get_all_contact_entries",
-      payload: null,
+      payload: { input: null, local },
     });
   }
 

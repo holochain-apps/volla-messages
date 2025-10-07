@@ -23,7 +23,7 @@ export function createSignalHandler(
   client.client.on("signal", _handleSignalReceived);
 
   async function _handleSignalReceived(signal: Signal) {
-    if (!(SignalType.App in signal)) return;
+    if (signal.type !== SignalType.App) return;
 
     const appSignal = signal[SignalType.App].payload as RelaySignal;
 
