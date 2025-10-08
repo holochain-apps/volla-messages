@@ -59,9 +59,8 @@ pub fn get_message_hashes(bucket: ZomeFnInput<BucketInput>) -> ExternResult<Vec<
     let path: Path = messages_path(bucket.input.bucket);
 
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
-            .get_options(bucket.get_strategy())
-            .build(),
+        LinkQuery::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?,
+        bucket.get_strategy(),
     )?;
 
     // only return the hashes if the counts don't match
@@ -79,7 +78,8 @@ pub fn get_message_links_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<Link
     for bucket in buckets {
         let path = messages_path(bucket);
         let mut l = get_links(
-            GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.build(),
+            LinkQuery::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?,
+            GetStrategy::Network,
         )?;
         links.append(&mut l);
     }
@@ -129,12 +129,11 @@ pub fn get_latest_message(
     original_message_hash: ZomeFnInput<ActionHash>,
 ) -> ExternResult<Option<MessageRecord>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(
+        LinkQuery::try_new(
             original_message_hash.input.clone(),
             LinkTypes::MessageUpdates,
-        )?
-        .get_options(original_message_hash.get_strategy())
-        .build(),
+        )?,
+        original_message_hash.get_strategy(),
     )?;
     let latest_link = links
         .into_iter()
@@ -182,8 +181,8 @@ pub fn get_all_revisions_for_message(
         return Ok(vec![]);
     };
     let links = get_links(
-        GetLinksInputBuilder::try_new(original_message_hash.clone(), LinkTypes::MessageUpdates)?
-            .build(),
+        LinkQuery::try_new(original_message_hash.clone(), LinkTypes::MessageUpdates)?,
+        GetStrategy::Network,
     )?;
     let get_input: Vec<GetInput> = links
         .into_iter()
@@ -251,12 +250,18 @@ pub fn delete_message(input: DeleteMessageInput) -> ExternResult<ActionHash> {
 
     let path = messages_path(message.bucket);
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.build(),
+        LinkQuery::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?,
+        GetStrategy::Network,
     )?;
     for link in links {
         if let Some(hash) = link.target.into_action_hash() {
             if hash.eq(&input.original_message_hash) {
-                delete_link(link.create_link_hash)?;
+                delete_link(
+                    link.create_link_hash,
+                    GetOptions {
+                        strategy: GetStrategy::Network,
+                    },
+                )?;
             }
         }
     }

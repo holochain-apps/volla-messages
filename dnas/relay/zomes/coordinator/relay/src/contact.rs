@@ -30,12 +30,11 @@ pub fn get_latest_contact(
     original_contact_hash: ZomeFnInput<ActionHash>,
 ) -> ExternResult<Option<ContactRecord>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(
+        LinkQuery::try_new(
             original_contact_hash.input.clone(),
             LinkTypes::ContactUpdates,
-        )?
-        .get_options(original_contact_hash.get_strategy())
-        .build(),
+        )?,
+        original_contact_hash.get_strategy(),
     )?;
     let latest_link = links
         .into_iter()
@@ -85,12 +84,11 @@ pub fn get_all_revisions_for_contact(
         return Ok(vec![]);
     };
     let links = get_links(
-        GetLinksInputBuilder::try_new(
+        LinkQuery::try_new(
             original_contact_hash.input.clone(),
             LinkTypes::ContactUpdates,
-        )?
-        .get_options(original_contact_hash.get_strategy())
-        .build(),
+        )?,
+        original_contact_hash.get_strategy(),
     )?;
     let get_input: Vec<GetInput> = links
         .into_iter()
@@ -116,9 +114,8 @@ pub fn get_all_revisions_for_contact(
 pub fn get_all_contacts(input: ZomeFnInput<()>) -> ExternResult<Vec<Link>> {
     let path = Path::from("all_contacts");
     get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllContacts)?
-            .get_options(input.get_strategy())
-            .build(),
+        LinkQuery::try_new(path.path_entry_hash()?, LinkTypes::AllContacts)?,
+        input.get_strategy(),
     )
 }
 
@@ -179,24 +176,35 @@ pub fn delete_contact(original_contact_hash: ActionHash) -> ExternResult<ActionH
         )))?;
     let contact = <Contact>::try_from(entry)?;
     let links = get_links(
-        GetLinksInputBuilder::try_new(contact.public_key.clone(), LinkTypes::ContactToContacts)?
-            .build(),
+        LinkQuery::try_new(contact.public_key.clone(), LinkTypes::ContactToContacts)?,
+        GetStrategy::Network,
     )?;
     for link in links {
         if let Some(action_hash) = link.target.into_action_hash() {
             if action_hash == original_contact_hash {
-                delete_link(link.create_link_hash)?;
+                delete_link(
+                    link.create_link_hash,
+                    GetOptions {
+                        strategy: GetStrategy::Network,
+                    },
+                )?;
             }
         }
     }
     let path = Path::from("all_contacts");
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllContacts)?.build(),
+        LinkQuery::try_new(path.path_entry_hash()?, LinkTypes::AllContacts)?,
+        GetStrategy::Network,
     )?;
     for link in links {
         if let Some(hash) = link.target.into_action_hash() {
             if hash == original_contact_hash {
-                delete_link(link.create_link_hash)?;
+                delete_link(
+                    link.create_link_hash,
+                    GetOptions {
+                        strategy: GetStrategy::Network,
+                    },
+                )?;
             }
         }
     }
@@ -238,9 +246,8 @@ pub fn get_oldest_delete_for_contact(
 pub fn get_contacts_for_contact(contact: ZomeFnInput<AgentPubKey>) -> ExternResult<Vec<Link>> {
     let strategy = contact.get_strategy();
     get_links(
-        GetLinksInputBuilder::try_new(contact.input, LinkTypes::ContactToContacts)?
-            .get_options(strategy)
-            .build(),
+        LinkQuery::try_new(contact.input, LinkTypes::ContactToContacts)?,
+        strategy,
     )
 }
 
@@ -248,11 +255,9 @@ pub fn get_contacts_for_contact(contact: ZomeFnInput<AgentPubKey>) -> ExternResu
 pub fn get_deleted_contacts_for_contact(
     contact: AgentPubKey,
 ) -> ExternResult<Vec<(SignedActionHashed, Vec<SignedActionHashed>)>> {
-    let details = get_link_details(
-        contact,
-        LinkTypes::ContactToContacts,
-        None,
-        GetOptions::default(),
+    let details = get_links_details(
+        LinkQuery::try_new(contact, LinkTypes::ContactToContacts)?,
+        GetStrategy::Network,
     )?;
     Ok(details
         .into_inner()

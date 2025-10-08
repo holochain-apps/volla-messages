@@ -115,8 +115,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - feature: 'holochain_service'
-            label: lite
+#          - feature: 'holochain_service'
+#            label: lite
           - feature: 'holochain_bundled'
             label: rich
     steps:
