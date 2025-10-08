@@ -40,6 +40,13 @@
 
           };
           devShells.androidDev = pkgs.mkShell {
+            packages = (with inputs'.holonix.packages; [
+              rust # For Rust development, with the WASM target included for zome builds
+            ]) ++ (with pkgs; [
+              nodejs_20 # For UI development
+              binaryen # For WASM optimisation
+              # Add any other packages you need here
+            ]);
             inputsFrom = [
               inputs'.p2p-shipyard.devShells.holochainTauriAndroidDev
               inputs'.holonix.devShells.default
