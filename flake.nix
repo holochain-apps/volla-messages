@@ -1,57 +1,66 @@
 {
-  description = "Template for Holochain app development";
+  description = "Flake for Holochain app development";
 
   inputs = {
+    tauri-plugin-holochain.url = "github:zo-el/tauri-plugin-holochain/main-0.6-go-pion";
     holonix.url = "github:holochain/holonix/main";
-    p2p-shipyard.url = "github:darksoil-studio/tauri-plugin-holochain/main-0.6";
-
+    
     nixpkgs.follows = "holonix/nixpkgs";
-    #scaffolding.url = "github:darksoil-studio/scaffolding/main-0.5";
+    rust-overlay.follows = "holonix/rust-overlay";
+    crane.follows = "holonix/crane";
+
+    flake-parts.follows = "holonix/flake-parts";
+    playground.url = "github:darksoil-studio/holochain-playground?ref=main-0.5";
   };
 
-  outputs = inputs @ { ... }:
-    inputs.holonix.inputs.flake-parts.lib.mkFlake { inherit inputs; }
-    {
-      systems = builtins.attrNames inputs.holonix.devShells;
+  outputs = inputs@{ flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } {
+    systems = builtins.attrNames inputs.holonix.devShells;
+    perSystem = { inputs', pkgs, system, ... }: {
+      # Use upstream rust version
+      # packages.rust = inputs.holonix.packages.${system}.rust;
 
-      perSystem =
-        { inputs', pkgs, system, ...}: {
-          devShells.default = pkgs.mkShell {
-            packages = (with inputs'.holonix.packages; [
-              holochain
-              hc
-              hcterm
-              bootstrap-srv
-              lair-keystore
-              hc-launch
-              hc-scaffold
-              hn-introspect
-              hc-playground
-              rust # For Rust development, with the WASM target included for zome builds
-            ]) ++ (with pkgs; [
-              nodejs_20 # For UI development
-              binaryen # For WASM optimisation
-              # Add any other packages you need here
-            ]);
-            inputsFrom = [
-              inputs'.p2p-shipyard.devShells.holochainTauriDev
-              inputs'.holonix.devShells.default
-            ];
+      # Custom rust version
+      # packages.rust = let
+      #   overlays = [ (import inputs.rust-overlay) ];
+      #   pkgs = import inputs.nixpkgs { inherit system overlays; };
+      # in pkgs.rust-bin.stable."1.88.0".minimal;
 
-          };
-          devShells.androidDev = pkgs.mkShell {
-            packages = (with inputs'.holonix.packages; [
-              rust # For Rust development, with the WASM target included for zome builds
-            ]) ++ (with pkgs; [
-              nodejs_20 # For UI development
-              binaryen # For WASM optimisation
-              # Add any other packages you need here
-            ]);
-            inputsFrom = [
-              inputs'.p2p-shipyard.devShells.holochainTauriAndroidDev
-              inputs'.holonix.devShells.default
-            ];
-          };
-        };
+      formatter = pkgs.nixpkgs-fmt;
+
+      devShells.default = pkgs.mkShell {
+        inputsFrom = [
+              inputs'.tauri-plugin-holochain.devShells.holochainTauriDev inputs'.holonix.devShells.default ];
+
+        packages = (with pkgs; [
+          nodejs_20
+          binaryen
+          inputs'.playground.packages.hc-playground
+          yarn
+          go_1_24
+          
+        ]);
+
+        shellHook = ''
+          export PS1='\[\033[1;34m\][holonix:\w]\$\[\033[0m\] '
+        '';
+      };
+      devShells.androidDev = pkgs.mkShell {
+        inputsFrom = [
+              inputs'.tauri-plugin-holochain.devShells.holochainTauriAndroidDev inputs'.holonix.devShells.default ];
+
+        packages = (with pkgs; [
+          nodejs_20
+          binaryen
+          inputs'.playground.packages.hc-playground
+          yarn
+          go_1_24
+          
+        ]);
+
+        shellHook = ''
+          export PS1='\[\033[1;34m\][holonix:\w]\$\[\033[0m\] '
+        '';
+      };
     };
+  };
 }

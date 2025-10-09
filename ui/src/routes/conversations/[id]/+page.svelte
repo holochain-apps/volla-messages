@@ -306,6 +306,7 @@
   >
     {#if networkStats}
       <h3>{stats}</h3>
+      <h4>{networkStats.backend}</h4>
       <h4>Peer Urls: {networkStats.peer_urls.length}</h4>
       {#each networkStats.peer_urls as url}
         <li>{url}</li>

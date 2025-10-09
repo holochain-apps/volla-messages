@@ -32,6 +32,7 @@
     "tauri:android:dev:holochain_service": "cp -Rf src-tauri/gen/android-holochain_service/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_service.conf.json src-tauri/tauri.conf.json && npm run tauri android dev -- --features holochain_service",
     "tauri:android:build:holochain_bundled": "cp -Rf src-tauri/gen/android-holochain_bundled/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_bundled.conf.json src-tauri/tauri.conf.json && npm run tauri android build -- --features holochain_bundled",
     "tauri:android:build:holochain_service": "cp -Rf src-tauri/gen/android-holochain_service/* src-tauri/gen/android/ && cp -f src-tauri/tauri.mobile.holochain_service.conf.json src-tauri/tauri.conf.json && npm run tauri android build -- --features holochain_service",
+    "tauri:desktop:build:holochain_bundled": "cp -f src-tauri/tauri.desktop.conf.json src-tauri/tauri.conf.json && npm run tauri build -- --features holochain_bundled",
 
     "setup:happ-release": "curl -L https://github.com/holochain-apps/volla-messages/releases/download/happ-v0.10.0-dev.0/relay.happ -o workdir/relay.happ"
   },
