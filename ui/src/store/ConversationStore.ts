@@ -63,15 +63,18 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     let dna = cellId[0];
     let s = encodeHashToBase64(dna);
     s = s.substring(0, 10) + "x" + s.substring(10 + 1);
-    console.log("DNA", s);
     dna = decodeHashFromBase64(s);
     let metrics = await client.client.dumpNetworkMetrics({
       dna,
       include_dht_summary: true,
     });
+    let stats = await client.client.dumpNetworkStats();
+    console.log("DNA", s, stats, metrics);
+    console.log("stats", stats);
+    console.log("metrics", metrics);
     return {
-      stats: await client.client.dumpNetworkStats(),
-      metrics: metrics,
+      stats,
+      metrics,
     };
   }
   async function initialize(): Promise<void> {

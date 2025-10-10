@@ -15,8 +15,8 @@ members = ["dnas/*/zomes/coordinator/*", "dnas/*/zomes/integrity/*", "src-tauri"
 resolver = "2"
 
 [workspace.dependencies]
-hdi = "0.7.0-dev.18"
-hdk = "0.6.0-dev.21"
+hdi = "0.7.0-dev"
+hdk = "0.6.0-dev"
 hc_zome_profiles_integrity = { git = "https://github.com/holochain-open-dev/profiles", branch = "main-0.6" }
 hc_zome_profiles_coordinator = { git = "https://github.com/holochain-open-dev/profiles", branch = "main-0.6" }
 hc_zome_file_storage_integrity = { git = "https://github.com/holochain-open-dev/file-storage", branch = "main-0.6" }

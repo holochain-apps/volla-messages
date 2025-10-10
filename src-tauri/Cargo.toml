@@ -1,6 +1,6 @@
 [package]
 name = "volla_messages"
-version = "0.10.0-dev.0"
+version = "0.10.0-dev.1"
 description = "Volla Messages"
 authors = ["Tibet Sprague", "Eric Harris-Braun"]
 license = ""
@@ -24,7 +24,7 @@ tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/tauri-plugi
 #tauri-plugin-holochain-service-client = { version = "0.2.0", optional = true }
 
 # datachanel webrtc backend
-holochain = "0.6.0-dev.27"
+holochain = "0.6.0-dev.28"
 
 # go-pion webrtc back-end
 #holochain = {version = "0.5.6", default-features = false, features = ["sqlite-encrypted", "wasmer_sys", "backend-go-pion"] }
