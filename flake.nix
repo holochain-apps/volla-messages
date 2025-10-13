@@ -6,7 +6,9 @@
     p2p-shipyard.url = "github:darksoil-studio/tauri-plugin-holochain/main-0.6";
 
     nixpkgs.follows = "holonix/nixpkgs";
-    #scaffolding.url = "github:darksoil-studio/scaffolding/main-0.5";
+    scaffolding.url = "github:darksoil-studio/scaffolding/main-0.5";
+    flake-parts.follows = "holonix/flake-parts";
+
   };
 
   outputs = inputs @ { ... }:
@@ -17,22 +19,6 @@
       perSystem =
         { inputs', pkgs, system, ...}: {
           devShells.default = pkgs.mkShell {
-            packages = (with inputs'.holonix.packages; [
-              holochain
-              hc
-              hcterm
-              bootstrap-srv
-              lair-keystore
-              hc-launch
-              hc-scaffold
-              hn-introspect
-              hc-playground
-              rust # For Rust development, with the WASM target included for zome builds
-            ]) ++ (with pkgs; [
-              nodejs_20 # For UI development
-              binaryen # For WASM optimisation
-              # Add any other packages you need here
-            ]);
             inputsFrom = [
               inputs'.p2p-shipyard.devShells.holochainTauriDev
               inputs'.holonix.devShells.default
@@ -40,13 +26,6 @@
 
           };
           devShells.androidDev = pkgs.mkShell {
-            packages = (with inputs'.holonix.packages; [
-              rust # For Rust development, with the WASM target included for zome builds
-            ]) ++ (with pkgs; [
-              nodejs_20 # For UI development
-              binaryen # For WASM optimisation
-              # Add any other packages you need here
-            ]);
             inputsFrom = [
               inputs'.p2p-shipyard.devShells.holochainTauriAndroidDev
               inputs'.holonix.devShells.default
