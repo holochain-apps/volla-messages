@@ -3448,9 +3448,9 @@ dependencies = [
 
 [[package]]
 name = "holochain-conductor-runtime-types-ffi"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9db9b665b1453f2c3558b8498c33eecc59325b86746bd401d0d4a7e8e0498ed"
+checksum = "df1f7132e636d7ec0a0ea6e9c0f7280e54c519215e9737cc5540a69d4e8f6e57"
 dependencies = [
  "hc_uniffi",
  "holochain_conductor_api",
@@ -9199,9 +9199,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-holochain-service-client"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "775dc9c43e2e90a4559ae57d5e58bd4158c0c94191fc2be709d5bd077d8e583a"
+checksum = "79089b2b48b46c7c5a49a55bd5dae425b90b1dce8322061720d8d9720a1fcfd7"
 dependencies = [
  "bytes",
  "holochain-conductor-runtime-types-ffi",
