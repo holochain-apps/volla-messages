@@ -28,6 +28,10 @@ import type {
   CreateConversationInput,
   SendMessageInput,
   DeleteMessageInput,
+  CallSignalType,
+  CreateConferenceInput,
+  JoinConferenceInput,
+  SignalInput,
 } from "$lib/types";
 import { ZOME_NAME, ROLE_NAME } from "$config";
 import { encodeCellIdToBase64 } from "$lib/utils";
@@ -367,6 +371,63 @@ export class RelayClient {
       zome_name: ZOME_NAME,
       fn_name: "delete_message",
       payload,
+    });
+  }
+
+  /**
+   * Conference / AV Calling
+   */
+
+  public async createConference(participants: AgentPubKey[]): Promise<string> {
+    const input: CreateConferenceInput = { participants };
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "create_conference",
+      payload: input,
+    });
+  }
+
+  public async joinConference(room_id: string, participants: AgentPubKey[]): Promise<void> {
+    const input: JoinConferenceInput = { room_id, participants };
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "join_conference",
+      payload: input,
+    });
+  }
+
+  public async leaveConference(room_id: string): Promise<void> {
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "leave_conference",
+      payload: room_id,
+    });
+  }
+
+  public async rejectConference(room_id: string, participants: AgentPubKey[]): Promise<void> {
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "reject_conference",
+      payload: { room_id, participants },
+    });
+  }
+
+  public async sendSignal(
+    room_id: string,
+    target: AgentPubKey,
+    payload_type: CallSignalType,
+    data: string
+  ): Promise<void> {
+    const input: SignalInput = { room_id, target, payload_type, data };
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "send_signal",
+      payload: input,
     });
   }
 }
