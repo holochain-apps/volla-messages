@@ -1,3 +1,4 @@
+pub mod conference;
 pub mod config;
 pub mod contact;
 pub mod helper;
@@ -6,36 +7,118 @@ pub mod ping;
 use hdk::prelude::*;
 use relay_integrity::*;
 
-#[hdk_extern]
-fn recv_remote_signal(message_record: MessageRecord) -> ExternResult<()> {
-    let info: CallInfo = call_info()?;
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum SignalData {
+    MessageRecord(MessageRecord),
+    ConferenceRecord(ConferenceRecord),
+}
 
-    let is_deletion = match message_record.signed_action.action() {
-        Action::Delete(_) => true,
-        _ => false,
-    };
+fn recv_remote_signal(signal_data: SignalData) -> ExternResult<()> {
+    match signal_data {
+        SignalData::MessageRecord(message_record) => {
+            let info: CallInfo = call_info()?;
+            let is_deletion = match message_record.signed_action.action() {
+                Action::Delete(_) => true,
+                _ => false,
+            };
+            if is_deletion {
+                let signal = Signal::MessageDeleted {
+                    action: message_record.signed_action.clone(),
+                    original_action: message_record.original_action.clone(),
+                    from: info.provenance,
+                };
 
-    if is_deletion {
-        let signal = Signal::MessageDeleted {
-            action: message_record.signed_action.clone(),
-            original_action: message_record.original_action.clone(),
-            from: info.provenance,
-        };
+                debug!("recv_remote_signal: signal: {:?}", signal);
 
-        debug!("recv_remote_signal: signal: {:?}", signal);
+                emit_signal(signal)
+            } else if let Some(message) = message_record.message {
+                let signal = Signal::Message {
+                    action: message_record.signed_action.clone(),
+                    message,
+                    from: info.provenance,
+                };
+                emit_signal(signal)
+            } else {
+                Err(wasm_error!(WasmErrorInner::Guest(
+                    "Invalid message record".to_string()
+                )))
+            }
+        }
+        SignalData::ConferenceRecord(conference_record) => {
+            // pattern matching based on signal type
+            // only extract fields which are used for each signal type
 
-        emit_signal(signal)
-    } else if let Some(message) = message_record.message {
-        let signal = Signal::Message {
-            action: message_record.signed_action.clone(),
-            message,
-            from: info.provenance,
-        };
-        emit_signal(signal)
-    } else {
-        Err(wasm_error!(WasmErrorInner::Guest(
-            "Invalid message record".to_string()
-        )))
+            match conference_record.signal_type {
+                ConferenceSignalType::Invite => {
+                    let room = conference_record
+                        .room
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room field required for Invite signal".into()
+                        )))?;
+                    let agent =
+                        conference_record
+                            .agent
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Agent field required for Invite signal".into()
+                            )))?;
+                    emit_signal(Signal::ConferenceInvite { room, agent })
+                }
+                ConferenceSignalType::Join => {
+                    let room_id =
+                        conference_record
+                            .room_id
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Room ID field required for Join signal".into()
+                            )))?;
+                    let agent =
+                        conference_record
+                            .agent
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Agent field required for Join signal".into()
+                            )))?;
+                    emit_signal(Signal::ConferenceJoined { room_id, agent })
+                }
+                ConferenceSignalType::Leave => {
+                    let room_id =
+                        conference_record
+                            .room_id
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Room ID field required for Leave signal".into()
+                            )))?;
+                    let agent =
+                        conference_record
+                            .agent
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Agent field required for Leave signal".into()
+                            )))?;
+                    emit_signal(Signal::ConferenceLeft { room_id, agent })
+                }
+                ConferenceSignalType::Reject => {
+                    let room_id =
+                        conference_record
+                            .room_id
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Room ID field required for Reject signal".into()
+                            )))?;
+                    let agent =
+                        conference_record
+                            .agent
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Agent field required for Reject signal".into()
+                            )))?;
+                    emit_signal(Signal::ConferenceRejected { room_id, agent })
+                }
+                ConferenceSignalType::WebRTC => {
+                    let signal_payload = conference_record.signal_payload.ok_or(wasm_error!(
+                        WasmErrorInner::Guest(
+                            "Signal payload field required for WebRTC signal".into()
+                        )
+                    ))?;
+                    emit_signal(Signal::WebRTCSignal(signal_payload))
+                }
+            }
+        }
     }
 }
 
@@ -87,6 +170,23 @@ pub enum Signal {
         action: SignedActionHashed,
         original_app_entry: EntryTypes,
     },
+    ConferenceInvite {
+        room: ConferenceRoom,
+        agent: AgentPubKey,
+    },
+    ConferenceJoined {
+        room_id: String,
+        agent: AgentPubKey,
+    },
+    ConferenceLeft {
+        room_id: String,
+        agent: AgentPubKey,
+    },
+    ConferenceRejected {
+        room_id: String,
+        agent: AgentPubKey,
+    },
+    WebRTCSignal(SignalPayload),
 }
 #[hdk_extern(infallible)]
 pub fn post_commit(committed_actions: Vec<SignedActionHashed>) {

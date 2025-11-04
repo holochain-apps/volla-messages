@@ -2,6 +2,8 @@ pub mod contact;
 pub use contact::*;
 pub mod message;
 pub use message::*;
+pub mod conference;
+pub use conference::*;
 pub mod config;
 pub use config::*;
 use hdi::prelude::*;
@@ -31,6 +33,8 @@ pub enum LinkTypes {
     ContactToContacts,
     ContactUpdates,
     AllContacts,
+    RoomParticipants,
+    ActiveCalls,
 }
 
 #[derive(Serialize, Deserialize, Debug, SerializedBytes, Clone)]
@@ -365,6 +369,10 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         tag,
                     )
                 }
+                LinkTypes::RoomParticipants => {
+                    Ok(ValidateCallbackResult::Valid)
+                }
+                LinkTypes::ActiveCalls => Ok(ValidateCallbackResult::Valid)
             }
         }
         FlatOp::RegisterDeleteLink {
@@ -429,6 +437,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         target_address,
                         tag,
                     )
+                }
+                LinkTypes::RoomParticipants => {
+                    Ok(ValidateCallbackResult::Valid)
+                }
+                LinkTypes::ActiveCalls => {
+                    Ok(ValidateCallbackResult::Valid)
                 }
             }
         }
@@ -693,6 +707,10 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 tag,
                             )
                         }
+                        LinkTypes::RoomParticipants => {
+                            Ok(ValidateCallbackResult::Valid)
+                        }
+                        LinkTypes::ActiveCalls => Ok(ValidateCallbackResult::Valid)
                     }
                 }
                 OpRecord::DeleteLink { original_action_hash, base_address, action } => {
@@ -771,6 +789,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 create_link.target_address,
                                 create_link.tag,
                             )
+                        }
+                        LinkTypes::RoomParticipants => {
+                            Ok(ValidateCallbackResult::Valid)
+                        }
+                        LinkTypes::ActiveCalls => {
+                            Ok(ValidateCallbackResult::Valid)
                         }
                     }
                 }
