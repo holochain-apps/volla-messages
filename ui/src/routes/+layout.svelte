@@ -47,6 +47,7 @@
     type MergedProfileContactInviteUnjoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { createFileStore, type FileStore } from "$store/FileStore";
+  import { createConferenceStore, type ConferenceStore } from "$store/ConferenceStore";
   import Dialog from "$lib/Dialog.svelte";
 
   // Holochain client
@@ -68,6 +69,7 @@
   let provisionedRelayCellProfileStore: CellProfileStore;
   let mergedProfileContactInviteUnjoinedStore: MergedProfileContactInviteUnjoinedStore;
   let mergedProfileContactInviteJoinedStore: MergedProfileContactInviteJoinedStore;
+  let conferenceStore: ConferenceStore;
 
   // Is the holochain client connected?
   let isClientConnected = false;
@@ -181,6 +183,7 @@
         mergedProfileContactInviteStore,
         myPubKeyB64
       );
+      conferenceStore = createConferenceStore(relayClient);
 
       // Initialize store data
       await contactStore.initialize();
@@ -189,7 +192,7 @@
       await conversationMessageStore.initialize();
 
       // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore, conversationMessageStore);
+      createSignalHandler(relayClient, conversationStore, conversationMessageStore, conferenceStore);
 
       isStoresSetup = true;
     } catch (e) {
@@ -259,6 +262,10 @@
 
   setContext("inviteStore", {
     getStore: () => inviteStore,
+  });
+
+  setContext("conferenceStore", {
+    getStore: () => conferenceStore,
   });
 </script>
 
