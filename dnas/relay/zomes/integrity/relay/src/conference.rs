@@ -31,6 +31,7 @@ pub enum ConferenceSignalType {
     Join,
     Leave,
     Reject,
+    End,
     WebRTC,
 }
 
@@ -39,6 +40,7 @@ pub enum CallSignalType {
     Offer,
     Answer,
     IceCandidate,
+    MediaState,
 }
 
 pub fn validate_create_conference(

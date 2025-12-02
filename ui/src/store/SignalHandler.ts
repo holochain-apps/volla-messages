@@ -41,7 +41,8 @@ export function createSignalHandler(
       payload.type === "ConferenceInvite" ||
       payload.type === "ConferenceJoined" ||
       payload.type === "ConferenceLeft" ||
-      payload.type === "ConferenceRejected"
+      payload.type === "ConferenceRejected" ||
+      payload.type === "ConferenceEnded"
     ) {
       _handleConferenceStateSignal(payload);
     } else if (payload.type === "WebRTCSignal") {
@@ -53,33 +54,47 @@ export function createSignalHandler(
     switch (signal.type) {
       case "ConferenceInvite": {
         const roomId = signal.room.room_id;
+        const invitedBy = encodeHashToBase64(signal.agent);
         const participants = signal.room.participants.map(p => encodeHashToBase64(p));
+        const allParticipants = [invitedBy, ...participants];
 
         const state: ConferenceState = {
           room: signal.room,
           participants: new Map(
-            participants.map(p => [p, {
+            allParticipants.map(p => [p, {
               publicKey: p,
               isConnected: false,
-              hasJoined: false
+              hasJoined: p === invitedBy
             }])
           ),
           isInitiator: false,
           ended: false,
           invitationStatus: 'pending',
-          invitedBy: encodeHashToBase64(signal.agent),
+          invitedBy: invitedBy,
           invitationTimestamp: Date.now()
         };
 
         conferenceStore.setConference(roomId, state);
 
-        console.log('Incoming call invitation received:', roomId);
+        console.log('[SignalHandler] Incoming call invitation received:', {
+          roomId,
+          invitedBy: invitedBy.slice(0, 20),
+          totalParticipants: allParticipants.length,
+          allParticipants: allParticipants.map(p => p.slice(0, 20))
+        });
         break;
       }
 
       case "ConferenceJoined": {
         const joinedAgent = encodeHashToBase64(signal.agent);
         const roomId = signal.room_id;
+        const myPubKey = encodeHashToBase64(client.client.myPubKey);
+        
+        console.log('[SignalHandler] ConferenceJoined signal received:', {
+          joinedAgent: joinedAgent.slice(0, 20),
+          roomId,
+          isMe: joinedAgent === myPubKey
+        });
         
         conferenceStore.updateConference(roomId, (conf) => {
           if (!conf) return conf;
@@ -88,27 +103,88 @@ export function createSignalHandler(
           if (participant) {
             participant.hasJoined = true;
             conf.participants.set(joinedAgent, participant);
+          } else {
+            console.warn('[SignalHandler] Participant joined but not in participants map, adding:', joinedAgent.slice(0, 20));
+            conf.participants.set(joinedAgent, {
+              publicKey: joinedAgent,
+              isConnected: false,
+              hasJoined: true
+            });
           }
           
           return conf;
         });
         
         const conference = conferenceStore.getConference(roomId);
-        if (conference?.isInitiator) {
-          conferenceStore.initializeWebRTC(roomId)
-            .catch(error => {
-              console.error("Failed to initialize WebRTC:", error);
-              conferenceStore.updateConference(roomId, (conf) => ({
-                ...conf,
-                error: error instanceof Error ? error.message : 'Failed to initialize WebRTC'
-              }));
-            });
+        
+        if (!conference) {
+          console.warn('[SignalHandler] Conference not found for room:', roomId);
+          return;
+        }
+        
+        if (conference.invitationStatus === 'pending') {
+          console.log('[SignalHandler] Skipping WebRTC - invitation still pending');
+          return;
+        }
+        
+        if (joinedAgent === myPubKey) {
+          if (!conference.localStream) {
+            console.log('[SignalHandler] [ANDROID FIX] Initializing WebRTC for self (participant)');
+            conferenceStore.initializeWebRTC(roomId)
+              .catch(error => {
+                console.error("[SignalHandler] Failed to initialize WebRTC:", error);
+                conferenceStore.updateConference(roomId, (conf) => ({
+                  ...conf,
+                  error: error instanceof Error ? error.message : 'Failed to initialize WebRTC'
+                }));
+              });
+          } else {
+            console.log('[SignalHandler] WebRTC already initialized for self');
+          }
+        } else {
+          if (conference.localStream) {
+            console.log('[SignalHandler] Creating peer connection to newly joined participant:', joinedAgent.slice(0, 20));
+            conferenceStore.createPeerConnectionToParticipant(roomId, joinedAgent)
+              .catch(error => {
+                console.error("[SignalHandler] Failed to create peer connection to participant:", error);
+              });
+          } else {
+            console.warn('[SignalHandler] Other participant joined but we have no stream, initializing WebRTC');
+            conferenceStore.initializeWebRTC(roomId)
+              .catch(error => {
+                console.error("[SignalHandler] Failed to initialize WebRTC:", error);
+                conferenceStore.updateConference(roomId, (conf) => ({
+                  ...conf,
+                  error: error instanceof Error ? error.message : 'Failed to initialize WebRTC'
+                }));
+              });
+          }
         }
         break;
       }
 
       case "ConferenceLeft": {
+        console.log('[SignalHandler] ConferenceLeft signal received:', signal.room_id);
         conferenceStore.cleanupWebRTC(signal.room_id);
+        break;
+      }
+
+      case "ConferenceEnded": {
+        const roomId = signal.room_id;
+        const endedBy = encodeHashToBase64(signal.ended_by);
+        
+        console.log('[SignalHandler] ConferenceEnded signal received:', {
+          roomId,
+          endedBy
+        });
+        
+        // Clean up WebRTC resources
+        conferenceStore.cleanupWebRTC(roomId);
+        
+        // Remove conference from store
+        conferenceStore.removeConference(roomId);
+        
+        console.log('[SignalHandler] Conference ended and cleaned up');
         break;
       }
 
@@ -136,19 +212,24 @@ export function createSignalHandler(
   function _handleWebRTCSignal(signal: RelaySignal) {
     if (signal.type !== "WebRTCSignal") return;
 
-    const webRTCSignal = signal.signal;
-    const fromB64 = typeof webRTCSignal.from === 'string'
-      ? webRTCSignal.from
-      : encodeHashToBase64(webRTCSignal.from);
-    const toB64 = typeof webRTCSignal.to === 'string'
-      ? webRTCSignal.to
-      : encodeHashToBase64(webRTCSignal.to);
+    console.log('[SignalHandler] Received WebRTC signal:', signal);
+
+    const fromB64 = typeof signal.from === 'string'
+      ? signal.from
+      : encodeHashToBase64(signal.from);
+    const toB64 = typeof signal.to === 'string'
+      ? signal.to
+      : encodeHashToBase64(signal.to);
 
     const normalized = {
-      ...webRTCSignal,
+      room_id: signal.room_id,
+      payload_type: signal.payload_type,
+      data: signal.data,
       from: fromB64,
       to: toB64
     };
+
+    console.log('[SignalHandler] Normalized signal:', normalized);
 
     conferenceStore.handleSignalReceived(normalized.room_id, normalized)
       .catch(error => console.error("Failed to handle WebRTC signal:", error));

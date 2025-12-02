@@ -49,6 +49,9 @@
   import { createFileStore, type FileStore } from "$store/FileStore";
   import { createConferenceStore, type ConferenceStore } from "$store/ConferenceStore";
   import Dialog from "$lib/Dialog.svelte";
+  import Conference from "./conversations/Conference.svelte";
+  import { sendConferenceEndedLog } from "$lib/conferenceLogging";
+  import { onDestroy } from "svelte";
 
   // Holochain client
   let client: AppClient;
@@ -93,6 +96,57 @@
       ? $provisionedRelayCellProfileStore.data[myPubKeyB64]
       : undefined;
   $: myProfileExists = myProfile !== undefined;
+
+  $: activeConference =
+    conferenceStore && $conferenceStore
+      ? Object.entries($conferenceStore.data).find(
+          ([_, conf]) =>
+            !conf.ended &&
+            conf.invitationStatus !== "left" &&
+            (conf.isInitiator || conf.invitationStatus === "accepted"),
+        )?.[0]
+      : null;
+
+  function handleCloseConference() {
+    // The Conference component handles cleanup internally
+    // This callback is just to notify the parent that the conference UI should close
+    // No need to call leaveConference here as it's already called in Conference.svelte
+  }
+
+  async function handleConferenceEnded(roomId: string) {
+    const conference = conferenceStore.getConference(roomId);
+    if (
+      !conference ||
+      !conference.cellIdB64 ||
+      !conference.startTime ||
+      !conference.initiatorPubKeyB64
+    ) {
+      console.warn("[ConferenceLog] Cannot send ended log - missing metadata");
+      return;
+    }
+
+    if (!conference.isInitiator) {
+      console.log("[ConferenceLog] Skipping ended log - not initiator");
+      return;
+    }
+
+    const durationSeconds = Math.floor((Date.now() - conference.startTime) / 1000);
+    const allParticipants = Array.from(conference.participants.keys());
+
+    try {
+      await sendConferenceEndedLog(
+        conversationMessageStore,
+        conference.cellIdB64,
+        roomId,
+        conference.initiatorPubKeyB64,
+        allParticipants,
+        durationSeconds,
+      );
+      console.log("[ConferenceLog] Successfully sent conference ended log");
+    } catch (error) {
+      console.error("[ConferenceLog] Failed to send conference ended log:", error);
+    }
+  }
 
   async function initHolochainClient() {
     try {
@@ -181,7 +235,7 @@
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactInviteStore,
-        myPubKeyB64
+        myPubKeyB64,
       );
       conferenceStore = createConferenceStore(relayClient);
 
@@ -191,10 +245,14 @@
       await conversationStore.initialize();
       await conversationMessageStore.initialize();
 
-      // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore, conversationMessageStore, conferenceStore);
-
       isStoresSetup = true;
+
+      createSignalHandler(
+        relayClient,
+        conversationStore,
+        conversationMessageStore,
+        conferenceStore,
+      );
     } catch (e) {
       console.error("Failed to init stores", e);
       toast.error(`${$t("common.stores_setup_error")}: ${e}`);
@@ -296,6 +354,14 @@
     </AppLanding>
   {/if}
 </div>
+
+{#if activeConference}
+  <Conference
+    roomId={activeConference}
+    onClose={handleCloseConference}
+    onConferenceEnded={handleConferenceEnded}
+  />
+{/if}
 
 <Toaster position="bottom-end" />
 

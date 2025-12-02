@@ -1,7 +1,7 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
   import { quintOut } from "svelte/easing";
-  import { pan, type PanCustomEvent } from "svelte-gestures";
+  import { pan } from "svelte-gestures";
   import SvgIcon from "../../lib/SvgIcon.svelte";
   import { t } from "$translations";
   import { encodeCellIdToBase64, isMobile } from "$lib/utils";
@@ -57,6 +57,8 @@
   );
   let invite = deriveCellInviteStore(inviteStore, cellIdB64);
 
+  type PanEvent = CustomEvent<{ x: number }>;
+
   let isHovering = false;
   let menuOpen = 0;
   let isVisible = true;
@@ -70,12 +72,12 @@
   let animationDuration = 300; // Duration of the bounce animation in ms
   let actionDistance = 300; // Once you get here do the action
 
-  function handlePanStart(event: PanCustomEvent) {
+  function handlePanStart(event: PanEvent) {
     startX = event.detail.x;
     isDragging = false;
   }
 
-  function handlePan(event: PanCustomEvent) {
+  function handlePan(event: PanEvent) {
     const currentX = startX - event.detail.x;
     if (currentX > dragThreshold) {
       isDragging = true;
@@ -93,7 +95,7 @@
     }
   }
 
-  function handlePanEnd(event: PanCustomEvent) {
+  function handlePanEnd(event: PanEvent) {
     let finalX = startX - event.detail.x;
     let targetX: number;
 

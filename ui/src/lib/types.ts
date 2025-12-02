@@ -1,17 +1,17 @@
 import type {
   ActionHash,
+  AgentPubKey,
   AgentPubKeyB64,
   CellId,
-  EntryHash,
-  SignedActionHashed,
-  AgentPubKey,
-  Create,
-  Update,
-  Delete,
-  CreateLink,
-  DeleteLink,
-  MembraneProof,
   ClonedCell,
+  Create,
+  CreateLink,
+  Delete,
+  DeleteLink,
+  EntryHash,
+  MembraneProof,
+  SignedActionHashed,
+  Update,
 } from "@holochain/client";
 
 /**
@@ -84,9 +84,13 @@ export type RelaySignal =
       agent: AgentPubKey;
     }
   | {
+      type: "ConferenceEnded";
+      room_id: string;
+      ended_by: AgentPubKey;
+    }
+  | ({
       type: "WebRTCSignal";
-      signal: SignalPayload;
-    };
+    } & SignalPayload);
 
 /**
  * Conversation Message File
@@ -121,6 +125,49 @@ export interface MessageRecord {
   original_action: ActionHash;
   signed_action: SignedActionHashed;
   message?: Message;
+}
+
+export type ConferenceLogEvent = 'started' | 'ended';
+
+export interface ConferenceLog {
+  type: 'conference_log';
+  event: ConferenceLogEvent;
+  conference_id: string;
+  initiator: AgentPubKeyB64;
+  timestamp: number;
+  participants: AgentPubKeyB64[];
+  duration_seconds?: number; // Only for 'ended' event
+  participant_count: number;
+}
+
+/**
+ * Helper functions for conference logs
+ */
+
+export function createConferenceLogMessage(log: ConferenceLog): string {
+  return JSON.stringify(log);
+}
+
+export function isConferenceLog(content: string): boolean {
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.type === 'conference_log' && 
+           (parsed.event === 'started' || parsed.event === 'ended');
+  } catch {
+    return false;
+  }
+}
+
+export function parseConferenceLog(content: string): ConferenceLog | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed.type === 'conference_log') {
+      return parsed as ConferenceLog;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export interface SendMessageInput {
@@ -266,6 +313,7 @@ export enum Alignment {
 }
 
 export type CellIdB64 = string;
+export type ActionHashB64 = string;
 
 export interface LocalFile {
   file: File;
@@ -309,7 +357,8 @@ export interface SignalPayload {
 export enum CallSignalType {
   Offer = "Offer",
   Answer = "Answer",
-  IceCandidate = "IceCandidate"
+  IceCandidate = "IceCandidate",
+  MediaState = "MediaState"
 }
 
 export interface CreateConferenceInput {
@@ -336,14 +385,27 @@ export interface ConferenceState {
     hasJoined: boolean;
     peerConnection?: RTCPeerConnection;
     stream?: MediaStream;
+    pendingSignals?: SignalPayload[];
+    videoEnabled?: boolean;
+    audioEnabled?: boolean;
+    // Perfect negotiation pattern flags
+    makingOffer?: boolean;
+    ignoreOffer?: boolean;
+    reconnectAttempts?: number;
+    reconnectTimerId?: number;
+    lastFailureReason?: string;
   }>;
   localStream?: MediaStream;
   isInitiator: boolean;
   ended: boolean;
   error?: string;
-  invitationStatus?: 'pending' | 'accepted' | 'rejected' | 'active';
+  invitationStatus?: 'pending' | 'accepted' | 'rejected' | 'active' | 'left';
   invitedBy?: AgentPubKeyB64;
   invitationTimestamp?: number;
+  // Metadata for logging
+  cellIdB64?: CellIdB64; // The conversation where this conference was started
+  startTime?: number; // Timestamp when conference started
+  initiatorPubKeyB64?: AgentPubKeyB64; // The agent who initiated the conference
 }
 
 export interface ConferenceParticipant {
@@ -351,4 +413,14 @@ export interface ConferenceParticipant {
   peerConnection?: RTCPeerConnection;
   stream?: MediaStream;
   isConnected: boolean;
+  hasJoined: boolean;
+  pendingSignals?: SignalPayload[];
+  videoEnabled?: boolean;
+  audioEnabled?: boolean;
+  // Perfect negotiation pattern flags
+  makingOffer?: boolean;
+  ignoreOffer?: boolean;
+  reconnectAttempts?: number;
+  reconnectTimerId?: number;
+  lastFailureReason?: string;
 }

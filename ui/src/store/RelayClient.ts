@@ -379,23 +379,42 @@ export class RelayClient {
    */
 
   public async createConference(participants: AgentPubKey[]): Promise<string> {
+    console.log("[RelayClient] createConference() - Calling Holochain zome");
+    console.log("[RelayClient] Participants (Uint8Array):", participants);
+    console.log("[RelayClient] Number of participants:", participants.length);
+    
     const input: CreateConferenceInput = { participants };
-    return this.client.callZome({
+    console.log("[RelayClient] Input payload:", input);
+    
+    const result = await this.client.callZome({
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "create_conference",
       payload: input,
     });
+    
+    console.log("[RelayClient] createConference() result from Holochain:", result);
+    return result;
   }
 
   public async joinConference(room_id: string, participants: AgentPubKey[]): Promise<void> {
+    console.log("[RelayClient] joinConference() - Calling Holochain zome");
+    console.log("[RelayClient] Room ID:", room_id);
+    console.log("[RelayClient] Participants to send signals to:", participants);
+    console.log("[RelayClient] Number of participants:", participants.length);
+    
     const input: JoinConferenceInput = { room_id, participants };
-    return this.client.callZome({
+    console.log("[RelayClient] Input payload:", input);
+    
+    const result = await this.client.callZome({
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "join_conference",
       payload: input,
     });
+    
+    console.log("[RelayClient] joinConference() complete - Holochain should have sent signals");
+    return result;
   }
 
   public async leaveConference(room_id: string): Promise<void> {
@@ -404,6 +423,15 @@ export class RelayClient {
       zome_name: ZOME_NAME,
       fn_name: "leave_conference",
       payload: room_id,
+    });
+  }
+
+  public async endConferenceForAll(room_id: string, participants: AgentPubKey[]): Promise<void> {
+    return this.client.callZome({
+      cell_id: this.provisionedRelayCellId,
+      zome_name: ZOME_NAME,
+      fn_name: "end_conference_for_all",
+      payload: { room_id, participants },
     });
   }
 
@@ -422,12 +450,22 @@ export class RelayClient {
     payload_type: CallSignalType,
     data: string
   ): Promise<void> {
+    console.log("[RelayClient] sendSignal() - Sending WebRTC signal via Holochain");
+    console.log("[RelayClient] Room ID:", room_id);
+    console.log("[RelayClient] Target agent:", encodeHashToBase64(target));
+    console.log("[RelayClient] Signal type:", payload_type);
+    console.log("[RelayClient] Data length:", data.length);
+    
     const input: SignalInput = { room_id, target, payload_type, data };
-    return this.client.callZome({
+    
+    const result = await this.client.callZome({
       cell_id: this.provisionedRelayCellId,
       zome_name: ZOME_NAME,
       fn_name: "send_signal",
       payload: input,
     });
+    
+    console.log("[RelayClient] sendSignal() complete");
+    return result;
   }
 }

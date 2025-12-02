@@ -24,6 +24,7 @@
 
   let saving = false;
   let editingName = false;
+  const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
   async function save(firstNameVal: string, lastNameVal: string, avatarVal: string) {
     if (firstNameVal.length < MIN_FIRST_NAME_LENGTH) return;
@@ -37,7 +38,7 @@
         avatar: avatarVal,
       });
     } catch (e) {
-      toast.error(`${$t("common.update_profile_error")}: ${e.message}`);
+      toast.error(`${$t("common.update_profile_error")}: ${errorMessage(e)}`);
     }
     saving = false;
     editingName = false;
