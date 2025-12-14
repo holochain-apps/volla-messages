@@ -90,7 +90,12 @@ export type RelaySignal =
     }
   | ({
       type: "WebRTCSignal";
-    } & SignalPayload);
+    } & SignalPayload)
+  | {
+      type: "SignalAck";
+      signal_id: string;
+      from: AgentPubKey;
+    };
 
 /**
  * Conversation Message File
@@ -127,10 +132,10 @@ export interface MessageRecord {
   message?: Message;
 }
 
-export type ConferenceLogEvent = 'started' | 'ended';
+export type ConferenceLogEvent = "started" | "ended";
 
 export interface ConferenceLog {
-  type: 'conference_log';
+  type: "conference_log";
   event: ConferenceLogEvent;
   conference_id: string;
   initiator: AgentPubKeyB64;
@@ -151,8 +156,9 @@ export function createConferenceLogMessage(log: ConferenceLog): string {
 export function isConferenceLog(content: string): boolean {
   try {
     const parsed = JSON.parse(content);
-    return parsed.type === 'conference_log' && 
-           (parsed.event === 'started' || parsed.event === 'ended');
+    return (
+      parsed.type === "conference_log" && (parsed.event === "started" || parsed.event === "ended")
+    );
   } catch {
     return false;
   }
@@ -161,7 +167,7 @@ export function isConferenceLog(content: string): boolean {
 export function parseConferenceLog(content: string): ConferenceLog | null {
   try {
     const parsed = JSON.parse(content);
-    if (parsed.type === 'conference_log') {
+    if (parsed.type === "conference_log") {
       return parsed as ConferenceLog;
     }
     return null;
@@ -352,13 +358,15 @@ export interface SignalPayload {
   to: AgentPubKeyB64;
   payload_type: CallSignalType;
   data: string;
+  // Unique identifier for tracking acknowledgments
+  signal_id?: string;
 }
 
 export enum CallSignalType {
   Offer = "Offer",
   Answer = "Answer",
   IceCandidate = "IceCandidate",
-  MediaState = "MediaState"
+  MediaState = "MediaState",
 }
 
 export interface CreateConferenceInput {
@@ -379,29 +387,18 @@ export interface SignalInput {
 
 export interface ConferenceState {
   room: ConferenceRoom;
-  participants: Map<AgentPubKeyB64, {
-    publicKey: AgentPubKeyB64;
-    isConnected: boolean;
-    hasJoined: boolean;
-    peerConnection?: RTCPeerConnection;
-    stream?: MediaStream;
-    pendingSignals?: SignalPayload[];
-    videoEnabled?: boolean;
-    audioEnabled?: boolean;
-    // Perfect negotiation pattern flags
-    makingOffer?: boolean;
-    ignoreOffer?: boolean;
-    reconnectAttempts?: number;
-    reconnectTimerId?: number;
-    lastFailureReason?: string;
-  }>;
+  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
   localStream?: MediaStream;
   isInitiator: boolean;
   ended: boolean;
   error?: string;
-  invitationStatus?: 'pending' | 'accepted' | 'rejected' | 'active' | 'left';
+  invitationStatus?: "pending" | "accepted" | "rejected" | "active" | "left";
   invitedBy?: AgentPubKeyB64;
   invitationTimestamp?: number;
+  // Timestamp when user left (for rejoin detection)
+  leftTimestamp?: number;
+  // Timestamp when user started rejoining (cleared after init)
+  rejoiningTimestamp?: number;
   // Metadata for logging
   cellIdB64?: CellIdB64; // The conversation where this conference was started
   startTime?: number; // Timestamp when conference started
@@ -420,7 +417,21 @@ export interface ConferenceParticipant {
   // Perfect negotiation pattern flags
   makingOffer?: boolean;
   ignoreOffer?: boolean;
+  isSettingRemoteAnswerPending?: boolean;
+  // ICE candidate buffering
+  // hold candidates until remote description is set
+  pendingIceCandidates?: RTCIceCandidateInit[];
   reconnectAttempts?: number;
   reconnectTimerId?: number;
   lastFailureReason?: string;
+  // Pending acknowledgments for signals sent to this participant
+  pendingAcks?: Map<
+    string,
+    {
+      signal: SignalPayload;
+      timestamp: number;
+      retries: number;
+      timerId?: number;
+    }
+  >;
 }

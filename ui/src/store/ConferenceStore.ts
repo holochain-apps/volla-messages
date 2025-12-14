@@ -38,6 +38,7 @@ export interface ConferenceStore {
     audioEnabled: boolean,
   ) => Promise<void>;
   handleSignalReceived: (roomId: string, signal: SignalPayload) => Promise<void>;
+  handleAckReceived: (roomId: string, signalId: string, from: AgentPubKeyB64) => void;
   initializeWebRTC: (roomId: string) => Promise<void>;
   createPeerConnectionToParticipant: (roomId: string, participantPubKey: string) => Promise<void>;
   cleanupWebRTC: (roomId: string) => void;
@@ -89,6 +90,19 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     disconnectionGraceMs: 4000,
   } as const;
 
+  const ACK_CONFIG = {
+    // Wait 5 seconds for acknowledgment
+    timeoutMs: 5000,
+    // Retry up to 3 times
+    maxRetries: 3,
+    // Wait 2 seconds between retries
+    retryDelayMs: 2000,
+  } as const;
+
+  function generateSignalId(): string {
+    return `sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   function safeGetConference(roomId: string): ConferenceState | undefined {
     try {
       return conferences.getKeyValue(roomId);
@@ -110,6 +124,200 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       participants.set(pubKey, updater(participant));
       return { ...conf, participants };
     });
+  }
+
+  function cleanupParticipantConnection(roomId: string, pubKey: string): void {
+    const state = safeGetConference(roomId);
+    if (!state) return;
+
+    const participant = state.participants.get(pubKey);
+    if (!participant) return;
+
+    // Close peer connection
+    if (participant.peerConnection) {
+      try {
+        participant.peerConnection.close();
+      } catch (e) {
+        console.warn(`[WebRTC] Error closing peer connection for ${pubKey.slice(0, 20)}:`, e);
+      }
+    }
+
+    // Stop remote stream tracks
+    if (participant.stream) {
+      participant.stream.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.warn(`[WebRTC] Error stopping track:`, e);
+        }
+      });
+    }
+
+    // Clear reconnect timer
+    if (hasWindow && participant.reconnectTimerId !== undefined) {
+      window.clearTimeout(participant.reconnectTimerId);
+    }
+
+    // Clear all pending ack timers
+    if (participant.pendingAcks) {
+      for (const [_, ack] of participant.pendingAcks) {
+        if (ack.timerId && hasWindow) {
+          window.clearTimeout(ack.timerId);
+        }
+      }
+    }
+
+    // Reset participant state to clean slate
+    updateParticipant(roomId, pubKey, (p) => ({
+      publicKey: p.publicKey,
+      isConnected: false,
+      // Keep this to track they were/are in the call
+      hasJoined: p.hasJoined,
+      videoEnabled: p.videoEnabled,
+      audioEnabled: p.audioEnabled,
+      // Clear all connection-related state
+      peerConnection: undefined,
+      stream: undefined,
+      reconnectTimerId: undefined,
+      reconnectAttempts: 0,
+      lastFailureReason: undefined,
+      makingOffer: false,
+      ignoreOffer: false,
+      isSettingRemoteAnswerPending: false,
+      pendingSignals: [],
+      pendingIceCandidates: [],
+      pendingAcks: new Map(),
+    }));
+
+    console.log(`[WebRTC] Cleaned up participant connection: ${pubKey.slice(0, 20)}`);
+  }
+
+  function clearPendingAck(roomId: string, pubKey: string, signalId: string): void {
+    const state = safeGetConference(roomId);
+    if (!state) return;
+    const participant = state.participants.get(pubKey);
+    if (!participant?.pendingAcks) return;
+
+    const pendingAck = participant.pendingAcks.get(signalId);
+    if (pendingAck?.timerId && hasWindow) {
+      window.clearTimeout(pendingAck.timerId);
+    }
+
+    updateParticipant(roomId, pubKey, (p) => {
+      const pendingAcks = new Map(p.pendingAcks || new Map());
+      pendingAcks.delete(signalId);
+      return { ...p, pendingAcks };
+    });
+  }
+
+  async function scheduleSignalRetry(
+    roomId: string,
+    pubKey: string,
+    signalId: string,
+  ): Promise<void> {
+    const state = safeGetConference(roomId);
+    if (!state?.cellIdB64) return;
+    const participant = state.participants.get(pubKey);
+    const pendingAck = participant?.pendingAcks?.get(signalId);
+    if (!pendingAck) return;
+
+    if (pendingAck.retries >= ACK_CONFIG.maxRetries) {
+      console.error(`[WebRTC] Signal ${signalId} failed after ${ACK_CONFIG.maxRetries} retries`);
+      clearPendingAck(roomId, pubKey, signalId);
+      return;
+    }
+
+    const nextRetry = pendingAck.retries + 1;
+    console.warn(
+      `[WebRTC] Retrying signal ${signalId} (attempt ${nextRetry}/${ACK_CONFIG.maxRetries})`,
+    );
+
+    // Update retry count
+    updateParticipant(roomId, pubKey, (p) => {
+      const pendingAcks = new Map(p.pendingAcks || new Map());
+      const ack = pendingAcks.get(signalId);
+      if (ack) {
+        pendingAcks.set(signalId, { ...ack, retries: nextRetry, timerId: undefined });
+      }
+      return { ...p, pendingAcks };
+    });
+
+    // Wait before retry
+    await new Promise((resolve) => setTimeout(resolve, ACK_CONFIG.retryDelayMs));
+
+    // Resend the signal
+    const latestState = safeGetConference(roomId);
+    const latestParticipant = latestState?.participants.get(pubKey);
+    const latestAck = latestParticipant?.pendingAcks?.get(signalId);
+    if (!latestAck || !latestState?.cellIdB64) return;
+
+    await sendSignalWithAck(
+      roomId,
+      pubKey,
+      latestAck.signal.payload_type,
+      latestAck.signal.data,
+      signalId,
+    );
+  }
+
+  async function sendSignalWithAck(
+    roomId: string,
+    target: string,
+    type: CallSignalType,
+    data: string,
+    signalId?: string,
+  ): Promise<void> {
+    const state = safeGetConference(roomId);
+    if (!state?.cellIdB64) {
+      console.error("[ConferenceStore] Cannot send signal - no cellIdB64 in state");
+      return;
+    }
+
+    const id = signalId || generateSignalId();
+    const targetDecoded = decodeHashFromBase64(target);
+    const cellId = client.decodeCellId(state.cellIdB64);
+
+    // Track signal for acknowledgment (only for critical signals)
+    const isCriticalSignal = type === CallSignalType.Offer || type === CallSignalType.Answer;
+    if (isCriticalSignal) {
+      const signalPayload: SignalPayload = {
+        room_id: roomId,
+        from: encodeHashToBase64(client.client.myPubKey),
+        to: target,
+        payload_type: type,
+        data,
+        signal_id: id,
+      };
+
+      updateParticipant(roomId, target, (p) => {
+        const pendingAcks = new Map(p.pendingAcks || new Map());
+        pendingAcks.set(id, {
+          signal: signalPayload,
+          timestamp: Date.now(),
+          retries: signalId ? pendingAcks.get(id)?.retries || 0 : 0,
+          timerId: undefined,
+        });
+        return { ...p, pendingAcks };
+      });
+
+      // Set timeout for acknowledgment
+      if (hasWindow) {
+        const timerId = window.setTimeout(() => {
+          scheduleSignalRetry(roomId, target, id);
+        }, ACK_CONFIG.timeoutMs);
+
+        updateParticipant(roomId, target, (p) => {
+          const pendingAcks = new Map(p.pendingAcks || new Map());
+          const ack = pendingAcks.get(id);
+          if (ack) {
+            pendingAcks.set(id, { ...ack, timerId });
+          }
+          return { ...p, pendingAcks };
+        });
+      }
+    }
+
+    await client.sendSignal(roomId, targetDecoded, type, data, cellId);
   }
 
   function clearParticipantReconnect(roomId: string, pubKey: string): void {
@@ -221,24 +429,63 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     peerConnection: RTCPeerConnection,
     context: string,
   ): Promise<void> {
-    if (peerConnection.signalingState !== "stable") {
+    // Check signaling state before attempting to create offer
+    if (
+      peerConnection.signalingState !== "stable" &&
+      peerConnection.signalingState !== "have-local-offer"
+    ) {
+      console.log(
+        `[Perfect Negotiation] Skipping offer creation for ${pubKey.slice(0, 20)} - wrong state: ${peerConnection.signalingState}`,
+      );
       return;
     }
 
     let shouldAbort = false;
-    updateParticipant(roomId, pubKey, (participant) => {
-      if (participant.makingOffer) {
+    let currentState = false;
+
+    // Check and update makingOffer flag atomically
+    conferences.updateKeyValue(roomId, (conf) => {
+      const participants = new Map(conf.participants);
+      const participant = participants.get(pubKey);
+
+      if (!participant) {
         shouldAbort = true;
-        return participant;
+        return conf;
       }
-      return { ...participant, makingOffer: true };
+
+      if (participant.makingOffer) {
+        console.log(
+          `[Perfect Negotiation] Already making offer to ${pubKey.slice(0, 20)}, skipping`,
+        );
+        shouldAbort = true;
+        return conf;
+      }
+
+      currentState = participant.makingOffer || false;
+      participants.set(pubKey, { ...participant, makingOffer: true });
+      return { ...conf, participants };
     });
 
     if (shouldAbort) return;
 
     try {
+      // Check state again right before creating offer
+      if (
+        peerConnection.signalingState !== "stable" &&
+        peerConnection.signalingState !== "have-local-offer"
+      ) {
+        console.log(
+          `[Perfect Negotiation] State changed before offer creation: ${peerConnection.signalingState}`,
+        );
+        return;
+      }
+
       await peerConnection.setLocalDescription();
+
       if (peerConnection.localDescription) {
+        console.log(
+          `[Perfect Negotiation] Sending offer to ${pubKey.slice(0, 20)} (context: ${context})`,
+        );
         await sendSignal(
           roomId,
           pubKey,
@@ -255,10 +502,15 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
         err,
       );
     } finally {
-      updateParticipant(roomId, pubKey, (participant) => ({
-        ...participant,
-        makingOffer: false,
-      }));
+      // Always clear makingOffer flag
+      conferences.updateKeyValue(roomId, (conf) => {
+        const participants = new Map(conf.participants);
+        const participant = participants.get(pubKey);
+        if (participant) {
+          participants.set(pubKey, { ...participant, makingOffer: false });
+        }
+        return { ...conf, participants };
+      });
     }
   }
 
@@ -367,9 +619,29 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       throw new Error("Conference state must have cellIdB64");
     }
 
+    // Check if this is a rejoin (user previously left)
+    // BEFORE clearing leftTimestamp
+    const isRejoining = state.invitationStatus === "left" && state.leftTimestamp !== undefined;
+
+    if (isRejoining) {
+      console.log(`[ConferenceStore] Rejoining conference: ${roomId}`);
+
+      // Clean up any residual state from previous session
+      const myPubKey = encodeHashToBase64(client.client.myPubKey);
+      for (const [pubKey] of state.participants) {
+        if (pubKey !== myPubKey) {
+          cleanupParticipantConnection(roomId, pubKey);
+        }
+      }
+    }
+
     conferences.updateKeyValue(roomId, (conf) => ({
       ...conf,
       invitationStatus: "accepted" as const,
+      // Clear the left timestamp
+      leftTimestamp: undefined,
+      // Mark that we're rejoining
+      rejoiningTimestamp: isRejoining ? Date.now() : undefined,
     }));
 
     const cellId = client.decodeCellId(state.cellIdB64);
@@ -446,22 +718,36 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
         ...conf,
         invitationStatus: "left" as const, // Status to indicate user left the conference
         localStream: undefined,
+        // Track when we left for rejoin detection
+        leftTimestamp: Date.now(),
         participants: new Map(
           Array.from(conf.participants.entries()).map(([key, participant]) => [
             key,
             {
-              ...participant,
+              publicKey: participant.publicKey,
+              isConnected: false,
+              hasJoined: participant.hasJoined,
+              videoEnabled: participant.videoEnabled,
+              audioEnabled: participant.audioEnabled,
+              // Clear all connection-related state completely
               peerConnection: undefined,
               stream: undefined,
-              isConnected: false,
-              reconnectAttempts: 0,
               reconnectTimerId: undefined,
+              reconnectAttempts: 0,
               lastFailureReason: undefined,
+              makingOffer: false,
+              ignoreOffer: false,
+              isSettingRemoteAnswerPending: false,
+              pendingSignals: [],
+              pendingIceCandidates: [],
+              pendingAcks: new Map(),
             },
           ]),
         ),
       }));
     }
+
+    console.log(`[ConferenceStore] Left conference: ${roomId}`);
   }
 
   async function endConferenceForAll(roomId: string): Promise<void> {
@@ -490,15 +776,14 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     type: CallSignalType,
     data: string,
   ): Promise<void> {
-    const state = safeGetConference(roomId);
-    if (!state?.cellIdB64) {
-      console.error("[ConferenceStore] Cannot send signal - no cellIdB64 in state");
-      return;
-    }
+    await sendSignalWithAck(roomId, target, type, data);
+  }
 
-    const targetDecoded = decodeHashFromBase64(target);
-    const cellId = client.decodeCellId(state.cellIdB64);
-    await client.sendSignal(roomId, targetDecoded, type, data, cellId);
+  function handleAckReceived(roomId: string, signalId: string, from: AgentPubKeyB64): void {
+    console.log(
+      `[WebRTC] Acknowledgment received for signal ${signalId} from ${from.slice(0, 20)}`,
+    );
+    clearPendingAck(roomId, from, signalId);
   }
 
   async function sendMediaStateToAll(
@@ -525,20 +810,47 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     const participant = state.participants.get(signal.from);
     if (!participant) return;
 
+    // Send acknowledgment for critical signals
+    const isCriticalSignal =
+      signal.payload_type === CallSignalType.Offer || signal.payload_type === CallSignalType.Answer;
+    if (isCriticalSignal && signal.signal_id && state.cellIdB64) {
+      const cellId = client.decodeCellId(state.cellIdB64);
+      const target = decodeHashFromBase64(signal.from);
+      try {
+        await client.sendAckSignal(signal.signal_id, target, cellId);
+        console.log(`[WebRTC] Sent acknowledgment for signal ${signal.signal_id}`);
+      } catch (error) {
+        console.error(`[WebRTC] Failed to send acknowledgment:`, error);
+      }
+    }
+
     const peerConnection = participant.peerConnection;
 
     if (!peerConnection) {
+      // Buffer signal for later processing, but with timestamp for cleanup
+      const signalWithTimestamp = { ...signal, bufferedAt: Date.now() };
+
       conferences.updateKeyValue(roomId, (conf) => {
         const participants = new Map(conf.participants);
         const p = participants.get(signal.from);
         if (p) {
+          // Filter out old buffered signals (older than 10 seconds)
+          const now = Date.now();
+          const validSignals = (p.pendingSignals || []).filter(
+            (s: any) => !s.bufferedAt || now - s.bufferedAt < 10000,
+          );
+
           participants.set(signal.from, {
             ...p,
-            pendingSignals: [...(p.pendingSignals || []), signal],
+            pendingSignals: [...validSignals, signalWithTimestamp],
           });
         }
         return { ...conf, participants };
       });
+
+      console.log(
+        `[WebRTC] Buffering signal ${signal.payload_type} from ${signal.from.slice(0, 20)} (no peer connection yet)`,
+      );
       return;
     }
 
@@ -549,35 +861,165 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     try {
       switch (signal.payload_type) {
         case CallSignalType.Offer:
+          // Perfect Negotiation: detect offer collision
           const offerCollision =
             peerConnection.signalingState !== "stable" || participant.makingOffer === true;
 
           const ignoreOffer = !isPolite && offerCollision;
-          if (ignoreOffer) return;
+          if (ignoreOffer) {
+            console.log(
+              `[Perfect Negotiation] Ignoring offer from ${signal.from.slice(0, 20)} (impolite peer, collision detected)`,
+            );
+            return;
+          }
 
-          // Set making offer flag to false when receiving offer
-          conferences.updateKeyValue(roomId, (conf) => {
-            const participants = new Map(conf.participants);
-            const p = participants.get(signal.from);
-            if (p) {
-              participants.set(signal.from, { ...p, makingOffer: false });
-            }
-            return { ...conf, participants };
-          });
+          // If polite and colliding, rollback our offer
+          if (isPolite && offerCollision) {
+            console.log(
+              `[Perfect Negotiation] Polite peer rolling back for offer from ${signal.from.slice(0, 20)}`,
+            );
+            await peerConnection.setLocalDescription({ type: "rollback" });
+
+            // Clear makingOffer flag after rollback
+            conferences.updateKeyValue(roomId, (conf) => {
+              const participants = new Map(conf.participants);
+              const p = participants.get(signal.from);
+              if (p) {
+                participants.set(signal.from, { ...p, makingOffer: false });
+              }
+              return { ...conf, participants };
+            });
+          }
 
           await peerConnection.setRemoteDescription(JSON.parse(signal.data));
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
+
+          // Process any buffered ICE candidates after setting remote description
+          const bufferedCandidates = participant.pendingIceCandidates || [];
+          if (bufferedCandidates.length > 0) {
+            console.log(
+              `[WebRTC] Processing ${bufferedCandidates.length} buffered ICE candidates from ${signal.from.slice(0, 20)}`,
+            );
+            for (const candidate of bufferedCandidates) {
+              try {
+                await peerConnection.addIceCandidate(candidate);
+              } catch (err) {
+                console.warn(`Failed to add buffered ICE candidate:`, err);
+              }
+            }
+
+            // Clear buffer
+            conferences.updateKeyValue(roomId, (conf) => {
+              const participants = new Map(conf.participants);
+              const p = participants.get(signal.from);
+              if (p) {
+                participants.set(signal.from, { ...p, pendingIceCandidates: [] });
+              }
+              return { ...conf, participants };
+            });
+          }
+
           await sendSignal(roomId, signal.from, CallSignalType.Answer, JSON.stringify(answer));
           break;
 
         case CallSignalType.Answer:
-          await peerConnection.setRemoteDescription(JSON.parse(signal.data));
+          // Check if we're in correct state to accept answer
+          if (peerConnection.signalingState !== "have-local-offer") {
+            console.warn(
+              `[Perfect Negotiation] Received answer in wrong state: ${peerConnection.signalingState}`,
+            );
+            return;
+          }
+
+          // Prevent race condition with multiple answers
+          if (participant.isSettingRemoteAnswerPending) {
+            console.warn(
+              `[Perfect Negotiation] Already setting remote answer for ${signal.from.slice(0, 20)}`,
+            );
+            return;
+          }
+
+          // Set flag to prevent concurrent answer processing
+          conferences.updateKeyValue(roomId, (conf) => {
+            const participants = new Map(conf.participants);
+            const p = participants.get(signal.from);
+            if (p) {
+              participants.set(signal.from, { ...p, isSettingRemoteAnswerPending: true });
+            }
+            return { ...conf, participants };
+          });
+
+          try {
+            await peerConnection.setRemoteDescription(JSON.parse(signal.data));
+
+            // Process any buffered ICE candidates after setting remote description
+            const bufferedCandidates = participant.pendingIceCandidates || [];
+            if (bufferedCandidates.length > 0) {
+              console.log(
+                `[WebRTC] Processing ${bufferedCandidates.length} buffered ICE candidates from ${signal.from.slice(0, 20)}`,
+              );
+              for (const candidate of bufferedCandidates) {
+                try {
+                  await peerConnection.addIceCandidate(candidate);
+                } catch (err) {
+                  console.warn(`Failed to add buffered ICE candidate:`, err);
+                }
+              }
+            }
+
+            // Clear flag and buffer
+            conferences.updateKeyValue(roomId, (conf) => {
+              const participants = new Map(conf.participants);
+              const p = participants.get(signal.from);
+              if (p) {
+                participants.set(signal.from, {
+                  ...p,
+                  isSettingRemoteAnswerPending: false,
+                  pendingIceCandidates: [],
+                  makingOffer: false,
+                });
+              }
+              return { ...conf, participants };
+            });
+          } catch (err) {
+            // Clear flag on error
+            conferences.updateKeyValue(roomId, (conf) => {
+              const participants = new Map(conf.participants);
+              const p = participants.get(signal.from);
+              if (p) {
+                participants.set(signal.from, { ...p, isSettingRemoteAnswerPending: false });
+              }
+              return { ...conf, participants };
+            });
+            throw err;
+          }
           break;
 
         case CallSignalType.IceCandidate:
+          const candidateData = JSON.parse(signal.data);
+
+          // Buffer ICE candidates if remote description not yet set
+          if (!peerConnection.remoteDescription || !peerConnection.remoteDescription.type) {
+            console.log(
+              `[WebRTC] Buffering ICE candidate from ${signal.from.slice(0, 20)} (no remote description yet)`,
+            );
+            conferences.updateKeyValue(roomId, (conf) => {
+              const participants = new Map(conf.participants);
+              const p = participants.get(signal.from);
+              if (p) {
+                participants.set(signal.from, {
+                  ...p,
+                  pendingIceCandidates: [...(p.pendingIceCandidates || []), candidateData],
+                });
+              }
+              return { ...conf, participants };
+            });
+            return;
+          }
+
           try {
-            await peerConnection.addIceCandidate(JSON.parse(signal.data));
+            await peerConnection.addIceCandidate(candidateData);
           } catch (err) {
             console.warn(`Failed to add ICE candidate from ${signal.from.slice(0, 20)}:`, err);
           }
@@ -607,14 +1049,17 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
         err,
       );
 
-      conferences.updateKeyValue(roomId, (conf) => {
-        const participants = new Map(conf.participants);
-        const p = participants.get(signal.from);
-        if (p) {
-          participants.set(signal.from, { ...p, ignoreOffer: isPolite });
-        }
-        return { ...conf, participants };
-      });
+      // Only set ignoreOffer if we're impolite and there's an offer collision
+      if (!isPolite && signal.payload_type === CallSignalType.Offer) {
+        conferences.updateKeyValue(roomId, (conf) => {
+          const participants = new Map(conf.participants);
+          const p = participants.get(signal.from);
+          if (p) {
+            participants.set(signal.from, { ...p, ignoreOffer: true });
+          }
+          return { ...conf, participants };
+        });
+      }
     }
   }
 
@@ -702,6 +1147,10 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       peerConnection,
       isConnected: false,
       reconnectTimerId: undefined,
+      makingOffer: false,
+      ignoreOffer: false,
+      isSettingRemoteAnswerPending: false,
+      pendingIceCandidates: [],
       lastFailureReason: options.isRetry ? participant.lastFailureReason : undefined,
     }));
 
@@ -710,6 +1159,8 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     };
 
     peerConnection.onnegotiationneeded = async () => {
+      // Debounce negotiation to avoid rapid-fire offers
+      await new Promise((resolve) => setTimeout(resolve, 100));
       await renegotiate("onnegotiationneeded");
     };
 
@@ -793,6 +1244,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
                 ...participant,
                 isConnected: true,
                 ignoreOffer: false,
+                makingOffer: false,
                 lastFailureReason: undefined,
               });
             }
@@ -812,11 +1264,24 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       peerConnection.addTrack(track, localStream);
     });
 
-    await renegotiate("initial_tracks");
+    // Determine who should initiate based on lexicographic ordering
+    const myPubKey = encodeHashToBase64(client.client.myPubKey);
+    const shouldInitiate = myPubKey > pubKey; // Higher pubkey initiates
 
+    if (shouldInitiate && existingParticipant.hasJoined) {
+      // Add small jitter to prevent exact simultaneous offers
+      const jitter = Math.random() * 200;
+      await new Promise((resolve) => setTimeout(resolve, jitter));
+      await renegotiate("initial_tracks");
+    }
+
+    // Process any pending signals
     const latestState = safeGetConference(roomId);
     const participant = latestState?.participants.get(pubKey);
     if (participant?.pendingSignals && participant.pendingSignals.length > 0) {
+      console.log(
+        `[WebRTC] Processing ${participant.pendingSignals.length} pending signals for ${pubKey.slice(0, 20)}`,
+      );
       for (const queuedSignal of participant.pendingSignals) {
         try {
           await handleSignalReceived(roomId, queuedSignal);
@@ -846,10 +1311,30 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       return;
     }
 
-    // Check if peer connection already exists
+    // Check if peer connection already exists and is in a good state
     const participant = state.participants.get(participantPubKey);
     if (participant?.peerConnection) {
-      return;
+      const connState = participant.peerConnection.connectionState;
+
+      // If connection is already connected or connecting, don't recreate
+      if (connState === "connected" || connState === "connecting") {
+        console.log(
+          `[WebRTC] Peer connection already ${connState} for ${participantPubKey.slice(0, 20)}, skipping recreation`,
+        );
+        return;
+      }
+
+      // If in failed/disconnected/closed state, close it before creating new one
+      if (connState === "failed" || connState === "disconnected" || connState === "closed") {
+        console.log(
+          `[WebRTC] Closing existing ${connState} peer connection before creating new one for ${participantPubKey.slice(0, 20)}`,
+        );
+        try {
+          participant.peerConnection.close();
+        } catch (e) {
+          console.warn("Error closing existing peer connection:", e);
+        }
+      }
     }
 
     await createPeerConnectionForParticipant(roomId, participantPubKey, state.localStream);
@@ -865,8 +1350,12 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       return;
     }
 
-    // Check if already initialized
-    if (state.localStream) {
+    // Detect if this is a rejoin scenario using rejoiningTimestamp
+    const isRejoining =
+      // Within 10 seconds of rejoin
+      state.rejoiningTimestamp !== undefined && Date.now() - state.rejoiningTimestamp < 10000;
+    // Check if already initialized (but allow reinitialization on rejoin)
+    if (state.localStream && !isRejoining) {
       console.log(
         "[ConferenceStore] initializeWebRTC: WebRTC already initialized for room:",
         roomId,
@@ -874,9 +1363,37 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       return;
     }
 
+    // If rejoining OR have existing stream, force cleanup first
+    if ((isRejoining || state.localStream) && state.localStream) {
+      console.log(
+        "[ConferenceStore] initializeWebRTC: Detected rejoin, cleaning up old state first",
+      );
+
+      // Stop old local stream
+      state.localStream.getTracks().forEach((track) => track.stop());
+
+      // Clean up all peer connections
+      const myPubKey = encodeHashToBase64(client.client.myPubKey);
+      for (const [pubKey] of state.participants) {
+        if (pubKey !== myPubKey) {
+          cleanupParticipantConnection(roomId, pubKey);
+        }
+      }
+
+      // Clear local stream
+      conferences.updateKeyValue(roomId, (conf) => ({
+        ...conf,
+        localStream: undefined,
+      }));
+
+      // Small delay to ensure cleanup completes
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
     console.log("[ConferenceStore] initializeWebRTC: Starting initialization for room:", roomId, {
       isInitiator: state.isInitiator,
       participantCount: state.participants.size,
+      isRejoining,
     });
 
     try {
@@ -920,11 +1437,18 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
       }
 
       console.log("[ConferenceStore] initializeWebRTC: Initialization complete");
+
+      // Clear the rejoining timestamp after successful initialization
+      conferences.updateKeyValue(roomId, (conf) => ({
+        ...conf,
+        rejoiningTimestamp: undefined,
+      }));
     } catch (error) {
       console.error("[ConferenceStore] Error initializing WebRTC:", error);
       conferences.updateKeyValue(roomId, (conf) => ({
         ...conf,
         error: error instanceof Error ? error.message : "Failed to initialize WebRTC",
+        rejoiningTimestamp: undefined, // Clear on error too
       }));
     }
   }
@@ -933,24 +1457,25 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     const state = safeGetConference(roomId);
     if (!state) return;
 
-    state.localStream?.getTracks().forEach((track) => track.stop());
+    console.log(`[ConferenceStore] Cleaning up WebRTC for room: ${roomId}`);
 
-    for (const [pubKey, participant] of state.participants.entries()) {
-      participant.peerConnection?.close();
-      participant.stream?.getTracks().forEach((track) => track.stop());
-      if (hasWindow && participant.reconnectTimerId !== undefined) {
-        window.clearTimeout(participant.reconnectTimerId);
-      }
-      updateParticipant(roomId, pubKey, (p) => ({
-        ...p,
-        peerConnection: undefined,
-        stream: undefined,
-        reconnectTimerId: undefined,
-        reconnectAttempts: 0,
-        isConnected: false,
-      }));
+    // Stop local stream
+    if (state.localStream) {
+      state.localStream.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.warn("[WebRTC] Error stopping local track:", e);
+        }
+      });
     }
 
+    // Clean up all participant connections
+    for (const [pubKey] of state.participants.entries()) {
+      cleanupParticipantConnection(roomId, pubKey);
+    }
+
+    // Clear local stream
     conferences.updateKeyValue(roomId, (conf) => ({
       ...conf,
       localStream: undefined,
@@ -971,6 +1496,7 @@ export function createConferenceStore(client: RelayClient): ConferenceStore {
     sendSignal,
     sendMediaStateToAll,
     handleSignalReceived,
+    handleAckReceived,
     initializeWebRTC,
     createPeerConnectionToParticipant,
     cleanupWebRTC,

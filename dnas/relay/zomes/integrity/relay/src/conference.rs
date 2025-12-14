@@ -14,6 +14,8 @@ pub struct SignalPayload {
     pub payload_type: CallSignalType,
     // JSON stringified sdp or ice candidate
     pub data: String,
+    // Unique signal ID for acknowledgment tracking
+    pub signal_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,6 +25,8 @@ pub struct ConferenceRecord {
     pub agent: Option<AgentPubKey>,
     pub signal_type: ConferenceSignalType,
     pub signal_payload: Option<SignalPayload>,
+    // ID of signal being acknowledged
+    pub ack_signal_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,6 +37,8 @@ pub enum ConferenceSignalType {
     Reject,
     End,
     WebRTC,
+    // Acknowledgment for received signals
+    Ack, 
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

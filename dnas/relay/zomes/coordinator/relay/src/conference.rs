@@ -1,6 +1,18 @@
 use hdk::prelude::*;
 use relay_integrity::*;
 
+fn generate_signal_id() -> String {
+    let timestamp = sys_time().unwrap();
+    let (secs, nanos) = timestamp.as_seconds_and_nanos();
+    format!("sig_{}_{}", secs, nanos)
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AckSignalInput {
+    pub signal_id: String,
+    pub target: AgentPubKey,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateConferenceInput {
     pub participants: Vec<AgentPubKey>,
@@ -64,6 +76,7 @@ pub fn create_conference(input: CreateConferenceInput) -> ExternResult<String> {
             room_id: None,
             signal_type: ConferenceSignalType::Invite,
             signal_payload: None,
+            ack_signal_id: None,
         },
         input.participants.clone(),
     );
@@ -103,6 +116,7 @@ pub fn join_conference(input: JoinConferenceInput) -> ExternResult<()> {
             agent: Some(agent_info.agent_initial_pubkey),
             signal_type: ConferenceSignalType::Join,
             signal_payload: None,
+            ack_signal_id: None,
         },
         input.participants.clone(),
     );
@@ -134,6 +148,7 @@ pub fn send_signal(input: SignalInput) -> ExternResult<()> {
         to: input.target.clone(),
         payload_type: input.payload_type,
         data: input.data,
+        signal_id: Some(generate_signal_id()),
     };
     
     info!("[Rust] Sending WebRTC signal to target");
@@ -144,6 +159,7 @@ pub fn send_signal(input: SignalInput) -> ExternResult<()> {
             agent: None,
             signal_type: ConferenceSignalType::WebRTC,
             signal_payload: Some(signal_payload),
+            ack_signal_id: None,
         },
         vec![input.target.clone()],
     );
@@ -175,6 +191,7 @@ pub fn leave_conference(room_id: String) -> ExternResult<()> {
             agent: Some(agent_info.agent_initial_pubkey),
             signal_type: ConferenceSignalType::Leave,
             signal_payload: None,
+            ack_signal_id: None,
         },
         active_participants,
     );
@@ -211,6 +228,7 @@ pub fn end_conference_for_all(input: EndConferenceInput) -> ExternResult<()> {
             agent: Some(agent_info.agent_initial_pubkey.clone()),
             signal_type: ConferenceSignalType::End,
             signal_payload: None,
+            ack_signal_id: None,
         },
         input.participants.clone(),
     );
@@ -248,6 +266,7 @@ pub fn reject_conference(input: RejectConferenceInput) -> ExternResult<()> {
             agent: Some(agent_info.agent_initial_pubkey),
             signal_type: ConferenceSignalType::Reject,
             signal_payload: None,
+            ack_signal_id: None,
         },
         input.participants,
     );
@@ -256,6 +275,36 @@ pub fn reject_conference(input: RejectConferenceInput) -> ExternResult<()> {
         info!("Warning: Failed to send conference reject signal: {:?}", e);
     }
 
+    Ok(())
+}
+
+#[hdk_extern]
+pub fn send_ack_signal(input: AckSignalInput) -> ExternResult<()> {
+    info!("[Rust] ========== send_ack_signal() called ==========");
+    info!("[Rust] Acknowledging signal ID: {}", input.signal_id);
+    info!("[Rust] Target agent: {:?}", input.target);
+    
+    let agent_info = agent_info()?;
+    
+    let signal_result = send_remote_signal(
+        ConferenceRecord {
+            room: None,
+            room_id: None,
+            agent: Some(agent_info.agent_initial_pubkey),
+            signal_type: ConferenceSignalType::Ack,
+            signal_payload: None,
+            ack_signal_id: Some(input.signal_id),
+        },
+        vec![input.target],
+    );
+    
+    if let Err(e) = signal_result {
+        info!("[Rust] ERROR: Failed to send acknowledgment: {:?}", e);
+    } else {
+        info!("[Rust] SUCCESS: Acknowledgment sent");
+    }
+    
+    info!("[Rust] ========== send_ack_signal() complete ==========");
     Ok(())
 }
 

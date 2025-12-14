@@ -489,4 +489,23 @@ export class RelayClient {
 
     console.log("[RelayClient] sendSignal() complete");
   }
+
+  public async sendAckSignal(
+    signal_id: string,
+    target: AgentPubKey,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] sendAckSignal() - Sending acknowledgment via Holochain");
+    console.log("[RelayClient] Signal ID:", signal_id);
+    console.log("[RelayClient] Target agent:", encodeHashToBase64(target));
+
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "send_ack_signal",
+      payload: { signal_id, target },
+    });
+
+    console.log("[RelayClient] sendAckSignal() complete");
+  }
 }

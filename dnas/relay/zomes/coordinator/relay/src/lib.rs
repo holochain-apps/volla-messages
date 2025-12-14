@@ -113,6 +113,21 @@ fn recv_remote_signal(signal: RemoteSignal) -> ExternResult<()> {
                     info!("[Rust] WebRTC payload type: {:?}", signal_payload.payload_type);
                     emit_signal(Signal::WebRTCSignal(signal_payload))
                 }
+                ConferenceSignalType::Ack => {
+                    info!("[Rust] ** ACK signal detected **");
+                    let signal_id = conference_record
+                        .ack_signal_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Signal ID required for Ack signal".into()
+                        )))?;
+                    let from = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Ack signal".into()
+                        )))?;
+                    info!("[Rust] Acknowledging signal ID: {}", signal_id);
+                    emit_signal(Signal::SignalAck { signal_id, from })
+                }
             }
         }
         RemoteSignal::Message(message_record) => {
@@ -217,6 +232,10 @@ pub enum Signal {
         ended_by: AgentPubKey,
     },
     WebRTCSignal(SignalPayload),
+    SignalAck {
+        signal_id: String,
+        from: AgentPubKey,
+    },
 }
 #[hdk_extern(infallible)]
 pub fn post_commit(committed_actions: Vec<SignedActionHashed>) {

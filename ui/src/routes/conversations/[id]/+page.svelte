@@ -292,12 +292,8 @@
         return;
       }
 
+      // acceptConferenceInvitation already calls joinConference internally
       await conferenceStore.acceptConferenceInvitation(roomId);
-
-      const participantsB64 = conference.room.participants
-        .map((p) => (typeof p === "string" ? p : encodeHashToBase64(p)))
-        .filter((p) => p !== myPubKeyB64);
-      await conferenceStore.joinConference(roomId, participantsB64);
     } catch (error) {
       console.error("Failed to accept call:", error);
       toast.error("Failed to accept call");

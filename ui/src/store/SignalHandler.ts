@@ -47,6 +47,8 @@ export function createSignalHandler(
       _handleConferenceStateSignal(payload, cellIdB64);
     } else if (payload.type === "WebRTCSignal") {
       _handleWebRTCSignal(payload);
+    } else if (payload.type === "SignalAck") {
+      _handleSignalAck(payload);
     }
   }
 
@@ -149,38 +151,132 @@ export function createSignalHandler(
             console.log("[SignalHandler] WebRTC already initialized for self");
           }
         } else {
-          if (conference.localStream) {
-            console.log(
-              "[SignalHandler] Creating peer connection to newly joined participant:",
-              joinedAgent.slice(0, 20),
-            );
-            conferenceStore
-              .createPeerConnectionToParticipant(roomId, joinedAgent)
-              .catch((error) => {
-                console.error(
-                  "[SignalHandler] Failed to create peer connection to participant:",
-                  error,
-                );
+          // Check if this participant was previously in the call (rejoin scenario)
+          const participant = conference.participants.get(joinedAgent);
+          const wasInCall = participant && participant.peerConnection !== undefined;
+          const isRejoining =
+            wasInCall ||
+            (participant && participant.hasJoined === false && participant.isConnected === false);
+
+          // Handle rejoining asynchronously
+          (async () => {
+            if (isRejoining || (participant?.peerConnection && !participant.isConnected)) {
+              console.log(
+                "[SignalHandler] Participant is rejoining, cleaning up old connection first:",
+                joinedAgent.slice(0, 20),
+              );
+
+              // Close old connection completely before creating new one
+              if (participant?.peerConnection) {
+                try {
+                  participant.peerConnection.close();
+                } catch (e) {
+                  console.warn("Error closing old peer connection:", e);
+                }
+              }
+
+              // Clear old state
+              conferenceStore.updateConference(roomId, (conf) => {
+                if (!conf) return conf;
+                const participants = new Map(conf.participants);
+                const p = participants.get(joinedAgent);
+                if (p) {
+                  participants.set(joinedAgent, {
+                    ...p,
+                    peerConnection: undefined,
+                    stream: undefined,
+                    isConnected: false,
+                    pendingSignals: [],
+                    pendingIceCandidates: [],
+                    makingOffer: false,
+                    ignoreOffer: false,
+                    isSettingRemoteAnswerPending: false,
+                  });
+                }
+                return { ...conf, participants };
               });
-          } else {
-            console.warn(
-              "[SignalHandler] Other participant joined but we have no stream, initializing WebRTC",
-            );
-            conferenceStore.initializeWebRTC(roomId).catch((error) => {
-              console.error("[SignalHandler] Failed to initialize WebRTC:", error);
-              conferenceStore.updateConference(roomId, (conf) => ({
-                ...conf,
-                error: error instanceof Error ? error.message : "Failed to initialize WebRTC",
-              }));
-            });
-          }
+
+              // Small delay to ensure cleanup completes
+              await new Promise((resolve) => setTimeout(resolve, 150));
+            }
+
+            if (conference.localStream) {
+              console.log(
+                isRejoining
+                  ? "[SignalHandler] Creating new peer connection to rejoined participant:"
+                  : "[SignalHandler] Creating peer connection to newly joined participant:",
+                joinedAgent.slice(0, 20),
+              );
+
+              // Add small jitter delay for rejoins to help avoid offer collisions
+              if (isRejoining) {
+                const jitter = Math.random() * 300;
+                await new Promise((resolve) => setTimeout(resolve, jitter));
+              }
+
+              conferenceStore
+                .createPeerConnectionToParticipant(roomId, joinedAgent)
+                .catch((error) => {
+                  console.error(
+                    "[SignalHandler] Failed to create peer connection to participant:",
+                    error,
+                  );
+                });
+            } else {
+              console.warn(
+                "[SignalHandler] Other participant joined but we have no stream, initializing WebRTC",
+              );
+              conferenceStore.initializeWebRTC(roomId).catch((error) => {
+                console.error("[SignalHandler] Failed to initialize WebRTC:", error);
+                conferenceStore.updateConference(roomId, (conf) => ({
+                  ...conf,
+                  error: error instanceof Error ? error.message : "Failed to initialize WebRTC",
+                }));
+              });
+            }
+          })();
         }
         break;
       }
 
       case "ConferenceLeft": {
-        console.log("[SignalHandler] ConferenceLeft signal received:", signal.room_id);
-        conferenceStore.cleanupWebRTC(signal.room_id);
+        const roomId = signal.room_id;
+        const leftAgent = encodeHashToBase64(signal.agent);
+        const myPubKey = encodeHashToBase64(client.client.myPubKey);
+
+        console.log("[SignalHandler] ConferenceLeft signal received:", {
+          roomId,
+          leftAgent: leftAgent.slice(0, 20),
+          isMe: leftAgent === myPubKey,
+        });
+
+        // If I left, clean up everything (this is handled by leaveConference)
+        // If someone else left, just clean up their connection
+        if (leftAgent !== myPubKey) {
+          console.log(
+            `[SignalHandler] Participant ${leftAgent.slice(0, 20)} left, cleaning up their connection`,
+          );
+
+          // Update their state to mark they've left
+          conferenceStore.updateConference(roomId, (conf) => {
+            if (!conf) return conf;
+
+            const participant = conf.participants.get(leftAgent);
+            if (participant) {
+              // Mark as not joined and disconnect
+              conf.participants.set(leftAgent, {
+                ...participant,
+                hasJoined: false,
+                isConnected: false,
+              });
+            }
+
+            return conf;
+          });
+
+          // Note: cleanupParticipantConnection is called internally by ConferenceStore
+          // We don't call cleanupWebRTC here as that would affect all participants
+        }
         break;
       }
 
@@ -238,6 +334,7 @@ export function createSignalHandler(
       data: signal.data,
       from: fromB64,
       to: toB64,
+      signal_id: signal.signal_id,
     };
 
     console.log("[SignalHandler] Normalized signal:", normalized);
@@ -245,5 +342,24 @@ export function createSignalHandler(
     conferenceStore
       .handleSignalReceived(normalized.room_id, normalized)
       .catch((error) => console.error("Failed to handle WebRTC signal:", error));
+  }
+
+  function _handleSignalAck(signal: RelaySignal) {
+    if (signal.type !== "SignalAck") return;
+
+    console.log("[SignalHandler] Received acknowledgment for signal:", signal.signal_id);
+
+    const fromB64 = typeof signal.from === "string" ? signal.from : encodeHashToBase64(signal.from);
+
+    // Find which room this acknowledgment is for by checking all conferences
+    // The signal_id should help us identify the correct conference
+    const conferences = conferenceStore.subscribe((data) => {
+      Object.entries(data.data).forEach(([roomId, conference]) => {
+        if (conference) {
+          conferenceStore.handleAckReceived(roomId, signal.signal_id, fromB64);
+        }
+      });
+    });
+    conferences(); // Unsubscribe immediately after processing
   }
 }
