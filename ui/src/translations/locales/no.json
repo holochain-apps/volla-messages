@@ -31,6 +31,7 @@
   "first_name": "Skriv fornavn",
   "group_name": "Gruppenavn",
   "images": "{{count}} {{count; 1:image; default:images;}}",
+  "files": "{{count}} {{count; 1:fil; default:filer;}}",
   "invalid_contact_code": "Ugyldig kode",
   "join_conversation": "Delta i konversasjon",
   "jump_in": "Hopp inn",

@@ -27,6 +27,8 @@
   "first": "În primul rând",
   "first_name": "Numele și prenumele",
   "group_name": "Numele grupului",
+  "images": "{{count}} {{count; 1:imagine; default:imagini;}}",
+  "files": "{{count}} {{count; 1:fișier; default:fișiere;}}",
   "invalid_contact_code": "Cod de contact invalid",
   "join_conversation": "Participați la conversație",
   "jump_in": "Jump In",
