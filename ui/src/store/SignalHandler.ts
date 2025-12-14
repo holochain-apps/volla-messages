@@ -44,13 +44,13 @@ export function createSignalHandler(
       payload.type === "ConferenceRejected" ||
       payload.type === "ConferenceEnded"
     ) {
-      _handleConferenceStateSignal(payload);
+      _handleConferenceStateSignal(payload, cellIdB64);
     } else if (payload.type === "WebRTCSignal") {
       _handleWebRTCSignal(payload);
     }
   }
 
-  function _handleConferenceStateSignal(signal: RelaySignal) {
+  function _handleConferenceStateSignal(signal: RelaySignal, cellIdB64: string) {
     switch (signal.type) {
       case "ConferenceInvite": {
         const roomId = signal.room.room_id;
@@ -71,7 +71,8 @@ export function createSignalHandler(
           ended: false,
           invitationStatus: 'pending',
           invitedBy: invitedBy,
-          invitationTimestamp: Date.now()
+          invitationTimestamp: Date.now(),
+          cellIdB64: cellIdB64, // Store the cellId from the signal
         };
 
         conferenceStore.setConference(roomId, state);
@@ -80,7 +81,8 @@ export function createSignalHandler(
           roomId,
           invitedBy: invitedBy.slice(0, 20),
           totalParticipants: allParticipants.length,
-          allParticipants: allParticipants.map(p => p.slice(0, 20))
+          allParticipants: allParticipants.map(p => p.slice(0, 20)),
+          cellIdB64
         });
         break;
       }
