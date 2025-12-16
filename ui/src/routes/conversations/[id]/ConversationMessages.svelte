@@ -10,11 +10,15 @@
   const dispatch = createEventDispatcher<{
     scrollAtTop: null;
     scrollAtBottom: null;
+    reply: ActionHashB64;
+    openThread: ActionHashB64;
+    scrollToMessage: ActionHashB64;
   }>();
 
   export let messages: [ActionHashB64, MessageExtended][];
   export let cellIdB64: CellIdB64;
   export let loadingTop = false;
+  export let participantCount: number = 0;
 
   let selected: ActionHashB64 | undefined;
   let containerEl: HTMLDivElement | null = null;
@@ -78,7 +82,6 @@
   let shouldMaintainScroll = false;
   let isFirstFetch = true;
 
-
   beforeUpdate(() => {
     // only capture the scrollHeight if a maintenance request is active.
     if (shouldMaintainScroll && containerEl) {
@@ -93,7 +96,7 @@
 
       const newScrollHeight = containerEl.scrollHeight;
 
-            const heightDifference =
+      const heightDifference =
         newScrollHeight - previousScrollHeight + (!isFirstFetch ? 20 * 40 : 0);
 
       if (isFirstFetch) isFirstFetch = false;
@@ -258,10 +261,14 @@
               isSelected={selected === actionHashB64}
               showAuthor={shouldShowAuthor(currentIndex)}
               {actionHashB64}
+              {participantCount}
               on:press={() => handlePress(actionHashB64)}
               on:click={(e) => handleClick(e, actionHashB64)}
               on:clickoutside={handleClickOutside}
               on:delete
+              on:reply
+              on:openThread
+              on:scrollToMessage
             />
           </div>
 

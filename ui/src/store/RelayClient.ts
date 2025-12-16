@@ -165,6 +165,17 @@ export class RelayClient {
     return cellInfo;
   }
 
+  public async createMessage(cellId: CellId, payload: SendMessageInput): Promise<Record> {
+    const result = await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "create_message",
+      payload,
+    });
+
+    return result;
+  }
+
   public async getMessageHashes(
     cell_id: CellId,
     bucket: BucketInput,
@@ -245,12 +256,38 @@ export class RelayClient {
     return config ? new EntryRecord<Config>(config).entry : undefined;
   }
 
-  public async createMessage(cell_id: CellId, payload: SendMessageInput): Promise<Record> {
+  public async getRepliesForMessage(
+    cell_id: CellId,
+    message_hash: ActionHash,
+    local?: boolean,
+  ): Promise<Array<MessageRecord>> {
     return this.client.callZome({
       cell_id,
       zome_name: ZOME_NAME,
-      fn_name: "create_message",
-      payload,
+      fn_name: "get_replies_for_message",
+      payload: { input: message_hash, local },
+    });
+  }
+
+  public async getThreadMessages(
+    cell_id: CellId,
+    thread_root: ActionHash,
+    local?: boolean,
+  ): Promise<Array<MessageRecord>> {
+    return this.client.callZome({
+      cell_id,
+      zome_name: ZOME_NAME,
+      fn_name: "get_thread_messages",
+      payload: { input: thread_root, local },
+    });
+  }
+
+  public async getReplyCount(cell_id: CellId, message_hash: ActionHash): Promise<number> {
+    return this.client.callZome({
+      cell_id,
+      zome_name: ZOME_NAME,
+      fn_name: "get_reply_count",
+      payload: message_hash,
     });
   }
 

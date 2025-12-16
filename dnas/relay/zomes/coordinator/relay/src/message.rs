@@ -27,6 +27,26 @@ pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
         (),
     )?;
 
+    // Create reply link if this is a reply
+    if let Some(reply_to_hash) = &input.message.reply_to {
+        create_link(
+            reply_to_hash.clone(),
+            message_hash.clone(),
+            LinkTypes::MessageReplies,
+            (),
+        )?;
+    }
+
+    // Create thread link if this is part of a thread
+    if let Some(thread_root_hash) = &input.message.thread_root {
+        create_link(
+            thread_root_hash.clone(),
+            message_hash.clone(),
+            LinkTypes::ThreadMessages,
+            (),
+        )?;
+    }
+
     // Signal other agents that a message was created
     let my_pub_key = agent_info()?.agent_initial_pubkey;
     let agents = input
@@ -313,4 +333,96 @@ pub fn get_oldest_delete_for_message(
             .cmp(&delete_b.action().timestamp())
     });
     Ok(deletes.first().cloned())
+}
+
+/// Get all direct replies to a message
+#[hdk_extern]
+pub fn get_replies_for_message(
+    message_hash: ZomeFnInput<ActionHash>,
+) -> ExternResult<Vec<MessageRecord>> {
+    let links = get_links(
+        GetLinksInputBuilder::try_new(
+            message_hash.input.clone(),
+            LinkTypes::MessageReplies,
+        )?
+        .get_options(message_hash.get_strategy())
+        .build(),
+    )?;
+
+    let mut replies = Vec::new();
+    for link in links {
+        if let Some(reply_hash) = link.target.into_action_hash() {
+            if let Some(record) = get_latest_message(ZomeFnInput {
+                input: reply_hash,
+                local: message_hash.local,
+            })? {
+                replies.push(record);
+            }
+        }
+    }
+
+    // Sort by timestamp
+    replies.sort_by(|a, b| {
+        a.signed_action
+            .hashed
+            .content
+            .timestamp()
+            .cmp(&b.signed_action.hashed.content.timestamp())
+    });
+
+    Ok(replies)
+}
+
+/// Get all messages in a thread
+#[hdk_extern]
+pub fn get_thread_messages(
+    thread_root: ZomeFnInput<ActionHash>,
+) -> ExternResult<Vec<MessageRecord>> {
+    let links = get_links(
+        GetLinksInputBuilder::try_new(thread_root.input.clone(), LinkTypes::ThreadMessages)?
+            .get_options(thread_root.get_strategy())
+            .build(),
+    )?;
+
+    let mut thread_messages = Vec::new();
+
+    // Include the root message first
+    if let Some(root_record) = get_latest_message(ZomeFnInput {
+        input: thread_root.input.clone(),
+        local: thread_root.local,
+    })? {
+        thread_messages.push(root_record);
+    }
+
+    // Add all replies
+    for link in links {
+        if let Some(msg_hash) = link.target.into_action_hash() {
+            if let Some(record) = get_latest_message(ZomeFnInput {
+                input: msg_hash,
+                local: thread_root.local,
+            })? {
+                thread_messages.push(record);
+            }
+        }
+    }
+
+    // Sort by timestamp
+    thread_messages.sort_by(|a, b| {
+        a.signed_action
+            .hashed
+            .content
+            .timestamp()
+            .cmp(&b.signed_action.hashed.content.timestamp())
+    });
+
+    Ok(thread_messages)
+}
+
+/// Get reply count for a message (for thread indicators)
+#[hdk_extern]
+pub fn get_reply_count(message_hash: ActionHash) -> ExternResult<usize> {
+    let links = get_links(
+        GetLinksInputBuilder::try_new(message_hash, LinkTypes::MessageReplies)?.build(),
+    )?;
+    Ok(links.len())
 }

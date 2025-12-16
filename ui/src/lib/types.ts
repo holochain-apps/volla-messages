@@ -1,5 +1,6 @@
 import type {
   ActionHash,
+  ActionHashB64,
   AgentPubKeyB64,
   CellId,
   EntryHash,
@@ -13,6 +14,8 @@ import type {
   MembraneProof,
   ClonedCell,
 } from "@holochain/client";
+
+export type { ActionHashB64 };
 
 /**
  * App Signals
@@ -85,18 +88,31 @@ export interface Message {
   content: string;
   bucket: number;
   images: MessageFile[];
+  reply_to?: ActionHash;
+  thread_root?: ActionHash;
 }
 
 export interface MessageExtended {
   message: Message;
   authorAgentPubKeyB64: AgentPubKeyB64;
   timestamp: number;
+  replyToMessage?: MessageExtended;
+  replyCount?: number;
+  // True if this message has ever been replied to (independent of cache)
+  hasReplies?: boolean;
 }
 
 export interface MessageRecord {
   original_action: ActionHash;
   signed_action: SignedActionHashed;
   message?: Message;
+}
+
+export interface ThreadInfo {
+  rootMessageHash: ActionHashB64;
+  replyCount: number;
+  latestReplyTimestamp: number;
+  messages: MessageExtended[];
 }
 
 export interface SendMessageInput {

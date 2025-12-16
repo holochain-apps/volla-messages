@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext, setContext } from "svelte";
+  import { getContext, setContext, createEventDispatcher } from "svelte";
   import { Alignment, type CellIdB64, type MessageExtended } from "$lib/types";
   import Time from "svelte-time";
   import MessageActions from "./MessageActions.svelte";
@@ -12,6 +12,8 @@
   import { encodeHashToBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
   import AgentNickname from "$lib/AgentNickname.svelte";
   import { open } from "@tauri-apps/plugin-shell";
+  import ReplyPreview from "./ReplyPreview.svelte";
+  import ThreadIndicator from "./ThreadIndicator.svelte";
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
     "myPubKey",
@@ -22,8 +24,27 @@
   export let isSelected: boolean = false;
   export let showAuthor: boolean = false;
   export let actionHashB64: ActionHashB64;
+  export let participantCount: number = 0;
+
+  const dispatch = createEventDispatcher<{
+    scrollToMessage: ActionHashB64;
+    openThread: ActionHashB64;
+  }>();
 
   $: fromMe = message.authorAgentPubKeyB64 === myPubKeyB64;
+  $: isSmallConversation = participantCount <= 2;
+  $: isThreaded = !isSmallConversation && message.message.thread_root;
+
+  $: if (message.message.reply_to || message.replyToMessage) {
+    console.log("[Message] Message with reply data:", {
+      content: message.message.content.substring(0, 30),
+      hasReplyTo: !!message.message.reply_to,
+      hasReplyToMessage: !!message.replyToMessage,
+      replyToContent: message.replyToMessage?.message.content.substring(0, 30),
+      isSmallConversation,
+      participantCount,
+    });
+  }
 
   // Ensure that external links in message content are opened with the system default browser or mail client.
   function handleMessageContentClick(e: MouseEvent) {
@@ -33,6 +54,17 @@
     e.preventDefault();
     e.stopPropagation();
     open(anchor.getAttribute("href") as string);
+  }
+
+  function handleMessageContentKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      const anchor = (e.target as HTMLElement).closest("a[href]") as HTMLAnchorElement;
+      if (anchor === null || anchor.href.startsWith(window.location.origin)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      open(anchor.getAttribute("href") as string);
+    }
   }
 </script>
 
@@ -71,6 +103,16 @@
         </span>
       {/if}
 
+      {#if isSmallConversation && message.replyToMessage}
+        <ReplyPreview
+          replyToMessage={message.replyToMessage}
+          {cellIdB64}
+          on:click={() =>
+            message.message.reply_to &&
+            dispatch("scrollToMessage", encodeHashToBase64(message.message.reply_to))}
+        />
+      {/if}
+
       {#each message.message.images as file}
         <div class="flex {fromMe ? 'justify-end' : 'justify-start'} w-full p-2">
           <MessageFilePreview
@@ -89,7 +131,7 @@
       <div
         class="message w-full break-words font-light {fromMe && 'text-end'}"
         on:click={handleMessageContentClick}
-        on:keydown={(e) => e.key === "Enter" && handleMessageContentClick(e)}
+        on:keydown={handleMessageContentKeydown}
         role="button"
         tabindex="0"
       >
@@ -102,11 +144,22 @@
           }),
         )}
       </div>
+
+      {#if !isSmallConversation && message.hasReplies}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div on:click|stopPropagation on:press|stopPropagation>
+          <ThreadIndicator
+            replyCount={message.replyCount || 0}
+            on:click={() => dispatch("openThread", actionHashB64)}
+          />
+        </div>
+      {/if}
     </div>
   </div>
 
   {#if isSelected}
-    <MessageActions {message} {actionHashB64} on:unselect on:delete />
+    <MessageActions {message} {actionHashB64} on:unselect on:delete on:reply />
   {/if}
 </button>
 

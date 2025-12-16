@@ -20,7 +20,9 @@
   export let actionHashB64: ActionHashB64;
 
   const dispatch = createEventDispatcher<{
+    unselect: void;
     delete: ActionHashB64;
+    reply: ActionHashB64;
   }>();
 
   const myPubKeyB64 = getContext<{ getMyPubKeyB64: () => AgentPubKeyB64 }>(
@@ -86,6 +88,14 @@
 </script>
 
 <div class="my-1 flex w-full items-center justify-center space-x-2">
+  <ButtonInline
+    on:click={() => dispatch("reply", actionHashB64)}
+    icon="reply"
+    moreClassesButton="bg-tertiary-600 dark:bg-secondary-700 dark:text-tertiary-400"
+  >
+    <span class="text-xs md:text-sm">{$t("common.reply")}</span>
+  </ButtonInline>
+
   {#if hasText}
     <ButtonInline
       on:click={copy}

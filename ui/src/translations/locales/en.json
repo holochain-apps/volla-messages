@@ -75,6 +75,7 @@
   "pending_connection_header": "Contact needs to confirm",
   "profile_error": "Error when loading profile",
   "request_contact_code": "Request your contact's unique Volla Messages contact code, which is found by visiting their personal profile in the Volla Messages App.",
+  "reply": "Reply",
   "restore": "Restore",
   "save": "Save",
   "scan_error": "Failed to scan the QR code.",
