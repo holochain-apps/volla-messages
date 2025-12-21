@@ -9,13 +9,15 @@
   export let cellIdB64: CellIdB64;
 </script>
 
-<div class="flex items-start justify-start space-x-2 mt-1">
+<div class="mt-1 flex items-start justify-start space-x-2">
   <div class=" flex items-start justify-start space-x-1">
     <Avatar agentPubKeyB64={messageExtended.authorAgentPubKeyB64} {cellIdB64} size={14} />
-    <AgentNickname cellIdB64={cellIdB64} agentPubKeyB64={messageExtended.authorAgentPubKeyB64} />
+    <AgentNickname {cellIdB64} agentPubKeyB64={messageExtended.authorAgentPubKeyB64} />
   </div>
 
-  <div>{@html DOMPurify.sanitize(messageExtended.message.content)}</div>
+  <div class="overflow-wrap-anywhere overflow-hidden whitespace-normal break-words">
+    {@html DOMPurify.sanitize(messageExtended.message.content)}
+  </div>
 
   {#if messageExtended.message.images.length > 0}
     <div class="text-secondary-400 italic">

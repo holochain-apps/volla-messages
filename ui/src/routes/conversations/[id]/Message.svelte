@@ -87,7 +87,8 @@
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div
-        class="message w-full break-words font-light {fromMe && 'text-end'}"
+        class="message overflow-wrap-anywhere w-full hyphens-auto whitespace-normal break-words font-light {fromMe &&
+          'text-end'}"
         on:click={handleMessageContentClick}
         on:keydown={(e) => e.key === "Enter" && handleMessageContentClick(e)}
         role="button"
