@@ -27,6 +27,8 @@
   "first": "First",
   "first_name": "Първо име",
   "group_name": "Име на групата",
+  "images": "{{count}} {{count; 1:изображение; default:изображения;}}",
+  "files": "{{count}} {{count; 1:файл; default:файлове;}}",
   "invalid_contact_code": "Невалиден код за контакт",
   "join_conversation": "Участвайте в разговора",
   "jump_in": "Jump In",

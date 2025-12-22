@@ -54,6 +54,7 @@
   "group_name": "Group name",
   "holochain_connect_error": "Error connecting to Holochain",
   "images": "{{count}} {{count; 1:image; default:images;}}",
+  "files": "{{count}} {{count; 1:file; default:files;}}",
   "invalid_contact_code": "Invalid contact code",
   "join_conversation": "Join Conversation",
   "jump_in": "Jump In",

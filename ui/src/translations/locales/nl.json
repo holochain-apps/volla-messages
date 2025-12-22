@@ -32,6 +32,7 @@
   "group_name": "Groepsnaam",
   "holochain_connect_error": "Fout bij verbinding met Holochain",
   "images": "{{count}} {{count; 1:image; default:images;}}",
+  "files": "{{count}} {{count; 1:bestand; default:bestanden;}}",
   "invalid_contact_code": "Ongeldige contactcode",
   "join_conversation": "Neem deel aan het gesprek",
   "jump_in": "Stap in",
