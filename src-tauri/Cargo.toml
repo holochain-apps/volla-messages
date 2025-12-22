@@ -21,7 +21,7 @@ tauri-build = { version = "2.2.0", default-features = false , features = [] }
 tauri = { version = "2.5.1", features = ["devtools"] }
 tauri-runtime = {version = "2.6.0", optional = true}
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/tauri-plugin-holochain", branch = "main-0.6", optional = true }
-tauri-plugin-holochain-service-client = { git = "https://github.com/HelloVolla/volla-cloud-services", tag = "android-service-runtime-v0.2.0", optional = true }
+tauri-plugin-holochain-service-client = { version = "0.2.4", registry = "cargo-hosted", optional = true }
 
 # datachanel webrtc backend
 holochain = "0.6.0"
