@@ -1,0 +1,5 @@
+[registry]
+global-credential-providers = ["cargo:token"]
+
+[registries.cargo-hosted]
+index = "sparse+https://nexus.volla.tech/repository/cargo-hosted/"
