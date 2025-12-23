@@ -1,5 +1,5 @@
 ---
-manifest_version: "1"
+manifest_version: "0"
 name: relay
 integrity:
   network_seed: ~
@@ -7,36 +7,30 @@ integrity:
   zomes:
     - name: profiles_integrity
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/profiles_integrity.wasm"
+      path: "../../../target/wasm32-unknown-unknown/release/profiles_integrity.wasm"
       dependencies: ~
-      dylib: ~
     - name: file_storage_integrity
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/file_storage_integrity.wasm"
+      path: "../../../target/wasm32-unknown-unknown/release/file_storage_integrity.wasm"
       dependencies: ~
-      dylib: ~
     - name: relay_integrity
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/relay_integrity.wasm"
+      path: "../../../target/wasm32-unknown-unknown/release/relay_integrity.wasm"
       dependencies: ~
-      dylib: ~
 coordinator:
   zomes:
     - name: profiles
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/profiles.wasm"
+      path: "../../../target/wasm32-unknown-unknown/release/profiles.wasm"
       dependencies:
         - name: profiles_integrity
-      dylib: ~
     - name: file_storage
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/file_storage.wasm"
+      path: "../../../target/wasm32-unknown-unknown/release/file_storage.wasm"
       dependencies:
         - name: file_storage_integrity
-      dylib: ~
     - name: relay
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/relay.wasm"
+      path: "../../../target/wasm32-unknown-unknown/release/relay.wasm"
       dependencies:
         - name: relay_integrity
-      dylib: ~
