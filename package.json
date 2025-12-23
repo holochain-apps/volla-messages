@@ -1,6 +1,6 @@
 {
   "name": "volla_messages",
-  "version": "0.11.0-dev.0",
+  "version": "0.11.0-rc.0",
   "private": true,
   "workspaces": [
     "ui"
