@@ -31,7 +31,7 @@ holochain = "0.6.0"
 
 holochain_types = "0.6.0"
 lair_keystore = "0.6.3"
-holochain_client = "0.7.1"
+holochain_client = "0.8.0"
 
 log = "0.4"
 tauri-plugin-log = "2.4.0"
