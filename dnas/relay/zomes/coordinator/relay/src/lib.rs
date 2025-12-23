@@ -1,3 +1,4 @@
+pub mod conference;
 pub mod config;
 pub mod contact;
 pub mod helper;
@@ -6,36 +7,81 @@ pub mod ping;
 use hdk::prelude::*;
 use relay_integrity::*;
 
-#[hdk_extern]
-fn recv_remote_signal(message_record: MessageRecord) -> ExternResult<()> {
-    let info: CallInfo = call_info()?;
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum SignalData {
+    MessageRecord(MessageRecord),
+    ConferenceRecord(ConferenceRecord),
+}
 
-    let is_deletion = match message_record.signed_action.action() {
-        Action::Delete(_) => true,
-        _ => false,
-    };
+fn recv_remote_signal(signal_data: SignalData) -> ExternResult<()> {
+    match signal_data {
+        SignalData::MessageRecord(message_record) => {
+            let info: CallInfo = call_info()?;
+            let is_deletion = match message_record.signed_action.action() {
+                Action::Delete(_) => true,
+                _ => false,
+            };
+            if is_deletion {
+                let signal = Signal::MessageDeleted {
+                    action: message_record.signed_action.clone(),
+                    original_action: message_record.original_action.clone(),
+                    from: info.provenance,
+                };
+        
+                debug!("recv_remote_signal: signal: {:?}", signal);
+        
+                emit_signal(signal)
+            } else if let Some(message) = message_record.message {
+                let signal = Signal::Message {
+                    action: message_record.signed_action.clone(),
+                    message,
+                    from: info.provenance,
+                };
+                emit_signal(signal)
+            } else {
+                Err(wasm_error!(WasmErrorInner::Guest(
+                    "Invalid message record".to_string()
+                )))
+            }
+        }
+        SignalData::ConferenceRecord(conference_record) => {
+            let room = conference_record
+                .room
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Room field was None".into()
+                )))?;
+            let room_id = conference_record
+                .room_id
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Room ID field was None".into()
+                )))?;
+            let agent = conference_record
+                .agent
+                .ok_or(wasm_error!(WasmErrorInner::Guest(
+                    "Agent field was None".into()
+                )))?;
+            let signal_payload =
+                conference_record
+                    .signal_payload
+                    .ok_or(wasm_error!(WasmErrorInner::Guest(
+                        "Signal payload field was None".into()
+                    )))?;
 
-    if is_deletion {
-        let signal = Signal::MessageDeleted {
-            action: message_record.signed_action.clone(),
-            original_action: message_record.original_action.clone(),
-            from: info.provenance,
-        };
-
-        debug!("recv_remote_signal: signal: {:?}", signal);
-
-        emit_signal(signal)
-    } else if let Some(message) = message_record.message {
-        let signal = Signal::Message {
-            action: message_record.signed_action.clone(),
-            message,
-            from: info.provenance,
-        };
-        emit_signal(signal)
-    } else {
-        Err(wasm_error!(WasmErrorInner::Guest(
-            "Invalid message record".to_string()
-        )))
+            // Emitting appropriate signal based on the conference record type
+            match conference_record.signal_type {
+                ConferenceSignalType::Invite => {
+                    emit_signal(Signal::ConferenceInvite { room, agent })
+                }
+                ConferenceSignalType::Join => {
+                    emit_signal(Signal::ConferenceJoined { room_id, agent })
+                }
+                ConferenceSignalType::Leave => {
+                    emit_signal(Signal::ConferenceLeft { room_id, agent })
+                }
+                ConferenceSignalType::WebRTC => emit_signal(Signal::WebRTCSignal(signal_payload)),
+            }
+        }
     }
 }
 
@@ -56,18 +102,25 @@ pub fn init(_: ()) -> ExternResult<InitCallbackResult> {
 #[serde(tag = "type")]
 pub enum Signal {
     Message {
+       
         action: SignedActionHashed,
+       
         message: Message,
         from: AgentPubKey,
     },
     MessageDeleted {
         action: SignedActionHashed,
         original_action: ActionHash,
+       
         from: AgentPubKey,
+   ,
     },
     LinkCreated {
+       
         action: SignedActionHashed,
+       
         link_type: LinkTypes,
+   ,
     },
     LinkDeleted {
         action: SignedActionHashed,

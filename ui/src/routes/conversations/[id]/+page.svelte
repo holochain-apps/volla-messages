@@ -27,6 +27,7 @@
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
   import SvgIcon from "$lib/SvgIcon.svelte";
+  import Conference from "../Conference.svelte";
   import DialogConfirm from "$lib/DialogConfirm.svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
 
@@ -55,6 +56,7 @@
     mergedProfileContactInviteJoinedStore,
     $page.params.id,
   );
+  let participants: AgentPubKeyB64[] = [];
 
   let configTimeout: NodeJS.Timeout;
   let agentTimeout: NodeJS.Timeout;
@@ -64,6 +66,7 @@
   let sending = false;
   let loadingMessagesNew = false;
   let loadingMessagesOld = false;
+  let showConference = false;
 
   let showDeleteDialog = false;
   let deleteMessageActionHashB64: undefined | ActionHashB64 = undefined;
@@ -74,6 +77,8 @@
   let isFirstLoadMessages = true;
 
   $: iAmProgenitor = $conversation.dnaProperties.progenitor === myPubKeyB64;
+  $: isGroupChat = $joined.count > 2;
+  $: participants = $joined.list.map(([, profileExtended]) => profileExtended.publicKeyB64);
 
   async function handleDeleteMessage() {
     if (deleteMessageActionHashB64 === undefined) return;
@@ -210,6 +215,14 @@
     sending = false;
   }
 
+  function startCall() {
+    showConference = true;
+  }
+
+  function handleCallEnd() {
+    showConference = false;
+  }
+
   onMount(() => {
     conversationMessageInputRef.focus();
 
@@ -226,29 +239,39 @@
   });
 </script>
 
-<Header backUrl="/conversations">
-  <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
-    {$conversationTitle}
-  </h1>
+{#if showConference}
+  <Conference {participants} isGroupCall={isGroupChat} onClose={handleCallEnd} />
+{:else}
+  <Header backUrl="/conversations">
+    <h1 slot="center" class="overflow-hidden text-ellipsis whitespace-nowrap p-4 text-center">
+      {$conversationTitle}
+    </h1>
 
-  <div class="flex items-center justify-center" slot="right">
-    <ButtonIconBare
-      moreClasses="!w-[18px] !h-auto"
-      moreClassesButton="p-4"
-      icon="gear"
-      on:click={() => goto(`/conversations/${$page.params.id}/details`)}
-    />
-
-    {#if $conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
+    <div class="flex items-center justify-center" slot="right">
       <ButtonIconBare
-        moreClasses="h-[24px] w-[24px]"
+        moreClasses="!w-[18px] !h-auto"
         moreClassesButton="p-4"
-        icon="addPerson"
-        on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
+        icon="video"
+        on:click={startCall}
       />
-    {/if}
-  </div>
-</Header>
+
+      <ButtonIconBare
+        moreClasses="!w-[18px] !h-auto"
+        moreClassesButton="p-4"
+        icon="gear"
+        on:click={() => goto(`/conversations/${$page.params.id}/details`)}
+      />
+
+      {#if $conversation.dnaProperties.privacy === Privacy.Private && iAmProgenitor}
+        <ButtonIconBare
+          moreClasses="h-[24px] w-[24px]"
+          moreClassesButton="p-4"
+          icon="addPerson"
+          on:click={() => goto(`/conversations/${$page.params.id}/invite`)}
+        />
+      {/if}
+    </div>
+  </Header>
 
 <div class="mx-auto flex w-full flex-1 flex-col items-center justify-center overflow-hidden">
   <div class="relative flex w-full grow flex-col items-center overflow-hidden pt-6">
