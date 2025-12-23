@@ -54,9 +54,7 @@ jobs:
       - name: Install and test
         run: |
           nix-store --gc
-          nix develop --no-update-lock-file --accept-flake-config --impure --command bash -c "npm install && npm run build:happ"
-        env:
-          CARGO_REGISTRIES_CARGO_HOSTED_TOKEN: ${{ secrets.VOLLA_NEXUS_TOKEN }}
+          nix develop --no-update-lock-file --accept-flake-config --command bash -c "npm install && npm run build:happ"
           
       - name: Retrieve version
         run: |
