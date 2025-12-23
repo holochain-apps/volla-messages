@@ -1,5 +1,15 @@
 import { decode, encode } from "@msgpack/msgpack";
-import { decodeHashFromBase64, type AgentPubKeyB64, type ClonedCell } from "@holochain/client";
+import {
+  decodeHashFromBase64,
+  encodeHashToBase64,
+  type AgentPubKeyB64,
+  type CellId,
+  type ClonedCell,
+  type DnaHash,
+  type DnaHashB64,
+  type NetworkMetrics,
+  type TransportStats,
+} from "@holochain/client";
 import {
   Privacy,
   type CellIdB64,
@@ -37,6 +47,9 @@ export interface ConversationStore extends GenericKeyValueStore<ConversationExte
     title: string,
   ) => Promise<string>;
   getBucket: (key1: CellIdB64, timestamp: number) => number;
+  getDebugInfo: (
+    key: CellIdB64,
+  ) => Promise<{ stats: TransportStats; metrics: Record<string, NetworkMetrics> }>;
 }
 
 export function createConversationStore(client: RelayClient): ConversationStore {
@@ -45,6 +58,25 @@ export function createConversationStore(client: RelayClient): ConversationStore 
   // Unread is persisted to localstorage as it is never stored via holochain
   const unread = persisted<{ [cellIdB64: CellIdB64]: boolean }>("CONVERSATION.UNREAD", {});
 
+  async function getDebugInfo(key: CellIdB64) {
+    const cellId: CellId = decodeCellIdFromBase64(key);
+    let dna = cellId[0];
+    let s = encodeHashToBase64(dna);
+    s = s.substring(0, 10) + "x" + s.substring(10 + 1);
+    dna = decodeHashFromBase64(s);
+    const metrics = await client.client.dumpNetworkMetrics({
+      dna,
+      include_dht_summary: true,
+    });
+    const stats = await client.client.dumpNetworkStats();
+
+    console.log("Debug info for DNA", s, stats);
+
+    return {
+      stats,
+      metrics,
+    };
+  }
   async function initialize(): Promise<void> {
     const cellInfos = await client.getRelayClonedCellInfos();
 
@@ -232,6 +264,7 @@ export function createConversationStore(client: RelayClient): ConversationStore 
     updateUnread,
     makePrivateInviteCode,
     getBucket,
+    getDebugInfo,
   };
 }
 
@@ -243,6 +276,8 @@ export interface CellConversationStore extends GenericValueStore<ConversationExt
   updateUnread: (val: boolean) => Promise<void>;
   makePrivateInviteCode: (a: AgentPubKeyB64, title: string) => Promise<string>;
   getBucket: (timestamp: number) => number;
+  getDebugInfo: () => Promise<{ stats: TransportStats; metrics: Record<string, NetworkMetrics> }>;
+  dnaHash: () => DnaHashB64;
 }
 
 export function deriveCellConversationStore(
@@ -250,7 +285,6 @@ export function deriveCellConversationStore(
   key: CellIdB64,
 ): CellConversationStore {
   const data = deriveGenericValueStore(conversationStore, key);
-
   return {
     ...data,
     enable: () => conversationStore.enable(key),
@@ -261,5 +295,13 @@ export function deriveCellConversationStore(
     makePrivateInviteCode: (a: AgentPubKeyB64, title: string) =>
       conversationStore.makePrivateInviteCode(key, a, title),
     getBucket: (timestamp: number) => conversationStore.getBucket(key, timestamp),
+    getDebugInfo: () => conversationStore.getDebugInfo(key),
+    dnaHash: () => dnaHashFromCellId(key),
   };
+}
+
+function dnaHashFromCellId(key: CellIdB64) {
+  const cellId: CellId = decodeCellIdFromBase64(key);
+  const dna = cellId[0];
+  return encodeHashToBase64(dna);
 }

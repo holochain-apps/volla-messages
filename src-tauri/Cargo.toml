@@ -1,6 +1,6 @@
 [package]
 name = "volla_messages"
-version = "0.9.0"
+version = "0.9.1-dev.1"
 description = "Volla Messages"
 authors = ["Tibet Sprague", "Eric Harris-Braun"]
 license = ""
@@ -25,7 +25,6 @@ tauri-plugin-holochain-service-client = { version = "0.2.2", optional = true }
 
 # datachanel webrtc backend
 holochain = "0.5.6"
-
 # go-pion webrtc back-end
 #holochain = {version = "0.5.6", default-features = false, features = ["sqlite-encrypted", "wasmer_sys", "backend-go-pion"] }
 
@@ -56,3 +55,13 @@ default = []
 
 holochain_bundled = ["dep:tauri-plugin-holochain", "dep:tauri-runtime"]
 holochain_service = ["dep:tauri-plugin-holochain-service-client"]
+
+[patch.crates-io]
+wasmer-vm = { git = "https://github.com/guillemcordoba/wasmer", branch = "fix-x86" }
+wasmer-types = { git = "https://github.com/guillemcordoba/wasmer", branch = "fix-x86" }
+kitsune2 = { git = "https://github.com/guillemcordoba/kitsune2", branch = "iroh-transport" }
+kitsune2_api = { git = "https://github.com/guillemcordoba/kitsune2", branch = "iroh-transport" }
+kitsune2_core = { git = "https://github.com/guillemcordoba/kitsune2", branch = "iroh-transport" }
+kitsune2_dht = { git = "https://github.com/guillemcordoba/kitsune2", branch = "iroh-transport" }
+kitsune2_gossip = { git = "https://github.com/guillemcordoba/kitsune2", branch = "iroh-transport" }
+kitsune2_bootstrap_client = { git = "https://github.com/guillemcordoba/kitsune2", branch = "iroh-transport" }

@@ -1,7 +1,7 @@
 {
   "productName": "Volla Messages",
   "identifier": "com.volla.messages",
-  "version": "0.9.0",
+  "version": "0.9.1-dev.1",
   "build": {
     "beforeBuildCommand": "npm run build -w ui",
     "devUrl": "http://localhost:1420",

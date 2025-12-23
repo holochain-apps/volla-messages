@@ -1,19 +1,17 @@
 use crate::config::{APP_ID, HAPP_BUNDLE_BYTES};
 use holochain_types::prelude::AppBundle;
+use serde_json::json;
 use std::path::PathBuf;
 use tauri::{AppHandle, Builder, EventLoopMessage, Listener, Manager, Runtime};
-use tauri_plugin_holochain::{HolochainExt, HolochainPluginConfig, vec_to_locked};
 use tauri_plugin_holochain::NetworkConfig;
+use tauri_plugin_holochain::{vec_to_locked, HolochainExt, HolochainPluginConfig};
 use uuid::Uuid;
-use serde_json::json;
 
-pub const SIGNAL_URL: &'static str = "wss://relay.volla.tech/";
+// pub const SIGNAL_URL: &'static str = "wss://relay.volla.tech/";
 
-pub const BOOTSTRAP_URL: &'static str = "https://relay.volla.tech/";
+// pub const BOOTSTRAP_URL: &'static str = "https://relay.volla.tech/";
 
-pub static ICE_URLS: &'static [&str] = &[
-    "stun://stun.nextcloud.com:443"
-];
+// pub static ICE_URLS: &'static [&str] = &["stun://stun.nextcloud.com:443"];
 
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
     let bundle = AppBundle::decode(HAPP_BUNDLE_BYTES)?;
@@ -29,7 +27,7 @@ where
     builder
         .plugin(tauri_plugin_holochain::async_init(
             vec_to_locked(vec![]),
-            HolochainPluginConfig::new(holochain_dir(), network_config())
+            HolochainPluginConfig::new(holochain_dir(), network_config()),
         ))
         .setup(|app| {
             let handle = app.handle().clone();
@@ -128,9 +126,11 @@ async fn setup<R: Runtime>(handle: AppHandle<R>) -> anyhow::Result<()> {
 }
 fn network_config() -> NetworkConfig {
     let mut config = NetworkConfig::default();
-    config.signal_url = url2::url2!("{}", SIGNAL_URL);
-    config.bootstrap_url = url2::url2!("{}", BOOTSTRAP_URL);
-    config.webrtc_config = Some(json!({ "iceServers": [ { "urls": ICE_URLS }]}));
+    //    config.signal_url = url2::url2!("{}", SIGNAL_URL);
+    config.bootstrap_url = url2::Url2::parse("https://dev-test-bootstrap2.holochain.org/");
+
+    // config.bootstrap_url = url2::url2!("{}", BOOTSTRAP_URL);
+    //    config.webrtc_config = Some(json!({ "iceServers": [ { "urls": ICE_URLS }]}));
     config
 }
 fn holochain_dir() -> PathBuf {
