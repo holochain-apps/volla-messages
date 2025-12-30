@@ -12,7 +12,7 @@ pub fn create_contact(contact: Contact) -> ExternResult<Record> {
         LinkTypes::ContactToContacts,
         (),
     )?;
-    let record = get(contact_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+    let record = get(contact_hash.clone(), GetOptions::local())?.ok_or(wasm_error!(
         WasmErrorInner::Guest("Could not find the newly created Contact".to_string())
     ))?;
     let path = Path::from("all_contacts");
@@ -30,12 +30,15 @@ pub fn get_latest_contact(
     original_contact_hash: ZomeFnInput<ActionHash>,
 ) -> ExternResult<Option<ContactRecord>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(
-            original_contact_hash.input.clone(),
-            LinkTypes::ContactUpdates,
-        )?
-        .get_options(original_contact_hash.get_strategy())
-        .build(),
+        LinkQuery {
+            base: original_contact_hash.input.clone().into(),
+            link_type: LinkTypes::ContactUpdates.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        original_contact_hash.get_strategy(),
     )?;
     let latest_link = links
         .into_iter()
@@ -51,7 +54,7 @@ pub fn get_latest_contact(
         }
         None => original_contact_hash.input.clone(),
     };
-    match get(latest_contact_hash, GetOptions::default())? {
+    match get(latest_contact_hash, GetOptions::local())? {
         Some(record) => Ok(Some(ContactRecord {
             original_action: original_contact_hash.input,
             signed_action: record.signed_action().clone(),
@@ -85,12 +88,15 @@ pub fn get_all_revisions_for_contact(
         return Ok(vec![]);
     };
     let links = get_links(
-        GetLinksInputBuilder::try_new(
-            original_contact_hash.input.clone(),
-            LinkTypes::ContactUpdates,
-        )?
-        .get_options(original_contact_hash.get_strategy())
-        .build(),
+        LinkQuery {
+            base: original_contact_hash.input.clone().into(),
+            link_type: LinkTypes::ContactUpdates.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        original_contact_hash.get_strategy(),
     )?;
     let get_input: Vec<GetInput> = links
         .into_iter()
@@ -102,7 +108,7 @@ pub fn get_all_revisions_for_contact(
                         "No action hash associated with link".to_string()
                     )))?
                     .into(),
-                GetOptions::default(),
+                GetOptions::local(),
             ))
         })
         .collect::<ExternResult<Vec<GetInput>>>()?;
@@ -116,9 +122,15 @@ pub fn get_all_revisions_for_contact(
 pub fn get_all_contacts(input: ZomeFnInput<()>) -> ExternResult<Vec<Link>> {
     let path = Path::from("all_contacts");
     get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllContacts)?
-            .get_options(input.get_strategy())
-            .build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::AllContacts.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        input.get_strategy(),
     )
 }
 
@@ -154,7 +166,7 @@ pub fn update_contact(input: UpdateContactInput) -> ExternResult<Record> {
         LinkTypes::ContactUpdates,
         (),
     )?;
-    let record = get(updated_contact_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+    let record = get(updated_contact_hash.clone(), GetOptions::local())?.ok_or(wasm_error!(
         WasmErrorInner::Guest("Could not find the newly updated Contact".to_string())
     ))?;
     Ok(record)
@@ -162,7 +174,7 @@ pub fn update_contact(input: UpdateContactInput) -> ExternResult<Record> {
 
 #[hdk_extern]
 pub fn delete_contact(original_contact_hash: ActionHash) -> ExternResult<ActionHash> {
-    let details = get_details(original_contact_hash.clone(), GetOptions::default())?.ok_or(
+    let details = get_details(original_contact_hash.clone(), GetOptions::local())?.ok_or(
         wasm_error!(WasmErrorInner::Guest("Contact not found".to_string())),
     )?;
     let record = match details {
@@ -179,24 +191,39 @@ pub fn delete_contact(original_contact_hash: ActionHash) -> ExternResult<ActionH
         )))?;
     let contact = <Contact>::try_from(entry)?;
     let links = get_links(
-        GetLinksInputBuilder::try_new(contact.public_key.clone(), LinkTypes::ContactToContacts)?
-            .build(),
+        LinkQuery {
+            base: contact.public_key.clone().into(),
+            link_type: LinkTypes::ContactToContacts.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
     for link in links {
         if let Some(action_hash) = link.target.into_action_hash() {
             if action_hash == original_contact_hash {
-                delete_link(link.create_link_hash)?;
+                delete_link(link.create_link_hash, GetOptions::local())?;
             }
         }
     }
     let path = Path::from("all_contacts");
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllContacts)?.build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::AllContacts.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
     for link in links {
         if let Some(hash) = link.target.into_action_hash() {
             if hash == original_contact_hash {
-                delete_link(link.create_link_hash)?;
+                delete_link(link.create_link_hash, GetOptions::local())?;
             }
         }
     }
@@ -207,7 +234,7 @@ pub fn delete_contact(original_contact_hash: ActionHash) -> ExternResult<ActionH
 pub fn get_all_deletes_for_contact(
     original_contact_hash: ActionHash,
 ) -> ExternResult<Option<Vec<SignedActionHashed>>> {
-    let Some(details) = get_details(original_contact_hash, GetOptions::default())? else {
+    let Some(details) = get_details(original_contact_hash, GetOptions::local())? else {
         return Ok(None);
     };
     match details {
@@ -236,11 +263,17 @@ pub fn get_oldest_delete_for_contact(
 
 #[hdk_extern]
 pub fn get_contacts_for_contact(contact: ZomeFnInput<AgentPubKey>) -> ExternResult<Vec<Link>> {
-    let strategy = contact.get_strategy();
+    let strategy: GetStrategy = contact.get_strategy();
     get_links(
-        GetLinksInputBuilder::try_new(contact.input, LinkTypes::ContactToContacts)?
-            .get_options(strategy)
-            .build(),
+        LinkQuery {
+            base: contact.input.clone().into(),
+            link_type: LinkTypes::ContactToContacts.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        strategy,
     )
 }
 
@@ -248,11 +281,16 @@ pub fn get_contacts_for_contact(contact: ZomeFnInput<AgentPubKey>) -> ExternResu
 pub fn get_deleted_contacts_for_contact(
     contact: AgentPubKey,
 ) -> ExternResult<Vec<(SignedActionHashed, Vec<SignedActionHashed>)>> {
-    let details = get_link_details(
-        contact,
-        LinkTypes::ContactToContacts,
-        None,
-        GetOptions::default(),
+    let details = get_links_details(
+        LinkQuery {
+            base: contact.into(),
+            link_type: LinkTypes::ContactToContacts.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
     Ok(details
         .into_inner()
