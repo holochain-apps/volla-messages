@@ -78,6 +78,19 @@
     text = "";
     files = [];
   }
+  function autoGrow(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+
+      // Optional: clamp height to 3 lines
+      const maxHeight = parseFloat(getComputedStyle(el).lineHeight) * 5;
+      if (el.scrollHeight > maxHeight) {
+        el.style.overflowY = "auto";
+        el.style.height = maxHeight + "px";
+      } else {
+        el.style.overflowY = "hidden";
+      }
+    }
 </script>
 
 <div class="bg-tertiary-500 dark:bg-secondary-500 w-full flex-shrink-0 p-2">
@@ -89,15 +102,17 @@
       </div>
     </label>
 
-    <div class="flex w-full flex-col">
+    <div class="flex w-full flex-col overflow-y-auto leading-6 max-h-[7.5rem]">
       <!-- svelte-ignore a11y-autofocus -->
-      <input
+      <textarea
         autofocus
         type="text"
         bind:this={ref}
         bind:value={text}
+        rows="1"
         class="bg-tertiary-500 w-full border-0 placeholder:text-sm placeholder:text-gray-400 focus:border-gray-500 focus:ring-0"
         placeholder={$t("common.message_placeholder")}
+        on:input={(e) => autoGrow(e.currentTarget)}
         on:keydown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
