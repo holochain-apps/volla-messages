@@ -1,14 +1,14 @@
 <script lang="ts">
   import { getContext } from "svelte";
   import { encodeHashToBase64, type AgentPubKeyB64 } from "@holochain/client";
-  import type { ConferenceStore } from "$store/ConferenceStore";
+  import type { SimplePeerConferenceStore } from "$store/SimplePeerConferenceStore";
   import type { ProfileStore } from "$store/ProfileStore";
   import type { CellIdB64 } from "$lib/types";
   import Avatar from "$lib/Avatar.svelte";
   import ButtonInline from "$lib/ButtonInline.svelte";
   import DialogConfirm from "$lib/DialogConfirm.svelte";
 
-  const conferenceStore = getContext<{ getStore: () => ConferenceStore }>(
+  const conferenceStore = getContext<{ getStore: () => SimplePeerConferenceStore }>(
     "conferenceStore",
   ).getStore();
   const profileStore = getContext<{ getStore: () => ProfileStore }>("profileStore").getStore();
@@ -25,17 +25,19 @@
   let showDismissConfirm = false;
   let dismissingRoomId: string | null = null;
 
-  $: pendingInvitations = Object.entries($conferenceStore.data)
+  $: pendingInvitations = Object.entries($conferenceStore?.data || {})
     .filter(
       ([_, conf]) =>
-        (conf.invitationStatus === "pending" || conf.invitationStatus === "left") && !conf.ended,
+        conf &&
+        (conf.invitationStatus === "pending" || conf.invitationStatus === "left") &&
+        !conf.ended,
     )
     .map(([roomId, conf]) => {
       // Count participants who have joined
       let participantCount = 0;
       const joinedParticipants: AgentPubKeyB64[] = [];
 
-      for (const [pubKey, participant] of conf.participants) {
+      for (const [pubKey, participant] of conf.participants || new Map()) {
         if (participant.hasJoined) {
           participantCount++;
           if (pubKey !== myPubKeyB64 && joinedParticipants.length < 3) {
@@ -66,13 +68,6 @@
       }
     }
     return "Unknown";
-  }
-
-  // Get timestamp for invitation
-  function formatTimestamp(timestamp: number | undefined): string {
-    if (!timestamp) return "";
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   function handleJoin(roomId: string) {

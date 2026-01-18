@@ -95,6 +95,23 @@ export type RelaySignal =
       type: "SignalAck";
       signal_id: string;
       from: AgentPubKey;
+    }
+  | {
+      type: "RoleChanged";
+      room_id: string;
+      new_role: ConferenceRole;
+      from: AgentPubKey;
+    }
+  | {
+      type: "Kicked";
+      room_id: string;
+      kicked_by: AgentPubKey;
+    }
+  | {
+      type: "HostTransfer";
+      room_id: string;
+      new_host: AgentPubKey;
+      from: AgentPubKey;
     };
 
 /**
@@ -347,6 +364,40 @@ export interface FileExtended {
 
 /* Conference */
 
+/**
+ * Role hierarchy for conference participants.
+ * Lower numeric value = higher privilege level.
+ */
+export enum ConferenceRole {
+  Host = 0,    // Full control, 1 per conference
+  CoHost = 1,  // Can kick members, end conference
+  Member = 2,  // Basic participant
+}
+
+export interface ConferenceParticipantRecord {
+  room_id: string;
+  agent: AgentPubKey;
+  role: ConferenceRole;
+  joined_at: number;
+  is_active: boolean;
+}
+
+export interface TransferHostInput {
+  room_id: string;
+  new_host: AgentPubKey;
+}
+
+export interface KickParticipantInput {
+  room_id: string;
+  target: AgentPubKey;
+}
+
+export interface RoleChangeInput {
+  room_id: string;
+  target: AgentPubKey;
+  new_role: ConferenceRole;
+}
+
 export interface ConferenceRoom {
   room_id: string;
   participants: AgentPubKey[];
@@ -356,17 +407,26 @@ export interface SignalPayload {
   room_id: string;
   from: AgentPubKeyB64;
   to: AgentPubKeyB64;
-  payload_type: CallSignalType;
+  payload_type: SimplePeerSignalType | string;
   data: string;
   // Unique identifier for tracking acknowledgments
   signal_id?: string;
 }
 
-export enum CallSignalType {
-  Offer = "Offer",
-  Answer = "Answer",
-  IceCandidate = "IceCandidate",
+export enum SimplePeerSignalType {
+  InitRequest = "InitRequest",
+  InitAccept = "InitAccept",
+  SdpData = "SdpData",
   MediaState = "MediaState",
+}
+
+export interface SimplePeerSignalPayload {
+  room_id: string;
+  from: AgentPubKeyB64;
+  to: AgentPubKeyB64;
+  signal_type: SimplePeerSignalType;
+  connection_id: string;
+  data: string;
 }
 
 export interface CreateConferenceInput {
@@ -381,57 +441,6 @@ export interface JoinConferenceInput {
 export interface SignalInput {
   room_id: string;
   target: AgentPubKey;
-  payload_type: CallSignalType;
+  payload_type: SimplePeerSignalType | string;
   data: string;
-}
-
-export interface ConferenceState {
-  room: ConferenceRoom;
-  participants: Map<AgentPubKeyB64, ConferenceParticipant>;
-  localStream?: MediaStream;
-  isInitiator: boolean;
-  ended: boolean;
-  error?: string;
-  invitationStatus?: "pending" | "accepted" | "rejected" | "active" | "left";
-  invitedBy?: AgentPubKeyB64;
-  invitationTimestamp?: number;
-  // Timestamp when user left (for rejoin detection)
-  leftTimestamp?: number;
-  // Timestamp when user started rejoining (cleared after init)
-  rejoiningTimestamp?: number;
-  // Metadata for logging
-  cellIdB64?: CellIdB64; // The conversation where this conference was started
-  startTime?: number; // Timestamp when conference started
-  initiatorPubKeyB64?: AgentPubKeyB64; // The agent who initiated the conference
-}
-
-export interface ConferenceParticipant {
-  publicKey: AgentPubKeyB64;
-  peerConnection?: RTCPeerConnection;
-  stream?: MediaStream;
-  isConnected: boolean;
-  hasJoined: boolean;
-  pendingSignals?: SignalPayload[];
-  videoEnabled?: boolean;
-  audioEnabled?: boolean;
-  // Perfect negotiation pattern flags
-  makingOffer?: boolean;
-  ignoreOffer?: boolean;
-  isSettingRemoteAnswerPending?: boolean;
-  // ICE candidate buffering
-  // hold candidates until remote description is set
-  pendingIceCandidates?: RTCIceCandidateInit[];
-  reconnectAttempts?: number;
-  reconnectTimerId?: number;
-  lastFailureReason?: string;
-  // Pending acknowledgments for signals sent to this participant
-  pendingAcks?: Map<
-    string,
-    {
-      signal: SignalPayload;
-      timestamp: number;
-      retries: number;
-      timerId?: number;
-    }
-  >;
 }
