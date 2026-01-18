@@ -128,6 +128,58 @@ fn recv_remote_signal(signal: RemoteSignal) -> ExternResult<()> {
                     info!("[Rust] Acknowledging signal ID: {}", signal_id);
                     emit_signal(Signal::SignalAck { signal_id, from })
                 }
+                ConferenceSignalType::RoleChanged => {
+                    info!("[Rust] ** RoleChanged signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for RoleChanged signal".into()
+                        )))?;
+                    let new_role = conference_record
+                        .new_role
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "New role required for RoleChanged signal".into()
+                        )))?;
+                    let from = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for RoleChanged signal".into()
+                        )))?;
+                    emit_signal(Signal::RoleChanged { room_id, new_role, from })
+                }
+                ConferenceSignalType::Kicked => {
+                    info!("[Rust] ** Kicked signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for Kicked signal".into()
+                        )))?;
+                    let kicked_by = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Kicked signal".into()
+                        )))?;
+                    emit_signal(Signal::Kicked { room_id, kicked_by })
+                }
+                ConferenceSignalType::HostTransfer => {
+                    info!("[Rust] ** HostTransfer signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for HostTransfer signal".into()
+                        )))?;
+                    let new_host = conference_record
+                        .new_host
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "New host required for HostTransfer signal".into()
+                        )))?;
+                    let from = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for HostTransfer signal".into()
+                        )))?;
+                    emit_signal(Signal::HostTransfer { room_id, new_host, from })
+                }
             }
         }
         RemoteSignal::Message(message_record) => {
@@ -234,6 +286,20 @@ pub enum Signal {
     WebRTCSignal(SignalPayload),
     SignalAck {
         signal_id: String,
+        from: AgentPubKey,
+    },
+    RoleChanged {
+        room_id: String,
+        new_role: ConferenceRole,
+        from: AgentPubKey,
+    },
+    Kicked {
+        room_id: String,
+        kicked_by: AgentPubKey,
+    },
+    HostTransfer {
+        room_id: String,
+        new_host: AgentPubKey,
         from: AgentPubKey,
     },
 }

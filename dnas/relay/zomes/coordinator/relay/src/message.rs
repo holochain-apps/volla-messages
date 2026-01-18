@@ -86,11 +86,6 @@ pub fn get_message_links_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<Link
     Ok(links)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct GetAgenProfileInput {
-    agent_key: AgentPubKey,
-}
-
 #[hdk_extern]
 pub fn get_message_entries(
     hashes: ZomeFnInput<Vec<ActionHash>>,
