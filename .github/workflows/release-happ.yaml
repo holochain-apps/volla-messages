@@ -10,7 +10,9 @@ jobs:
   publish-happ:
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, yolo]
+    container:
+      image: ubuntu:24.04
     outputs:
       releaseId: ${{ steps.create-release.outputs.id }}
       appVersion: ${{ steps.version.outputs.APP_VERSION }}
@@ -19,29 +21,43 @@ jobs:
       # Checks out a copy of your repository on the ubuntu-latest machine
       - uses: actions/checkout@v3
 
+      - name: Install packages
+        run: |
+          apt-get update
+          apt-get install -y sudo build-essential curl openjdk-11-jdk unzip git cmake
+
       - name: Install nix
         uses: cachix/install-nix-action@v27
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_path: nixpkgs=channel:nixos-24.05
+          enable_kvm: false
 
       - uses: cachix/cachix-action@v15
+        env:
+          USER: root
         with:
           name: holochain-ci
 
       - uses: cachix/cachix-action@v15
+        env:
+          USER: root
         with:
           name: holochain-open-dev
 
       - uses: cachix/cachix-action@v15
+        env:
+          USER: root
         with:
           name: darksoil-studio
 
       - name: Install and test
         run: |
           nix-store --gc
-          nix develop --no-update-lock-file --accept-flake-config --command bash -c "npm install && npm run build:happ"
-
+          nix develop --no-update-lock-file --accept-flake-config --impure --command bash -c "npm install && npm run build:happ"
+        env:
+          CARGO_REGISTRIES_CARGO_HOSTED_TOKEN: ${{ secrets.VOLLA_NEXUS_TOKEN }}
+          
       - name: Retrieve version
         run: |
           echo "APP_VERSION=$(cat src-tauri/tauri.desktop.conf.json | grep -oP '(?<="version": ")[^"]*')" >> $GITHUB_OUTPUT

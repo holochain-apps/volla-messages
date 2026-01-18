@@ -19,9 +19,15 @@ pub fn set_config(config: Config) -> ExternResult<()> {
 pub fn get_config(input: ZomeFnInput<()>) -> ExternResult<Option<Record>> {
     let path = Path::from("config");
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::ConfigUpdates)?
-            .get_options(input.get_strategy())
-            .build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::ConfigUpdates.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        input.get_strategy(),
     )?;
     let latest_link = links
         .into_iter()
@@ -34,7 +40,7 @@ pub fn get_config(input: ZomeFnInput<()>) -> ExternResult<Option<Record>> {
                 .ok_or(wasm_error!(WasmErrorInner::Guest(
                     "No action hash associated with link".to_string()
                 )))?;
-        get(latest_config_hash, GetOptions::default())
+        get(latest_config_hash, GetOptions::local())
     } else {
         Ok(None)
     }

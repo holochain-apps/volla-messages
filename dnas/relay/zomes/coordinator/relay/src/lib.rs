@@ -217,7 +217,7 @@ fn recv_remote_signal(signal: RemoteSignal) -> ExternResult<()> {
 
 #[hdk_extern]
 pub fn init(_: ()) -> ExternResult<InitCallbackResult> {
-    let mut fns = BTreeSet::new();
+    let mut fns = HashSet::new();
     fns.insert((zome_info()?.name, "recv_remote_signal".into()));
     let functions = GrantedFunctions::Listed(fns);
     create_cap_grant(CapGrantEntry {
@@ -322,7 +322,7 @@ fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
             Ok(())
         }
         Action::DeleteLink(delete_link) => {
-            let record = get(delete_link.link_add_address.clone(), GetOptions::default())?.ok_or(
+            let record = get(delete_link.link_add_address.clone(), GetOptions::local())?.ok_or(
                 wasm_error!(WasmErrorInner::Guest(
                     "Failed to fetch CreateLink action".to_string()
                 )),
@@ -378,7 +378,7 @@ fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
     }
 }
 fn get_entry_for_action(action_hash: &ActionHash) -> ExternResult<Option<EntryTypes>> {
-    let record = match get_details(action_hash.clone(), GetOptions::default())? {
+    let record = match get_details(action_hash.clone(), GetOptions::local())? {
         Some(Details::Record(record_details)) => record_details.record,
         _ => {
             return Ok(None);
@@ -417,12 +417,12 @@ pub fn generate_membrane_proof(input: MembraneProofData) -> ExternResult<Seriali
 
 #[hdk_extern]
 pub fn get_membrane_proof(agent: AgentPubKey) -> ExternResult<Option<MembraneProofData>> {
-    match get_details(agent, GetOptions::default())? {
+    match get_details(agent, GetOptions::local())? {
         None => Ok(None),
         Some(details) => match details {
             Details::Entry(entry_details) => {
                 let prev = entry_details.actions[0].action().prev_action().unwrap();
-                let maybe_record = get(prev.clone(), GetOptions::default())?;
+                let maybe_record = get(prev.clone(), GetOptions::local())?;
                 match maybe_record {
                     None => Err(wasm_error!("expected agent validation record")),
                     Some(record) => match record.action() {
