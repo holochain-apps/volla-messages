@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { decodeHashFromBase64, type ActionHashB64, type AgentPubKeyB64 } from "@holochain/client";
+  import {
+    decodeHashFromBase64,
+    encodeHashToBase64,
+    type ActionHashB64,
+    type AgentPubKeyB64,
+  } from "@holochain/client";
   import { getContext, onDestroy, onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
@@ -29,6 +34,9 @@
   import SvgIcon from "$lib/SvgIcon.svelte";
   import DialogConfirm from "$lib/DialogConfirm.svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
+  import InlineConferenceInvite from "./InlineConferenceInvite.svelte";
+  import type { SimplePeerConferenceStore } from "$store/SimplePeerConferenceStore";
+  import { sendConferenceStartedLog, sendConferenceEndedLog } from "$lib/conferenceLogging";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
     "conversationStore",
@@ -46,6 +54,9 @@
   const conversationMessageStore = getContext<{
     getStore: () => ConversationMessageStore;
   }>("conversationMessageStore").getStore();
+  const conferenceStore = getContext<{ getStore: () => SimplePeerConferenceStore }>(
+    "conferenceStore",
+  ).getStore();
 
   let conversation = deriveCellConversationStore(conversationStore, $page.params.id);
   let messages = deriveCellConversationMessageStore(conversationMessageStore, $page.params.id);
@@ -68,6 +79,8 @@
   let showDeleteDialog = false;
   let deleteMessageActionHashB64: undefined | ActionHashB64 = undefined;
   let isDeletingMessage = false;
+
+  let isStartingCall = false;
 
   let isFirstConfigLoad = true;
   let isFirstProfilesLoad = true;
@@ -210,6 +223,89 @@
     sending = false;
   }
 
+  async function startVideoCall() {
+    if (isStartingCall) return;
+
+    console.log("[AV Call] ========== Starting Video Call ==========");
+    console.log("[AV Call] Total members in chat ($joined.list):", $joined.list.length);
+    console.log("[AV Call] My public key:", myPubKeyB64);
+    console.log(
+      "[AV Call] All members:",
+      $joined.list.map(([pubKeyB64, profile]) => ({
+        pubKey: pubKeyB64,
+        name: profile.profile.nickname,
+      })),
+    );
+
+    const otherParticipants = $joined.list
+      .map(([pubKeyB64, _profile]) => pubKeyB64)
+      .filter((p) => p !== myPubKeyB64);
+
+    console.log("[AV Call] Other participants to invite:", otherParticipants);
+    console.log("[AV Call] Number of participants to invite:", otherParticipants.length);
+
+    if (otherParticipants.length === 0) {
+      console.error("[AV Call] ERROR: No other participants found to call");
+      toast.error("No participants to call");
+      return;
+    }
+
+    isStartingCall = true;
+    try {
+      console.log("[AV Call] Step 1: Creating conference room...");
+      const roomId = await conferenceStore.createConference(
+        otherParticipants,
+        $page.params.id,
+        myPubKeyB64,
+      );
+      console.log("[AV Call] Step 1 COMPLETE: Conference room created with ID:", roomId);
+
+      console.log("[AV Call] Step 2: Initializing WebRTC (requesting media permissions)...");
+      await conferenceStore.initializeWebRTC(roomId);
+      console.log("[AV Call] Step 2 COMPLETE: WebRTC initialized successfully");
+      console.log("[AV Call] Step 4: Sending conference started log to chat...");
+      const allParticipants = [myPubKeyB64, ...otherParticipants];
+      await sendConferenceStartedLog(
+        conversationMessageStore,
+        $page.params.id,
+        roomId,
+        myPubKeyB64,
+        allParticipants,
+      );
+      console.log("[AV Call] Step 4 COMPLETE: Conference log sent");
+
+      console.log("[AV Call] ========== Video Call Started Successfully ==========");
+    } catch (error) {
+      console.error("[AV Call] ERROR: Failed to start call:", error);
+      toast.error(
+        "Failed to start call: " + (error instanceof Error ? error.message : String(error)),
+      );
+    }
+    isStartingCall = false;
+  }
+
+  function handleAcceptCall(roomId: string) {
+    const conference = $conferenceStore.data[roomId];
+    if (!conference) {
+      toast.error("Conference not found");
+      return;
+    }
+
+    conferenceStore.setShowPreJoinScreen(roomId, true);
+  }
+
+  async function handleRejectCall(roomId: string) {
+    try {
+      const conference = $conferenceStore.data[roomId];
+      if (!conference) return;
+
+      await conferenceStore.rejectConferenceInvitation(roomId);
+    } catch (error) {
+      console.error("Failed to reject call:", error);
+      toast.error("Failed to reject call");
+    }
+  }
+
   onMount(() => {
     conversationMessageInputRef.focus();
 
@@ -232,6 +328,15 @@
   </h1>
 
   <div class="flex items-center justify-center" slot="right">
+    <ButtonIconBare
+      moreClasses="h-[24px] w-[24px]"
+      moreClassesButton="p-4 {isStartingCall ? 'opacity-50' : ''}"
+      icon="videoCall"
+      disabled={isStartingCall}
+      on:click={startVideoCall}
+      title="Start video call"
+    />
+
     <ButtonIconBare
       moreClasses="!w-[18px] !h-auto"
       moreClassesButton="p-4"
@@ -275,6 +380,8 @@
     {/if}
   </div>
 </div>
+
+<InlineConferenceInvite onAccept={handleAcceptCall} onReject={handleRejectCall} />
 
 <ConversationMessageInput
   bind:ref={conversationMessageInputRef}

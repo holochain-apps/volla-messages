@@ -9,12 +9,14 @@
   export let shareLabel: string;
   export let moreClasses: string = "";
 
+  const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
   async function copy() {
     try {
       await copyToClipboard(text);
       toast.success(`${$t("common.copy_success")}`);
     } catch (e) {
-      toast.error(`${$t("common.copy_error")}: ${e.message}`);
+      toast.error(`${$t("common.copy_error")}: ${errorMessage(e)}`);
     }
   }
 
@@ -22,7 +24,7 @@
     try {
       await shareText(text);
     } catch (e) {
-      toast.error(`${$t("common.share_code_error")}: ${e.message}`);
+      toast.error(`${$t("common.share_code_error")}: ${errorMessage(e)}`);
     }
   }
 </script>

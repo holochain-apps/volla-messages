@@ -1,17 +1,17 @@
 import type {
   ActionHash,
+  AgentPubKey,
   AgentPubKeyB64,
   CellId,
-  EntryHash,
-  SignedActionHashed,
-  AgentPubKey,
-  Create,
-  Update,
-  Delete,
-  CreateLink,
-  DeleteLink,
-  MembraneProof,
   ClonedCell,
+  Create,
+  CreateLink,
+  Delete,
+  DeleteLink,
+  EntryHash,
+  MembraneProof,
+  SignedActionHashed,
+  Update,
 } from "@holochain/client";
 
 /**
@@ -62,6 +62,56 @@ export type RelaySignal =
       type: "LinkDeleted";
       action: SignedActionHashed<DeleteLink>;
       link_type: string;
+    }
+  | {
+      type: "ConferenceInvite";
+      room: ConferenceRoom;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceJoined";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceLeft";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceRejected";
+      room_id: string;
+      agent: AgentPubKey;
+    }
+  | {
+      type: "ConferenceEnded";
+      room_id: string;
+      ended_by: AgentPubKey;
+    }
+  | ({
+      type: "WebRTCSignal";
+    } & SignalPayload)
+  | {
+      type: "SignalAck";
+      signal_id: string;
+      from: AgentPubKey;
+    }
+  | {
+      type: "RoleChanged";
+      room_id: string;
+      new_role: ConferenceRole;
+      from: AgentPubKey;
+    }
+  | {
+      type: "Kicked";
+      room_id: string;
+      kicked_by: AgentPubKey;
+    }
+  | {
+      type: "HostTransfer";
+      room_id: string;
+      new_host: AgentPubKey;
+      from: AgentPubKey;
     };
 
 /**
@@ -97,6 +147,50 @@ export interface MessageRecord {
   original_action: ActionHash;
   signed_action: SignedActionHashed;
   message?: Message;
+}
+
+export type ConferenceLogEvent = "started" | "ended";
+
+export interface ConferenceLog {
+  type: "conference_log";
+  event: ConferenceLogEvent;
+  conference_id: string;
+  initiator: AgentPubKeyB64;
+  timestamp: number;
+  participants: AgentPubKeyB64[];
+  duration_seconds?: number; // Only for 'ended' event
+  participant_count: number;
+}
+
+/**
+ * Helper functions for conference logs
+ */
+
+export function createConferenceLogMessage(log: ConferenceLog): string {
+  return JSON.stringify(log);
+}
+
+export function isConferenceLog(content: string): boolean {
+  try {
+    const parsed = JSON.parse(content);
+    return (
+      parsed.type === "conference_log" && (parsed.event === "started" || parsed.event === "ended")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function parseConferenceLog(content: string): ConferenceLog | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed.type === "conference_log") {
+      return parsed as ConferenceLog;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export interface SendMessageInput {
@@ -242,6 +336,7 @@ export enum Alignment {
 }
 
 export type CellIdB64 = string;
+export type ActionHashB64 = string;
 
 export interface LocalFile {
   file: File;
@@ -265,4 +360,87 @@ export enum FileStatus {
 export interface FileExtended {
   file?: File;
   status: FileStatus;
+}
+
+/* Conference */
+
+/**
+ * Role hierarchy for conference participants.
+ * Lower numeric value = higher privilege level.
+ */
+export enum ConferenceRole {
+  Host = 0,    // Full control, 1 per conference
+  CoHost = 1,  // Can kick members, end conference
+  Member = 2,  // Basic participant
+}
+
+export interface ConferenceParticipantRecord {
+  room_id: string;
+  agent: AgentPubKey;
+  role: ConferenceRole;
+  joined_at: number;
+  is_active: boolean;
+}
+
+export interface TransferHostInput {
+  room_id: string;
+  new_host: AgentPubKey;
+}
+
+export interface KickParticipantInput {
+  room_id: string;
+  target: AgentPubKey;
+}
+
+export interface RoleChangeInput {
+  room_id: string;
+  target: AgentPubKey;
+  new_role: ConferenceRole;
+}
+
+export interface ConferenceRoom {
+  room_id: string;
+  participants: AgentPubKey[];
+}
+
+export interface SignalPayload {
+  room_id: string;
+  from: AgentPubKeyB64;
+  to: AgentPubKeyB64;
+  payload_type: SimplePeerSignalType | string;
+  data: string;
+  // Unique identifier for tracking acknowledgments
+  signal_id?: string;
+}
+
+export enum SimplePeerSignalType {
+  InitRequest = "InitRequest",
+  InitAccept = "InitAccept",
+  SdpData = "SdpData",
+  MediaState = "MediaState",
+}
+
+export interface SimplePeerSignalPayload {
+  room_id: string;
+  from: AgentPubKeyB64;
+  to: AgentPubKeyB64;
+  signal_type: SimplePeerSignalType;
+  connection_id: string;
+  data: string;
+}
+
+export interface CreateConferenceInput {
+  participants: AgentPubKey[];
+}
+
+export interface JoinConferenceInput {
+  room_id: string;
+  participants: AgentPubKey[];
+}
+
+export interface SignalInput {
+  room_id: string;
+  target: AgentPubKey;
+  payload_type: SimplePeerSignalType | string;
+  data: string;
 }

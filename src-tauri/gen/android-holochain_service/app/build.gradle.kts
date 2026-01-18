@@ -26,7 +26,7 @@ android {
          storePassword = keystoreProperties["storePassword"] as String
         }
     }
-    compileSdk = 34
+    compileSdk = 35
     namespace = "com.volla.messages"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "true"

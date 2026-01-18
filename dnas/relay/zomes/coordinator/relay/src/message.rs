@@ -14,7 +14,7 @@ pub struct SendMessageInput {
 #[hdk_extern]
 pub fn create_message(input: SendMessageInput) -> ExternResult<Record> {
     let message_hash = create_entry(&EntryTypes::Message(input.message.clone()))?;
-    let record = get(message_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+    let record = get(message_hash.clone(), GetOptions::local())?.ok_or(wasm_error!(
         WasmErrorInner::Guest("Could not find the newly created Message".to_string())
     ))?;
 
@@ -59,9 +59,15 @@ pub fn get_message_hashes(bucket: ZomeFnInput<BucketInput>) -> ExternResult<Vec<
     let path: Path = messages_path(bucket.input.bucket);
 
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?
-            .get_options(bucket.get_strategy())
-            .build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::AllMessages.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        bucket.get_strategy(),
     )?;
 
     // only return the hashes if the counts don't match
@@ -79,16 +85,19 @@ pub fn get_message_links_for_buckets(buckets: Vec<u32>) -> ExternResult<Vec<Link
     for bucket in buckets {
         let path = messages_path(bucket);
         let mut l = get_links(
-            GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.build(),
+            LinkQuery {
+                base: path.path_entry_hash()?.into(),
+                link_type: LinkTypes::AllMessages.try_into_filter()?,
+                tag_prefix: None,
+                after: None,
+                before: None,
+                author: None,
+            },
+            GetStrategy::Local,
         )?;
         links.append(&mut l);
     }
     Ok(links)
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct GetAgenProfileInput {
-    agent_key: AgentPubKey,
 }
 
 #[hdk_extern]
@@ -129,12 +138,15 @@ pub fn get_latest_message(
     original_message_hash: ZomeFnInput<ActionHash>,
 ) -> ExternResult<Option<MessageRecord>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(
-            original_message_hash.input.clone(),
-            LinkTypes::MessageUpdates,
-        )?
-        .get_options(original_message_hash.get_strategy())
-        .build(),
+        LinkQuery {
+            base: original_message_hash.input.clone().into(),
+            link_type: LinkTypes::MessageUpdates.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        original_message_hash.get_strategy(),
     )?;
     let latest_link = links
         .into_iter()
@@ -151,7 +163,7 @@ pub fn get_latest_message(
         None => original_message_hash.input.clone(),
     };
 
-    match get(latest_message_hash, GetOptions::default())? {
+    match get(latest_message_hash, GetOptions::local())? {
         Some(record) => Ok(Some(MessageRecord {
             original_action: original_message_hash.input,
             signed_action: record.signed_action().clone(),
@@ -163,7 +175,7 @@ pub fn get_latest_message(
 
 #[hdk_extern]
 pub fn get_original_message(original_message_hash: ActionHash) -> ExternResult<Option<Record>> {
-    let Some(details) = get_details(original_message_hash, GetOptions::default())? else {
+    let Some(details) = get_details(original_message_hash, GetOptions::local())? else {
         return Ok(None);
     };
     match details {
@@ -182,8 +194,15 @@ pub fn get_all_revisions_for_message(
         return Ok(vec![]);
     };
     let links = get_links(
-        GetLinksInputBuilder::try_new(original_message_hash.clone(), LinkTypes::MessageUpdates)?
-            .build(),
+        LinkQuery {
+            base: original_message_hash.clone().into(),
+            link_type: LinkTypes::MessageUpdates.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
     let get_input: Vec<GetInput> = links
         .into_iter()
@@ -195,7 +214,7 @@ pub fn get_all_revisions_for_message(
                         "No action hash associated with link".to_string()
                     )))?
                     .into(),
-                GetOptions::default(),
+                GetOptions::local(),
             ))
         })
         .collect::<ExternResult<Vec<GetInput>>>()?;
@@ -221,7 +240,7 @@ pub fn update_message(input: UpdateMessageInput) -> ExternResult<Record> {
         LinkTypes::MessageUpdates,
         (),
     )?;
-    let record = get(updated_message_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+    let record = get(updated_message_hash.clone(), GetOptions::local())?.ok_or(wasm_error!(
         WasmErrorInner::Guest("Could not find the newly updated Message".to_string())
     ))?;
     Ok(record)
@@ -251,18 +270,26 @@ pub fn delete_message(input: DeleteMessageInput) -> ExternResult<ActionHash> {
 
     let path = messages_path(message.bucket);
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::AllMessages)?.build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::AllMessages.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
     for link in links {
         if let Some(hash) = link.target.into_action_hash() {
             if hash.eq(&input.original_message_hash) {
-                delete_link(link.create_link_hash)?;
+                delete_link(link.create_link_hash, GetOptions::local())?;
             }
         }
     }
     let delete_hash = delete_entry(input.original_message_hash.clone())?;
 
-    let delete_record = get(delete_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+    let delete_record = get(delete_hash.clone(), GetOptions::local())?.ok_or(wasm_error!(
         WasmErrorInner::Guest("Could not find the delete action".to_string())
     ))?;
 
@@ -289,7 +316,7 @@ pub fn delete_message(input: DeleteMessageInput) -> ExternResult<ActionHash> {
 pub fn get_all_deletes_for_message(
     original_message_hash: ActionHash,
 ) -> ExternResult<Option<Vec<SignedActionHashed>>> {
-    let Some(details) = get_details(original_message_hash, GetOptions::default())? else {
+    let Some(details) = get_details(original_message_hash, GetOptions::local())? else {
         return Ok(None);
     };
     match details {

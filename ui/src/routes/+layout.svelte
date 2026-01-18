@@ -47,7 +47,27 @@
     type MergedProfileContactInviteUnjoinedStore,
   } from "$store/MergedProfileContactInviteJoinedStore";
   import { createFileStore, type FileStore } from "$store/FileStore";
+  import {
+    createSimplePeerConferenceStore,
+    type SimplePeerConferenceStore,
+  } from "$store/SimplePeerConferenceStore";
   import Dialog from "$lib/Dialog.svelte";
+  // Use the refactored ConferenceView with extracted components
+  import { ConferenceView, ResizablePip } from "$lib/conference";
+  import { sendConferenceEndedLog } from "$lib/conferenceLogging";
+  import { onDestroy } from "svelte";
+
+  // Svelte action to set video srcObject
+  function setVideoStream(videoElement: HTMLVideoElement, stream: MediaStream) {
+    videoElement.srcObject = stream;
+    return {
+      update(newStream: MediaStream) {
+        if (videoElement.srcObject !== newStream) {
+          videoElement.srcObject = newStream;
+        }
+      },
+    };
+  }
 
   // Holochain client
   let client: AppClient;
@@ -68,6 +88,7 @@
   let provisionedRelayCellProfileStore: CellProfileStore;
   let mergedProfileContactInviteUnjoinedStore: MergedProfileContactInviteUnjoinedStore;
   let mergedProfileContactInviteJoinedStore: MergedProfileContactInviteJoinedStore;
+  let conferenceStore: SimplePeerConferenceStore;
 
   // Is the holochain client connected?
   let isClientConnected = false;
@@ -91,6 +112,112 @@
       ? $provisionedRelayCellProfileStore.data[myPubKeyB64]
       : undefined;
   $: myProfileExists = myProfile !== undefined;
+
+  $: activeConference =
+    conferenceStore && $conferenceStore
+      ? Object.entries($conferenceStore.data).find(
+          ([_, conf]) =>
+            conf &&
+            !conf.ended &&
+            !conf.isMinimized && // Exclude minimized conferences from full view
+            conf.invitationStatus !== "left" &&
+            conf.invitationStatus !== "rejected" &&
+            // Include: initiator, accepted, or showPreJoinScreen is true (for PreJoinScreen overlay)
+            (conf.isInitiator || conf.invitationStatus === "accepted" || conf.showPreJoinScreen),
+        )?.[0]
+      : null;
+
+  // Find minimized conference (for PiP view)
+  $: minimizedConference =
+    conferenceStore && $conferenceStore
+      ? Object.entries($conferenceStore.data).find(
+          ([_, conf]) =>
+            conf &&
+            !conf.ended &&
+            conf.isMinimized &&
+            (conf.isInitiator || conf.invitationStatus === "accepted"),
+        )?.[0]
+      : null;
+
+  // Track which conferences we've already logged to prevent duplicates
+  // This is necessary because the ConferenceView component may unmount before its reactive
+  // statement can fire (due to activeConference becoming null when ended: true)
+  const loggedConferenceEnds = new Set<string>();
+
+  // Watch for conferences that end and log them from the layout level
+  // ONLY the initiator logs to prevent duplicate messages
+  // This fixes the race condition where ConferenceView unmounts before it can call onConferenceEnded
+  $: if (conferenceStore && $conferenceStore) {
+    for (const [roomId, conf] of Object.entries($conferenceStore.data)) {
+      if (conf && conf.ended && conf.isInitiator) {
+\        handleConferenceEnded(roomId);
+      }
+    }
+  }
+
+  function handleCloseConference() {
+    // Minimize the conference to PiP mode instead of closing
+    if (activeConference) {
+      console.log("[+layout] Minimizing conference:", activeConference);
+      conferenceStore.setMinimized(activeConference, true);
+    }
+  }
+
+  function handleMaximizeConference() {
+    // Restore the conference from PiP to full view
+    if (minimizedConference) {
+      console.log("[+layout] Maximizing conference:", minimizedConference);
+      conferenceStore.setMinimized(minimizedConference, false);
+    }
+  }
+
+  async function handleConferenceEnded(roomId: string) {
+    if (loggedConferenceEnds.has(roomId)) {
+      console.log("[ConferenceLog] Already logged conference end for:", roomId);
+      return;
+    }
+    loggedConferenceEnds.add(roomId);
+
+    let conference;
+    try {
+      conference = conferenceStore.getConference(roomId);
+    } catch (error) {
+      console.warn("[ConferenceLog] Conference not found in store:", roomId);
+      return;
+    }
+
+    if (
+      !conference ||
+      !conference.cellIdB64 ||
+      !conference.startTime ||
+      !conference.initiatorPubKeyB64
+    ) {
+      console.warn("[ConferenceLog] Cannot send ended log - missing metadata");
+      return;
+    }
+
+    if (!conference.isInitiator) {
+      console.log("[ConferenceLog] Skipping ended log - not the initiator");
+      return;
+    }
+
+    const durationSeconds = Math.floor((Date.now() - conference.startTime) / 1000);
+    const allParticipants = Array.from(conference.participants.keys());
+
+    try {
+      await sendConferenceEndedLog(
+        conversationMessageStore,
+        conference.cellIdB64,
+        roomId,
+        conference.initiatorPubKeyB64,
+        allParticipants,
+        durationSeconds,
+      );
+      console.log("[ConferenceLog] Successfully sent conference ended log");
+    } catch (error) {
+      console.error("[ConferenceLog] Failed to send conference ended log:", error);
+    }
+  }
 
   async function initHolochainClient() {
     try {
@@ -179,8 +306,9 @@
       conversationTitleStore = createConversationTitleStore(
         conversationStore,
         mergedProfileContactInviteStore,
-        myPubKeyB64
+        myPubKeyB64,
       );
+      conferenceStore = createSimplePeerConferenceStore(relayClient);
 
       // Initialize store data
       await contactStore.initialize();
@@ -188,10 +316,14 @@
       await conversationStore.initialize();
       await conversationMessageStore.initialize();
 
-      // Initialize signal handler
-      createSignalHandler(relayClient, conversationStore, conversationMessageStore);
-
       isStoresSetup = true;
+
+      createSignalHandler(
+        relayClient,
+        conversationStore,
+        conversationMessageStore,
+        conferenceStore,
+      );
     } catch (e) {
       console.error("Failed to init stores", e);
       toast.error(`${$t("common.stores_setup_error")}: ${e}`);
@@ -260,6 +392,10 @@
   setContext("inviteStore", {
     getStore: () => inviteStore,
   });
+
+  setContext("conferenceStore", {
+    getStore: () => conferenceStore,
+  });
 </script>
 
 <div class="mx-auto flex h-screen w-full max-w-screen-lg flex-col items-center">
@@ -289,6 +425,74 @@
     </AppLanding>
   {/if}
 </div>
+
+{#if activeConference}
+  <ConferenceView
+    roomId={activeConference}
+    onClose={handleCloseConference}
+    onConferenceEnded={handleConferenceEnded}
+    showPreJoin={true}
+  />
+{/if}
+
+{#if minimizedConference}
+  {@const conf = $conferenceStore.data[minimizedConference]}
+  <div class="pointer-events-none fixed inset-0" style="z-index: 50;">
+    <ResizablePip
+      initialWidth={180}
+      initialHeight={135}
+      minWidth={120}
+      minHeight={90}
+      maxWidth={320}
+      maxHeight={240}
+      persistKey="conference-pip-position"
+      on:click={handleMaximizeConference}
+    >
+      <div class="relative flex h-full w-full items-center justify-center bg-zinc-900">
+        {#if conf?.localStream}
+          <!-- svelte-ignore a11y-media-has-caption -->
+          <video
+            autoplay
+            playsinline
+            muted
+            class="h-full w-full object-cover"
+            use:setVideoStream={conf.localStream}
+          />
+        {:else}
+          <div class="text-xs text-white/60">In Call</div>
+        {/if}
+
+        <div
+          class="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors hover:bg-black/30"
+        >
+          <div class="opacity-0 transition-opacity hover:opacity-100">
+            <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {#if conf?.participants}
+          {@const participantCount = Array.from(conf.participants.values()).filter(
+            (p) => p.hasJoined,
+          ).length}
+          {#if participantCount > 0}
+            <div
+              class="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white"
+            >
+              {participantCount} in call
+            </div>
+          {/if}
+        {/if}
+      </div>
+    </ResizablePip>
+  </div>
+{/if}
 
 <Toaster position="bottom-end" />
 

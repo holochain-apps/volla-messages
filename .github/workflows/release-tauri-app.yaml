@@ -5,6 +5,8 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-[a-z]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-[a-z]+.[0-9]+'
+env:
+  CARGO_REGISTRIES_CARGO_HOSTED_TOKEN: ${{ secrets.VOLLA_NEXUS_TOKEN }}
 
 jobs:
   create-release:
@@ -31,9 +33,16 @@ jobs:
     needs: create-release
     permissions: write-all
     environment: Relay Release
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, yolo]
+    container:
+      image: ubuntu:22.04
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          apt-get update
+          apt-get install -y sudo build-essential curl openjdk-11-jdk unzip git cmake clang libclang-dev
 
       - name: setup node
         uses: actions/setup-node@v1
@@ -44,7 +53,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.85.0
+          toolchain: 1.88.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -110,7 +119,9 @@ jobs:
     needs: 
       - release-tauri-app-linux
       - create-release
-    runs-on: 'ubuntu-22.04' 
+    runs-on: [self-hosted, yolo]
+    container:
+      image: ubuntu:22.04
     strategy:
       fail-fast: false
       matrix:
@@ -122,24 +133,44 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Extend space
-        uses: ./.github/actions/extend-space
+      - name: Install packages
+        run: |
+          apt-get update
+          apt-get install -y sudo build-essential curl openjdk-11-jdk unzip git cmake clang libclang-dev
+
+      - name: setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 20
+
+      - name: install Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          toolchain: 1.88.0
 
       - name: Install nix
         uses: cachix/install-nix-action@v27
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_path: nixpkgs=channel:nixos-24.05
+          enable_kvm: false
 
       - uses: cachix/cachix-action@v15
+        env:
+          USER: root
         with:
           name: holochain-ci
 
       - uses: cachix/cachix-action@v15
+        env:
+          USER: root
         with:
           name: holochain-open-dev
 
       - uses: cachix/cachix-action@v15
+        env:
+          USER: root
         with:
           name: darksoil-studio
 
@@ -151,10 +182,10 @@ jobs:
         run: |
           mkdir src-tauri/gen/android
           cd src-tauri/gen/android
-          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
+          printf '%s' "${{ secrets.ANDROID_KEY_BASE64 }}" | base64 -d > keystore.jks
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
           echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
-          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
+          echo "storeFile=../keystore.jks" >> keystore.properties
           echo "storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
 
       - name: Copy variant tauri config
@@ -200,8 +231,25 @@ jobs:
     needs: create-release
     permissions: write-all
     environment: Relay Release
-    runs-on: windows-latest
+    runs-on: self-hosted-win-x64
     steps:
+      # Step 1: Install Chocolatey (if not already installed)
+      - name: Install Chocolatey
+        shell: powershell
+        run: |
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+              [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+              Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          }
+
+      - name: Install Packages
+        shell: powershell
+        run: |
+          choco install git cmake strawberryperl llvm -y
+          C:\ProgramData\chocolatey\tools\shimgen.exe -p="C:\Program Files\CMake\bin\cmake.exe" -o=C:\ProgramData\chocolatey\bin\cmake.exe
+          C:\ProgramData\chocolatey\tools\shimgen.exe -p="C:\Program Files\Git\cmd\git.exe" -o=C:\ProgramData\chocolatey\bin\git.exe
+          C:\ProgramData\chocolatey\tools\shimgen.exe -p="C:\Strawberry\perl\bin\perl.exe" -o=C:\ProgramData\chocolatey\bin\perl.exe
+
       - run: git config --system core.longpaths true
 
       - uses: actions/checkout@v3
@@ -212,10 +260,10 @@ jobs:
           node-version: 20
 
       - name: install Rust stable
-        uses: actions-rs/toolchain@v1
+        uses: lionel-faber/toolchain@038230242ab440f3b34fc2fbd7ae4111add9e690
         with:
           override: true
-          toolchain: 1.85.0
+          toolchain: 1.88.0
 
       - name: install Go stable
         uses: actions/setup-go@v4
@@ -239,6 +287,7 @@ jobs:
           args: --verbose --features holochain_bundled
 
       - name: Sign the App
+        if: false
         run: |
 
           # Powershell settings to make the script exit on error
@@ -256,8 +305,8 @@ jobs:
           $TAURI_CONF = (Get-Content src-tauri\tauri.conf.json | Out-String | ConvertFrom-Json)
           $APP_PRODUCT_NAME_VERSION = "$($TAURI_CONF.productName)_$($TAURI_CONF.version)"
 
-          $BUNDLE_OUT_PATH_1 = "D:\a\${{ github.event.repository.name }}\${{ github.event.repository.name }}\target\release\bundle\nsis\$($APP_PRODUCT_NAME_VERSION)_x64-setup.exe"
-          $BUNDLE_OUT_PATH_2 = "D:\a\${{ github.event.repository.name }}\${{ github.event.repository.name }}\target\release\bundle\msi\$($APP_PRODUCT_NAME_VERSION)_x64_en-US.msi"
+          $BUNDLE_OUT_PATH_1 = "C:\actions-runner\_work\${{ github.event.repository.name }}\${{ github.event.repository.name }}\target\release\bundle\nsis\$($APP_PRODUCT_NAME_VERSION)_x64-setup.exe"
+          $BUNDLE_OUT_PATH_2 = "C:\actions-runner\_work\${{ github.event.repository.name }}\${{ github.event.repository.name }}\target\release\bundle\msi\$($APP_PRODUCT_NAME_VERSION)_x64_en-US.msi"
 
           # log hashes before code signing
           CertUtil -hashfile $BUNDLE_OUT_PATH_1 SHA256
@@ -281,9 +330,10 @@ jobs:
           # We use forward slashes for glob expressions, even though these are windows paths.
           # See the docs for the fast-glob library used by this gh action:
           # https://www.npmjs.com/package/fast-glob#how-to-write-patterns-on-windows
-          files: D:/a/${{ github.event.repository.name }}/${{ github.event.repository.name }}/target/release/bundle/msi/*;D:/a/${{ github.event.repository.name }}/${{ github.event.repository.name }}/target/release/bundle/nsis/*
+          files: C:/actions-runner/_work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/target/release/bundle/msi/*;C:/actions-runner/_work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/target/release/bundle/nsis/*
           
   release-tauri-app-macos:
+    if: false
     needs: create-release
     permissions: write-all
     environment: Relay Release
@@ -313,7 +363,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           override: true
-          toolchain: 1.85.0
+          toolchain: 1.88.0
 
       - name: install Go stable
         uses: actions/setup-go@v4

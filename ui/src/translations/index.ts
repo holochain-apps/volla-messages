@@ -15,14 +15,16 @@ function makeLoaders(locales: string[]) {
   return flatten(loaders);
 }
 
-
-type Params = 
+type Params =
   | { name: string }
   | { updating: boolean }
   | { count: number }
   | { date: number }
   | { public: boolean }
-  | { existingConversation: boolean };
+  | { existingConversation: boolean }
+  | { seconds: number }
+  | { attempt: number; max: number }
+  | { maxSize: string };
 
 const config: Config<Params> = {
   fallbackLocale: "en",
