@@ -29,11 +29,16 @@ import type {
   CreateConversationInput,
   SendMessageInput,
   DeleteMessageInput,
-  CallSignalType,
+  SimplePeerSignalType,
   CreateConferenceInput,
   JoinConferenceInput,
   SignalInput,
   CellIdB64,
+  ConferenceRole,
+  ConferenceParticipantRecord,
+  TransferHostInput,
+  KickParticipantInput,
+  RoleChangeInput,
 } from "$lib/types";
 import { ZOME_NAME, ROLE_NAME } from "$config";
 import { encodeCellIdToBase64, decodeCellIdFromBase64 } from "$lib/utils";
@@ -467,7 +472,7 @@ export class RelayClient {
   public async sendSignal(
     room_id: string,
     target: AgentPubKey,
-    payload_type: CallSignalType,
+    payload_type: SimplePeerSignalType,
     data: string,
     cellId: CellId,
   ): Promise<void> {
@@ -490,22 +495,171 @@ export class RelayClient {
     console.log("[RelayClient] sendSignal() complete");
   }
 
-  public async sendAckSignal(
-    signal_id: string,
+  public async sendInitRequest(
+    room_id: string,
     target: AgentPubKey,
+    connection_id: string,
     cellId: CellId,
   ): Promise<void> {
-    console.log("[RelayClient] sendAckSignal() - Sending acknowledgment via Holochain");
-    console.log("[RelayClient] Signal ID:", signal_id);
-    console.log("[RelayClient] Target agent:", encodeHashToBase64(target));
+    console.log("[RelayClient] sendInitRequest() - Sending init request via Holochain");
 
     await this.client.callZome({
       cell_id: cellId,
       zome_name: ZOME_NAME,
-      fn_name: "send_ack_signal",
-      payload: { signal_id, target },
+      fn_name: "send_signal",
+      payload: {
+        room_id,
+        target,
+        payload_type: "InitRequest",
+        data: JSON.stringify({ connection_id }),
+      },
     });
 
-    console.log("[RelayClient] sendAckSignal() complete");
+    console.log("[RelayClient] sendInitRequest() complete");
+  }
+
+  public async sendInitAccept(
+    room_id: string,
+    target: AgentPubKey,
+    connection_id: string,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] sendInitAccept() - Sending init accept via Holochain");
+
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "send_signal",
+      payload: {
+        room_id,
+        target,
+        payload_type: "InitAccept",
+        data: JSON.stringify({ connection_id }),
+      },
+    });
+
+    console.log("[RelayClient] sendInitAccept() complete");
+  }
+
+  public async sendSdpData(
+    room_id: string,
+    target: AgentPubKey,
+    connection_id: string,
+    sdpData: object,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] sendSdpData() - Sending SDP data via Holochain");
+
+    const wrappedData = JSON.stringify({ connection_id, sdp: sdpData });
+
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "send_signal",
+      payload: { room_id, target, payload_type: "SdpData", data: wrappedData },
+    });
+
+    console.log("[RelayClient] sendSdpData() complete");
+  }
+
+  public async sendMediaStateSignal(
+    room_id: string,
+    target: AgentPubKey,
+    connection_id: string,
+    videoEnabled: boolean,
+    audioEnabled: boolean,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] sendMediaStateSignal() - Sending media state via Holochain");
+
+    const wrappedData = JSON.stringify({ connection_id, videoEnabled, audioEnabled });
+
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "send_signal",
+      payload: { room_id, target, payload_type: "MediaState", data: wrappedData },
+    });
+
+    console.log("[RelayClient] sendMediaStateSignal() complete");
+  }
+
+  public async getMyConferenceRole(
+    room_id: string,
+    cellId: CellId,
+  ): Promise<ConferenceRole | null> {
+    console.log("[RelayClient] getMyConferenceRole() - Fetching role from DHT");
+    const result = await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "get_my_conference_role",
+      payload: room_id,
+    });
+    console.log("[RelayClient] getMyConferenceRole() result:", result);
+    return result;
+  }
+
+  public async getConferenceParticipants(
+    room_id: string,
+    cellId: CellId,
+  ): Promise<ConferenceParticipantRecord[]> {
+    console.log("[RelayClient] getConferenceParticipants() - Fetching participants from DHT");
+    const result = await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "get_conference_participants",
+      payload: room_id,
+    });
+    console.log("[RelayClient] getConferenceParticipants() result:", result);
+    return result;
+  }
+
+  public async transferHost(
+    room_id: string,
+    new_host: AgentPubKey,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] transferHost() - Transferring host role");
+    const input: TransferHostInput = { room_id, new_host };
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "transfer_host",
+      payload: input,
+    });
+    console.log("[RelayClient] transferHost() complete");
+  }
+
+  public async kickParticipant(
+    room_id: string,
+    target: AgentPubKey,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] kickParticipant() - Kicking participant");
+    const input: KickParticipantInput = { room_id, target };
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "kick_participant",
+      payload: input,
+    });
+    console.log("[RelayClient] kickParticipant() complete");
+  }
+
+  public async changeParticipantRole(
+    room_id: string,
+    target: AgentPubKey,
+    new_role: ConferenceRole,
+    cellId: CellId,
+  ): Promise<void> {
+    console.log("[RelayClient] changeParticipantRole() - Changing role");
+    const input: RoleChangeInput = { room_id, target, new_role };
+    await this.client.callZome({
+      cell_id: cellId,
+      zome_name: ZOME_NAME,
+      fn_name: "change_participant_role",
+      payload: input,
+    });
+    console.log("[RelayClient] changeParticipantRole() complete");
   }
 }
