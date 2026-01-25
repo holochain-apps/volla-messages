@@ -40,8 +40,10 @@
     "p-retry": "^6.2.0",
     "pdfjs-dist": "^4.9.155",
     "pretty-bytes": "^6.1.1",
+    "simple-peer": "^9.11.1",
     "svelte-french-toast": "^1.2.0",
     "svelte-gestures": "5.0.6",
+    "svelte-moveable": "^0.45.0",
     "svelte-qrcode-image": "^2.0.0-alpha.1",
     "sveltekit-i18n": "^2.4.2",
     "uuid": "^10.0.0"
@@ -61,6 +63,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^20.11.19",
     "@types/pdfjs-dist": "^2.10.377",
+    "@types/simple-peer": "^9.11.9",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "@typescript-eslint/parser": "^8.16.0",

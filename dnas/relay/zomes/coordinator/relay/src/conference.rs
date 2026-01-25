@@ -14,8 +14,15 @@ fn room_path(room_id: &str) -> Path {
 fn get_conference(room_id: &str) -> ExternResult<Option<(ActionHash, Conference)>> {
     let path = room_path(room_id);
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::RoomIdToConference)?
-            .build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::RoomIdToConference.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
 
     for link in links {
@@ -37,8 +44,15 @@ fn get_participant(
     agent: &AgentPubKey,
 ) -> ExternResult<Option<(ActionHash, ConferenceParticipant)>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(conference_hash.clone(), LinkTypes::ConferenceToParticipants)?
-            .build(),
+        LinkQuery {
+            base: conference_hash.clone().into(),
+            link_type: LinkTypes::ConferenceToParticipants.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
 
     for link in links {
@@ -68,8 +82,15 @@ fn get_caller_role(room_id: &str) -> ExternResult<Option<ConferenceRole>> {
 
 fn get_all_participants(conference_hash: &ActionHash) -> ExternResult<Vec<ConferenceParticipant>> {
     let links = get_links(
-        GetLinksInputBuilder::try_new(conference_hash.clone(), LinkTypes::ConferenceToParticipants)?
-            .build(),
+        LinkQuery {
+            base: conference_hash.clone().into(),
+            link_type: LinkTypes::ConferenceToParticipants.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
 
     let mut participants = Vec::new();
@@ -393,12 +414,19 @@ pub fn end_conference_for_all(input: EndConferenceInput) -> ExternResult<()> {
 
     let room_path = room_path(&input.room_id);
     let links = get_links(
-        GetLinksInputBuilder::try_new(room_path.path_entry_hash()?, LinkTypes::RoomParticipants)?
-            .build(),
+        LinkQuery {
+            base: room_path.path_entry_hash()?.into(),
+            link_type: LinkTypes::RoomParticipants.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
 
     for link in links {
-        let _ = delete_link(link.create_link_hash);
+        let _ = delete_link(link.create_link_hash, GetOptions::local());
     }
 
     info!("[Rust] ========== end_conference_for_all() complete ==========");
@@ -672,14 +700,21 @@ fn remove_room_participant(room_id: &str) -> ExternResult<()> {
     let path = room_path(room_id);
 
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::RoomParticipants)?
-            .build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::RoomParticipants.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
 
     for link in links {
         if let Some(target_agent) = link.target.into_agent_pub_key() {
             if target_agent == agent_info.agent_initial_pubkey {
-                delete_link(link.create_link_hash)?;
+                delete_link(link.create_link_hash, GetOptions::local())?;
             }
         }
     }
@@ -691,8 +726,15 @@ fn get_room_participants(room_id: &str) -> ExternResult<Vec<AgentPubKey>> {
     let path = room_path(room_id);
 
     let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::RoomParticipants)?
-            .build(),
+        LinkQuery {
+            base: path.path_entry_hash()?.into(),
+            link_type: LinkTypes::RoomParticipants.try_into_filter()?,
+            tag_prefix: None,
+            after: None,
+            before: None,
+            author: None,
+        },
+        GetStrategy::Local,
     )?;
 
     Ok(links

@@ -150,7 +150,7 @@
   $: if (conferenceStore && $conferenceStore) {
     for (const [roomId, conf] of Object.entries($conferenceStore.data)) {
       if (conf && conf.ended && conf.isInitiator) {
-\        handleConferenceEnded(roomId);
+        handleConferenceEnded(roomId);
       }
     }
   }
