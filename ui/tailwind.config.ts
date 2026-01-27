@@ -2,6 +2,7 @@ import { join } from "path";
 import type { Config } from "tailwindcss";
 import { skeleton } from "@skeletonlabs/tw-plugin";
 import forms from "@tailwindcss/forms";
+import plugin from "tailwindcss/plugin";
 import { vollaTheme } from "./volla-theme";
 
 export default {
@@ -14,6 +15,8 @@ export default {
     extend: {
       screens: {
         xs: "400px",
+        portrait: { raw: "(orientation: portrait)" },
+        landscape: { raw: "(orientation: landscape)" },
       },
       fontSize: {
         xxs: "0.6rem",
@@ -46,6 +49,20 @@ export default {
         ],
         custom: [vollaTheme],
       },
+    }),
+    // Custom utilities for conference UI
+    plugin(function ({ addUtilities }) {
+      addUtilities({
+        ".scrollbar-hide": {
+          /* Hide scrollbar for Chrome, Safari and Opera */
+          "&::-webkit-scrollbar": {
+            display: "none",
+          },
+          /* Hide scrollbar for IE, Edge and Firefox */
+          "-ms-overflow-style": "none",
+          "scrollbar-width": "none",
+        },
+      });
     }),
   ],
 } satisfies Config;

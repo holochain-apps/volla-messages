@@ -21,15 +21,11 @@ export interface MediaManager {
 }
 
 export type CleanupPeerFn = (roomId: string, pubKey: string) => void;
-export type CleanupPeerWithVerificationFn = (
-  roomId: string,
-  pubKey: string,
-) => PeerCleanupReport;
+export type CleanupPeerWithVerificationFn = (roomId: string, pubKey: string) => PeerCleanupReport;
 export type HandleInitRequestFn = (roomId: string, signal: SimplePeerSignalPayload) => void;
 export type InitiateConnectionsFn = (roomId: string) => Promise<void>;
 export type StartConnectionHealthMonitoringFn = (roomId: string) => void;
 export type StopConnectionHealthMonitoringFn = (roomId: string) => void;
-
 
 export function createMediaManager(
   ctx: ConferenceContext,
@@ -40,7 +36,6 @@ export function createMediaManager(
   startConnectionHealthMonitoring: StartConnectionHealthMonitoringFn,
   stopConnectionHealthMonitoring: StopConnectionHealthMonitoringFn,
 ): MediaManager {
-
   async function getUserMediaWithFallback(): Promise<MediaStream> {
     const constraints = [
       {
@@ -194,29 +189,20 @@ export function createMediaManager(
   async function initializeWebRTC(roomId: string): Promise<void> {
     const state = safeGetConference(ctx, roomId);
     if (!state) {
-      console.error(
-        "[SimplePeer] initializeWebRTC: No conference state found for room:",
-        roomId,
-      );
+      console.error("[SimplePeer] initializeWebRTC: No conference state found for room:", roomId);
       return;
     }
 
     const isRejoining =
-      state.rejoiningTimestamp !== undefined &&
-      Date.now() - state.rejoiningTimestamp < 10000;
+      state.rejoiningTimestamp !== undefined && Date.now() - state.rejoiningTimestamp < 10000;
 
     if (state.localStream && !isRejoining) {
-      console.log(
-        "[SimplePeer] initializeWebRTC: WebRTC already initialized for room:",
-        roomId,
-      );
+      console.log("[SimplePeer] initializeWebRTC: WebRTC already initialized for room:", roomId);
       return;
     }
 
     if ((isRejoining || state.localStream) && state.localStream) {
-      console.log(
-        "[SimplePeer] initializeWebRTC: Detected rejoin, cleaning up old state first",
-      );
+      console.log("[SimplePeer] initializeWebRTC: Detected rejoin, cleaning up old state first");
 
       state.localStream.getTracks().forEach((track) => track.stop());
 
@@ -235,15 +221,11 @@ export function createMediaManager(
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    console.log(
-      "[SimplePeer] initializeWebRTC: Starting initialization for room:",
-      roomId,
-      {
-        isInitiator: state.isInitiator,
-        participantCount: state.participants.size,
-        isRejoining,
-      },
-    );
+    console.log("[SimplePeer] initializeWebRTC: Starting initialization for room:", roomId, {
+      isInitiator: state.isInitiator,
+      participantCount: state.participants.size,
+      isRejoining,
+    });
 
     try {
       const stream = await getUserMediaWithFallback();
@@ -261,26 +243,20 @@ export function createMediaManager(
       const videoEnabled = updatedState?.videoEnabled ?? true;
       const audioEnabled = updatedState?.audioEnabled ?? true;
 
-      console.log(
-        "[SimplePeer] initializeWebRTC: Read stored media state from store",
-        {
-          storedVideoEnabled: updatedState?.videoEnabled,
-          storedAudioEnabled: updatedState?.audioEnabled,
-          resolvedVideoEnabled: videoEnabled,
-          resolvedAudioEnabled: audioEnabled,
-        },
-      );
+      console.log("[SimplePeer] initializeWebRTC: Read stored media state from store", {
+        storedVideoEnabled: updatedState?.videoEnabled,
+        storedAudioEnabled: updatedState?.audioEnabled,
+        resolvedVideoEnabled: videoEnabled,
+        resolvedAudioEnabled: audioEnabled,
+      });
 
       const videoTracks = stream.getVideoTracks();
       const audioTracks = stream.getAudioTracks();
 
-      console.log(
-        "[SimplePeer] initializeWebRTC: Track counts before applying state",
-        {
-          videoTracks: videoTracks.length,
-          audioTracks: audioTracks.length,
-        },
-      );
+      console.log("[SimplePeer] initializeWebRTC: Track counts before applying state", {
+        videoTracks: videoTracks.length,
+        audioTracks: audioTracks.length,
+      });
 
       videoTracks.forEach((track) => {
         console.log(`[SimplePeer] Setting video track ${track.id} enabled=${videoEnabled}`);
@@ -301,9 +277,7 @@ export function createMediaManager(
       if (updatedState) {
         for (const [pubKey, participant] of updatedState.participants.entries()) {
           if (participant.pendingInitRequest) {
-            console.log(
-              `[SimplePeer] Processing buffered InitRequest from ${pubKey.slice(0, 20)}`,
-            );
+            console.log(`[SimplePeer] Processing buffered InitRequest from ${pubKey.slice(0, 20)}`);
             const bufferedSignal = participant.pendingInitRequest;
             updateParticipant(ctx, roomId, pubKey, (p) => ({
               ...p,
@@ -404,6 +378,7 @@ export function createMediaManager(
     ctx.conferences.updateKeyValue(roomId, (conf) => ({
       ...conf,
       localStream: undefined,
+      cleaningUp: false,
     }));
 
     console.log(`[SimplePeer] Cleanup verification report for ${roomId}:`, cleanupReport);

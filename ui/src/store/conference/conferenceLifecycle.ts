@@ -35,7 +35,6 @@ export function createConferenceLifecycle(
   cleanupPeer: CleanupPeerFn,
   cleanupWebRTC: CleanupWebRTCFn,
 ): ConferenceLifecycle {
-
   async function createConference(
     participants: AgentPubKeyB64[],
     cellIdB64?: string,
@@ -101,10 +100,7 @@ export function createConferenceLifecycle(
     return room.room_id;
   }
 
-  async function joinConference(
-    roomId: string,
-    participants: AgentPubKeyB64[],
-  ): Promise<void> {
+  async function joinConference(roomId: string, participants: AgentPubKeyB64[]): Promise<void> {
     const existingState = safeGetConference(ctx, roomId);
     const participantsDecoded = participants.map((p) => decodeHashFromBase64(p));
 
@@ -174,6 +170,7 @@ export function createConferenceLifecycle(
       rejoiningTimestamp: isRejoining ? Date.now() : undefined,
       myRole: ConferenceRole.Member,
       rolesFetchedAt: Date.now(),
+      cleaningUp: false,
     }));
 
     updateParticipant(ctx, roomId, myPubKey, (p) => ({

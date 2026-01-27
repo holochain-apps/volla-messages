@@ -291,6 +291,7 @@
       return;
     }
 
+    conferenceStore.setMinimized(roomId, false);
     conferenceStore.setShowPreJoinScreen(roomId, true);
   }
 

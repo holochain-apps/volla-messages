@@ -26,12 +26,22 @@
   let dismissingRoomId: string | null = null;
 
   $: pendingInvitations = Object.entries($conferenceStore?.data || {})
-    .filter(
-      ([_, conf]) =>
-        conf &&
-        (conf.invitationStatus === "pending" || conf.invitationStatus === "left") &&
-        !conf.ended,
-    )
+    .filter(([_, conf]) => {
+      if (!conf || conf.ended) return false;
+
+      // For pending invitations, always show
+      if (conf.invitationStatus === "pending") return true;
+
+      // For "left" state, only show if there are OTHER participants still in the call
+      if (conf.invitationStatus === "left") {
+        const otherActiveParticipants = Array.from(conf.participants?.entries() || []).filter(
+          ([pubKey, p]) => pubKey !== myPubKeyB64 && p.hasJoined,
+        );
+        return otherActiveParticipants.length > 0;
+      }
+
+      return false;
+    })
     .map(([roomId, conf]) => {
       // Count participants who have joined
       let participantCount = 0;
@@ -94,74 +104,74 @@
 </script>
 
 {#each pendingInvitations as invitation (invitation.roomId)}
-  <div class="bg-surface-100 dark:bg-surface-900 w-full px-4 py-2">
+  <div class="bg-surface-100 dark:bg-surface-900 w-full px-2 py-2 sm:px-4">
     <div
-      class="mx-auto flex max-w-2xl items-center justify-between rounded-full bg-zinc-800 px-4 py-3 shadow-lg"
+      class="mx-auto flex max-w-2xl items-center gap-2 rounded-2xl bg-zinc-800 px-3 py-2.5 shadow-lg sm:gap-3 sm:rounded-full sm:px-4 sm:py-3"
     >
-      <div class="flex items-center gap-3">
-        <div class="rounded-full bg-zinc-700 p-2.5">
-          <svg class="h-5 w-5 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-            />
-          </svg>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="text-sm font-medium text-white">
-            {#if invitation.isInitiator}
-              You started a call
-            {:else}
-              {getCallerName(invitation.invitedBy)} started a call
-            {/if}
-          </span>
-          <span class="text-xs text-zinc-400">{invitation.participantCount} in call</span>
-        </div>
+      <div class="flex-shrink-0 rounded-full bg-zinc-700 p-2 sm:p-2.5">
+        <svg
+          class="h-4 w-4 text-zinc-300 sm:h-5 sm:w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+          />
+        </svg>
       </div>
 
-      <div class="flex items-center gap-3">
-        <!-- Participant avatars -->
-        {#if invitation.joinedParticipants.length > 0}
-          <div class="flex -space-x-2">
-            {#each invitation.joinedParticipants as participantPubKey}
-              <div
-                class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-zinc-800"
-              >
-                <Avatar
-                  agentPubKeyB64={participantPubKey}
-                  size={32}
-                  cellIdB64={provisionedRelayCellIdB64}
-                />
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-        <ButtonInline
-          moreClassesButton="!bg-white hover:!bg-zinc-100 !text-black !h-9 !px-4 !py-1.5 !min-w-0"
-          on:click={() => handleJoin(invitation.roomId)}
-        >
-          {invitation.invitationStatus === "left" ? "Rejoin" : "Join Call"}
-        </ButtonInline>
-
-        <button
-          on:click={() => handleDismissClick(invitation.roomId)}
-          class="p-1 text-zinc-400 transition-colors hover:text-white"
-          aria-label="Dismiss"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs font-medium text-white sm:text-sm">
+          {#if invitation.isInitiator}
+            You started a call
+          {:else}
+            {getCallerName(invitation.invitedBy)} started a call
+          {/if}
+        </p>
+        <p class="text-[10px] text-zinc-400 sm:text-xs">{invitation.participantCount} in call</p>
       </div>
+
+      {#if invitation.joinedParticipants.length > 0}
+        <div class="xs:flex hidden flex-shrink-0 -space-x-2">
+          {#each invitation.joinedParticipants.slice(0, 2) as participantPubKey}
+            <div
+              class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-zinc-800 sm:h-8 sm:w-8"
+            >
+              <Avatar
+                agentPubKeyB64={participantPubKey}
+                size={28}
+                cellIdB64={provisionedRelayCellIdB64}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      <ButtonInline
+        moreClassesButton="flex-shrink-0 !bg-white hover:!bg-zinc-100 !text-black !h-8 !px-3 !py-1 !text-xs !min-w-0 sm:!h-9 sm:!px-4 sm:!py-1.5 sm:!text-sm"
+        on:click={() => handleJoin(invitation.roomId)}
+      >
+        {invitation.invitationStatus === "left" ? "Rejoin" : "Join"}
+      </ButtonInline>
+
+      <button
+        on:click={() => handleDismissClick(invitation.roomId)}
+        class="flex-shrink-0 p-1 text-zinc-400 transition-colors hover:text-white"
+        aria-label="Dismiss"
+      >
+        <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 {/each}

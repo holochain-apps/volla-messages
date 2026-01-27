@@ -119,11 +119,9 @@
           ([_, conf]) =>
             conf &&
             !conf.ended &&
-            !conf.isMinimized && // Exclude minimized conferences from full view
-            conf.invitationStatus !== "left" &&
+            !conf.isMinimized &&
             conf.invitationStatus !== "rejected" &&
-            // Include: initiator, accepted, or showPreJoinScreen is true (for PreJoinScreen overlay)
-            (conf.isInitiator || conf.invitationStatus === "accepted" || conf.showPreJoinScreen),
+            (conf.invitationStatus === "accepted" || conf.showPreJoinScreen),
         )?.[0]
       : null;
 

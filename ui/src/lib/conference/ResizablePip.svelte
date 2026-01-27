@@ -8,8 +8,6 @@
   export let minHeight: number = 75;
   export let maxWidth: number = 400;
   export let maxHeight: number = 300;
-  export let initialX: number | null = null;
-  export let initialY: number | null = null;
   export let boundsPadding: number = 16;
   export let persistKey: string | null = null;
   export let keepAspectRatio: boolean = true;
@@ -28,8 +26,6 @@
   let y = 0;
   let mounted = false;
   let containerBounds = { width: 0, height: 0 };
-
-  $: aspectRatio = initialWidth / initialHeight;
 
   function loadPersistedState() {
     if (!persistKey) return null;
@@ -55,6 +51,8 @@
 
   function calculateInitialPosition() {
     const persisted = loadPersistedState();
+    const bottomPadding = boundsPadding + 50;
+
     if (persisted) {
       width = Math.max(minWidth, Math.min(maxWidth, persisted.width || initialWidth));
       height = Math.max(minHeight, Math.min(maxHeight, persisted.height || initialHeight));
@@ -64,13 +62,13 @@
       if (container) {
         const rect = container.getBoundingClientRect();
         x = Math.max(boundsPadding, Math.min(rect.width - width - boundsPadding, x));
-        y = Math.max(boundsPadding, Math.min(rect.height - height - boundsPadding, y));
+        y = Math.max(boundsPadding, Math.min(rect.height - height - bottomPadding, y));
       }
     } else {
       if (container) {
         const rect = container.getBoundingClientRect();
         x = rect.width - width - boundsPadding;
-        y = rect.height - height - boundsPadding;
+        y = rect.height - height - bottomPadding;
       }
     }
   }
@@ -144,12 +142,17 @@
   });
 </script>
 
-<div bind:this={container} class="pointer-events-none absolute inset-0" style="z-index: {zIndex};">
+<div
+  bind:this={container}
+  class="absolute inset-0"
+  style="z-index: {zIndex}; pointer-events: none;"
+>
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
     bind:this={target}
-    class="pointer-events-auto absolute cursor-move overflow-hidden rounded-xl shadow-2xl ring-2 ring-white/20"
+    class="absolute cursor-move overflow-hidden rounded-xl shadow-2xl ring-2 ring-white/20"
+    style="pointer-events: auto;"
     on:click={handleClick}
   >
     <slot />
@@ -183,30 +186,3 @@
     />
   {/if}
 </div>
-
-<style>
-  /* Moveable control styling */
-  :global(.moveable-control-box) {
-    --moveable-color: rgba(255, 255, 255, 0.8) !important;
-  }
-
-  :global(.moveable-line) {
-    background: rgba(255, 255, 255, 0.3) !important;
-    height: 2px !important;
-    width: 2px !important;
-  }
-
-  :global(.moveable-control) {
-    background: rgba(255, 255, 255, 0.9) !important;
-    border: 2px solid rgba(0, 0, 0, 0.3) !important;
-    border-radius: 50% !important;
-    width: 12px !important;
-    height: 12px !important;
-    margin-top: -6px !important;
-    margin-left: -6px !important;
-  }
-
-  :global(.moveable-direction.moveable-se) {
-    cursor: se-resize !important;
-  }
-</style>

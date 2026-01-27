@@ -38,11 +38,11 @@
   function getSizeClasses(): string {
     switch (size) {
       case "sm":
-        return "h-10 w-10 sm:h-11 sm:w-11";
+        return "h-[clamp(40px,10vw,44px)] w-[clamp(40px,10vw,44px)] sm:h-11 sm:w-11";
       case "lg":
-        return "h-14 w-14 sm:h-16 sm:w-16";
+        return "h-[clamp(48px,13vw,56px)] w-[clamp(48px,13vw,56px)] sm:h-14 sm:w-14 md:h-16 md:w-16";
       default:
-        return "h-12 w-12 sm:h-14 sm:w-14";
+        return "h-[clamp(44px,11vw,48px)] w-[clamp(44px,11vw,48px)] sm:h-12 sm:w-12 md:h-14 md:w-14";
     }
   }
 
@@ -51,9 +51,9 @@
       case "sm":
         return "h-4 w-4 sm:h-5 sm:w-5";
       case "lg":
-        return "h-6 w-6 sm:h-7 sm:w-7";
+        return "h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7";
       default:
-        return "h-5 w-5 sm:h-6 sm:w-6";
+        return "h-[clamp(18px,5vw,20px)] w-[clamp(18px,5vw,20px)] sm:h-5 sm:w-5 md:h-6 md:w-6";
     }
   }
 
@@ -66,17 +66,20 @@
 <div class="flex flex-col items-center gap-1">
   <button
     on:click
-    class="group flex items-center justify-center rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-secondary-500 {bgClasses} {sizeClasses}
-      {disabled ? 'opacity-40' : 'active:scale-95 hover:scale-105'}"
+    class="focus:ring-offset-secondary-500 group flex items-center justify-center rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 {bgClasses} {sizeClasses}
+      {disabled ? 'opacity-40' : 'hover:scale-105 active:scale-95'}"
     {disabled}
     {title}
     aria-label={label || title}
     aria-pressed={active}
   >
-    <SvgIcon {icon} moreClasses="{iconClasses} {textColor} transition-transform group-hover:scale-110" />
+    <SvgIcon
+      {icon}
+      moreClasses="{iconClasses} {textColor} transition-transform group-hover:scale-110"
+    />
   </button>
 
   {#if showLabel && label}
-    <span class="text-[10px] font-medium text-tertiary-500 sm:text-xs">{label}</span>
+    <span class="text-tertiary-500 text-[10px] font-medium sm:text-xs">{label}</span>
   {/if}
 </div>

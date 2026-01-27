@@ -202,31 +202,33 @@
 </script>
 
 <div
-  class="bg-secondary-500/95 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md"
+  class="bg-secondary-500/95 fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 backdrop-blur-md sm:p-4"
   transition:fade={{ duration: 200 }}
 >
   <div
-    class="bg-secondary-400 mx-4 w-full max-w-lg rounded-3xl p-6 shadow-2xl sm:p-8"
+    class="bg-secondary-400 my-auto w-full max-w-lg rounded-2xl p-4 shadow-2xl sm:rounded-3xl sm:p-6 md:p-8"
     transition:scale={{ duration: 200, start: 0.95 }}
   >
-    <div class="mb-6 text-center">
-      <h2 class="text-tertiary-300 text-xl font-bold sm:text-2xl">
+    <div class="mb-4 text-center sm:mb-6">
+      <h2 class="text-tertiary-300 text-lg font-bold sm:text-xl md:text-2xl">
         {$t("common.conference_preJoinTitle")}
       </h2>
       {#if callerName}
-        <p class="text-tertiary-500 mt-2 text-sm">
+        <p class="text-tertiary-500 mt-1.5 text-xs sm:mt-2 sm:text-sm">
           {callerName}
           {participantCount > 1 ? `and ${participantCount - 1} others` : ""}
           {$t("common.conference_isCalling")}
         </p>
       {:else}
-        <p class="text-tertiary-500 mt-2 text-sm">
+        <p class="text-tertiary-500 mt-1.5 text-xs sm:mt-2 sm:text-sm">
           {$t("common.conference_preJoinSubtitle")}
         </p>
       {/if}
     </div>
 
-    <div class="bg-secondary-500 relative mb-6 aspect-video w-full overflow-hidden rounded-2xl">
+    <div
+      class="bg-secondary-500 relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl sm:mb-6 sm:aspect-video sm:rounded-2xl"
+    >
       {#if videoEnabled && localStream}
         <video
           bind:this={videoElement}
@@ -234,15 +236,19 @@
           muted
           playsinline
           class="h-full w-full object-cover"
+          style="transform: scaleX(-1);"
         >
           <track kind="captions" />
         </video>
       {:else}
         <div class="flex h-full w-full items-center justify-center">
           <div
-            class="bg-secondary-400 flex h-24 w-24 items-center justify-center rounded-full sm:h-32 sm:w-32"
+            class="bg-secondary-400 flex h-[clamp(64px,18vw,128px)] w-[clamp(64px,18vw,128px)] items-center justify-center rounded-full"
           >
-            <SvgIcon icon="videocamOff" moreClasses="h-12 w-12 text-tertiary-500 sm:h-16 sm:w-16" />
+            <SvgIcon
+              icon="videocamOff"
+              moreClasses="h-[clamp(32px,9vw,64px)] w-[clamp(32px,9vw,64px)] text-tertiary-500"
+            />
           </div>
         </div>
       {/if}
@@ -266,16 +272,16 @@
       {/if}
     </div>
 
-    <div class="mb-6">
+    <div class="mb-4 sm:mb-6">
       <div class="flex items-center justify-between">
-        <span class="text-tertiary-400 text-xs font-medium">
+        <span class="text-tertiary-400 text-[10px] font-medium sm:text-xs">
           {$t("common.conference_audioInput")}
         </span>
-        <span class="text-xs {hasAudio ? 'text-success-500' : 'text-tertiary-500'}">
+        <span class="text-[10px] sm:text-xs {hasAudio ? 'text-success-500' : 'text-tertiary-500'}">
           {hasAudio ? $t("common.conference_audioWorking") : $t("common.conference_noAudio")}
         </span>
       </div>
-      <div class="bg-secondary-500 mt-2 h-2 w-full overflow-hidden rounded-full">
+      <div class="bg-secondary-500 mt-1.5 h-1.5 w-full overflow-hidden rounded-full sm:mt-2 sm:h-2">
         <div
           class="h-full rounded-full transition-all duration-75 {hasAudio
             ? 'bg-success-500'
@@ -286,15 +292,18 @@
     </div>
 
     {#if !isLoadingDevices && !permissionError}
-      <div class="mb-6 space-y-4">
+      <div class="mb-4 space-y-3 sm:mb-6 sm:space-y-4">
         {#if videoDevices.length > 1}
           <div>
-            <label for="video-device" class="text-tertiary-400 mb-1 block text-xs font-medium">
+            <label
+              for="video-device"
+              class="text-tertiary-400 mb-1 block text-[10px] font-medium sm:text-xs"
+            >
               {$t("common.conference_videoInput")}
             </label>
             <select
               id="video-device"
-              class="bg-secondary-500 text-tertiary-300 focus:ring-primary-500 w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
+              class="bg-secondary-500 text-tertiary-300 focus:ring-primary-500 w-full rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
               bind:value={selectedVideoDevice}
               on:change={(e) => handleDeviceChange("video", e.currentTarget.value)}
             >
@@ -309,12 +318,15 @@
 
         {#if audioDevices.length > 1}
           <div>
-            <label for="audio-device" class="text-tertiary-400 mb-1 block text-xs font-medium">
+            <label
+              for="audio-device"
+              class="text-tertiary-400 mb-1 block text-[10px] font-medium sm:text-xs"
+            >
               {$t("common.conference_audioInput")}
             </label>
             <select
               id="audio-device"
-              class="bg-secondary-500 text-tertiary-300 focus:ring-primary-500 w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
+              class="bg-secondary-500 text-tertiary-300 focus:ring-primary-500 w-full rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
               bind:value={selectedAudioDevice}
               on:change={(e) => handleDeviceChange("audio", e.currentTarget.value)}
             >
@@ -329,38 +341,38 @@
       </div>
     {/if}
 
-    <div class="mb-6 flex justify-center gap-4">
+    <div class="mb-4 flex justify-center gap-3 sm:mb-6 sm:gap-4">
       <ConferenceControlButton
         icon={audioEnabled ? "mic" : "micOff"}
         active={!audioEnabled}
         label={audioEnabled ? $t("common.conference_mute") : $t("common.conference_unmute")}
-        size="lg"
+        size="md"
         on:click={toggleAudio}
       />
       <ConferenceControlButton
         icon={videoEnabled ? "videocam" : "videocamOff"}
         active={!videoEnabled}
         label={videoEnabled ? $t("common.conference_cameraOn") : $t("common.conference_cameraOff")}
-        size="lg"
+        size="md"
         on:click={toggleVideo}
       />
     </div>
 
-    <div class="flex gap-3">
+    <div class="flex gap-2 sm:gap-3">
       <Button
-        moreClasses="flex-1 !bg-secondary-500 hover:!bg-secondary-300 !text-tertiary-300"
+        moreClasses="flex-1 !bg-secondary-500 hover:!bg-secondary-300 !text-tertiary-300 !text-xs sm:!text-sm !py-2.5 sm:!py-3"
         on:click={handleCancel}
       >
         {$t("common.cancel")}
       </Button>
       <Button
-        moreClasses="flex-1 !bg-success-500 hover:!bg-success-600 !text-white"
+        moreClasses="flex-1 !bg-success-500 hover:!bg-success-600 !text-white !text-xs sm:!text-sm !py-2.5 sm:!py-3"
         on:click={handleJoin}
         disabled={!!permissionError}
       >
-        <div class="flex items-center justify-center gap-2">
-          <SvgIcon icon="phone" moreClasses="h-5 w-5" />
-          {$t("common.conference_joinCall")}
+        <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+          <SvgIcon icon="phone" moreClasses="h-4 w-4 sm:h-5 sm:w-5" />
+          <span>{$t("common.conference_joinCall")}</span>
         </div>
       </Button>
     </div>

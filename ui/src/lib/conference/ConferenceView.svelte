@@ -51,17 +51,12 @@
   let conferenceEndedLogged = false;
 
   const MAX_PARTICIPANTS = 6;
-  const CONTROLS_HIDE_DELAY = 3000;
-
   let isGridView = false;
   let callDurationSeconds = 0;
   let callStartTime: number | null = null;
   let durationInterval: ReturnType<typeof setInterval> | null = null;
   $: videoEnabled = $conferenceStore?.videoEnabled ?? true;
   $: audioEnabled = $conferenceStore?.audioEnabled ?? true;
-
-  let showControls = true;
-  let controlsTimeout: ReturnType<typeof setTimeout> | null = null;
   let showPreJoinScreen = showPreJoin;
   let pipExpanded = false; // When true, local video is main and remote is PiP
 
@@ -120,8 +115,13 @@
     myRole,
   );
 
+  // Show PreJoinScreen for:
+  // 1. Non-initiators receiving an invitation
+  // 2. Anyone rejoining after leaving (invitationStatus === "left")
   $: shouldShowPreJoinScreen =
-    $conferenceStore && $conferenceStore.showPreJoinScreen && !$conferenceStore.isInitiator;
+    $conferenceStore &&
+    $conferenceStore.showPreJoinScreen &&
+    (!$conferenceStore.isInitiator || $conferenceStore.invitationStatus === "left");
 
   $: if (!suppressErrorDialog && currentError && currentError !== errorDialogMessage) {
     const isRejected = $conferenceStore?.invitationStatus === "rejected";
@@ -140,11 +140,6 @@
     if (onConferenceEnded && roomId) {
       onConferenceEnded(roomId);
     }
-    onClose();
-  }
-
-  $: if ($conferenceStore?.invitationStatus === "left" && !$conferenceStore?.ended) {
-    onClose();
   }
 
   function buildParticipantList(
@@ -234,17 +229,7 @@
     return conferenceStoreBase.canKick(roomId, targetPubKeyB64);
   }
 
-  function resetControlsTimer() {
-    showControls = true;
-    if (controlsTimeout) clearTimeout(controlsTimeout);
-    controlsTimeout = setTimeout(() => {
-      showControls = false;
-    }, CONTROLS_HIDE_DELAY);
-  }
-
-  function handleScreenInteraction() {
-    resetControlsTimer();
-  }
+  function handleScreenInteraction() {}
 
   function toggleMute() {
     if ($conferenceStore?.localStream) {
@@ -270,19 +255,19 @@
     }
   }
 
-  function endCall() {
+  async function endCall() {
     if (roomId && canEndForAll) {
       showEndCallDialog = true;
     } else {
       if (roomId) {
-        conferenceStoreBase.leaveConference(roomId);
+        await conferenceStoreBase.leaveConference(roomId);
         conferenceStoreBase.cleanupWebRTC(roomId);
       }
-      onClose();
     }
   }
 
   async function confirmEndForAll() {
+    showEndCallDialog = false;
     if (roomId) {
       conferenceStoreBase.cleanupWebRTC(roomId);
 
@@ -296,32 +281,28 @@
         }
       }
     }
-    showEndCallDialog = false;
-    onClose();
   }
 
-  function confirmJustLeave() {
+  async function confirmJustLeave() {
+    showEndCallDialog = false;
     if (roomId) {
-      conferenceStoreBase.leaveConference(roomId);
+      await conferenceStoreBase.leaveConference(roomId);
       conferenceStoreBase.cleanupWebRTC(roomId);
     }
-    showEndCallDialog = false;
-    onClose();
   }
 
-  function handleRejectCall() {
-    conferenceStoreBase.rejectConferenceInvitation(roomId);
-    onClose();
+  async function handleRejectCall() {
+    await conferenceStoreBase.rejectConferenceInvitation(roomId);
+    // Don't call onClose() - state change (invitationStatus: "rejected") closes view automatically
   }
 
-  function handleErrorClose() {
+  async function handleErrorClose() {
     suppressErrorDialog = true;
     showErrorDialog = false;
     if (roomId) {
       conferenceStoreBase.cleanupWebRTC(roomId);
-      conferenceStoreBase.leaveConference(roomId);
+      await conferenceStoreBase.leaveConference(roomId);
     }
-    onClose();
   }
 
   function handlePreJoinComplete(
@@ -440,8 +421,6 @@
       }
     }, 1000);
 
-    resetControlsTimer();
-
     if ($conferenceStore?.cellIdB64 && $conferenceStore.invitationStatus !== "pending") {
       conferenceStoreBase.fetchRoles(roomId).catch(console.error);
     }
@@ -461,7 +440,6 @@
 
   onDestroy(() => {
     if (durationInterval) clearInterval(durationInterval);
-    if (controlsTimeout) clearTimeout(controlsTimeout);
     activeSpeakerStore.destroy();
   });
 
@@ -521,16 +499,33 @@
       participantCount={allParticipants.length}
       maxParticipants={MAX_PARTICIPANTS}
       {isGridView}
-      visible={showControls}
+      visible={true}
       on:toggleView={() => (isGridView = !isGridView)}
       on:minimize={onClose}
     />
 
-    <div class="h-full w-full p-2 pb-24 pt-16 sm:p-4 sm:pb-28 sm:pt-20">
+    <div
+      class="flex h-full w-full flex-col p-2 pb-24 pt-16 sm:p-3 sm:pb-28 sm:pt-20 md:p-4 md:pb-32 md:pt-24 lg:p-6 lg:pb-36 lg:pt-28"
+    >
       {#if isGridView}
-        <div class="mx-auto grid h-full max-w-7xl grid-cols-2 gap-2 sm:gap-3">
+        <div
+          class="mx-auto grid h-full w-full gap-2 sm:gap-3
+            {allParticipants.length === 1
+            ? 'max-w-2xl grid-cols-1'
+            : allParticipants.length === 2
+              ? 'max-w-4xl grid-cols-1 portrait:grid-cols-1 landscape:grid-cols-2'
+              : 'max-w-7xl grid-cols-2'}
+            {allParticipants.length <= 2 ? 'place-content-center' : ''}"
+        >
           {#each allParticipants.slice(0, 4) as participant (participant.pubKey)}
-            <div animate:flip={{ duration: 250 }}>
+            <div
+              class="min-h-0 min-w-0 {allParticipants.length === 1
+                ? 'max-h-[70dvh]'
+                : allParticipants.length === 2
+                  ? 'max-h-[45dvh] landscape:max-h-[70dvh]'
+                  : ''}"
+              animate:flip={{ duration: 250 }}
+            >
               <ParticipantTile
                 {participant}
                 variant="grid"
@@ -551,7 +546,7 @@
           {/each}
         </div>
       {:else}
-        <div class="relative mx-auto flex h-full max-w-7xl flex-col">
+        <div class="relative mx-auto h-full w-full max-w-7xl">
           {#if pipExpanded}
             <ParticipantTile
               participant={{
@@ -617,15 +612,15 @@
 
           {#if activeParticipant}
             <ResizablePip
-              initialWidth={160}
-              initialHeight={120}
+              initialWidth={120}
+              initialHeight={90}
               minWidth={100}
               minHeight={75}
-              maxWidth={320}
-              maxHeight={240}
+              maxWidth={200}
+              maxHeight={150}
               boundsPadding={16}
               keepAspectRatio={true}
-              persistKey="conference-pip-position"
+              persistKey="conference-pip-v3"
               on:click={() => (pipExpanded = !pipExpanded)}
             >
               {#if pipExpanded}
@@ -666,38 +661,6 @@
               {/if}
             </ResizablePip>
           {/if}
-
-          {#if remoteParticipants.length > 1}
-            <div
-              class="absolute bottom-4 left-4 z-20 flex max-w-[60%] gap-2 overflow-x-auto sm:bottom-6 sm:left-6 sm:max-w-[50%]"
-            >
-              {#each remoteParticipants
-                .filter((p) => p.pubKey !== activeParticipant?.pubKey)
-                .slice(0, 2) as participant (participant.pubKey)}
-                <button
-                  class="w-24 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-2xl ring-2 ring-white/20 transition-transform hover:scale-105 active:scale-95 sm:w-32"
-                  on:click={() => {
-                    activeSpeakerStore.setManualSpeaker(participant.pubKey);
-                    pipExpanded = false;
-                  }}
-                  aria-label="Switch to {getParticipantName(participant.pubKey)}"
-                  animate:flip={{ duration: 250 }}
-                >
-                  <ParticipantTile
-                    {participant}
-                    variant="pip"
-                    localStream={$conferenceStore?.localStream}
-                    isLocalVideoEnabled={isVideoEnabled}
-                    isLocalMuted={isMuted}
-                    {myRole}
-                    getName={getParticipantName}
-                    canKick={canKickParticipant}
-                    cellIdB64={$conferenceStore?.cellIdB64}
-                  />
-                </button>
-              {/each}
-            </div>
-          {/if}
         </div>
       {/if}
     </div>
@@ -706,7 +669,7 @@
       {isMuted}
       {isVideoEnabled}
       {callDurationSeconds}
-      visible={showControls}
+      visible={true}
       on:toggleMute={toggleMute}
       on:toggleVideo={toggleVideo}
       on:endCall={endCall}

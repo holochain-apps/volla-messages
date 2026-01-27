@@ -513,14 +513,14 @@ export class ConferenceLifecycleManager {
   }
 
   static canRejoin(conference: SimplePeerConferenceState, myPubKey: string): boolean {
-    // Can't rejoin if ended, rejected, or kicked
+    // Can't rejoin if ended or rejected
     if (conference.ended) return false;
     if (conference.invitationStatus === "rejected") return false;
 
-    // Can rejoin if in "left" state
-    if (conference.invitationStatus !== "left") return false;
-
     // Check if there are other participants to rejoin to
+    // This works both for:
+    // 1. Checking "can I rejoin?" when status is already "left"
+    // 2. Checking "should leaving allow rejoin?" when status is still "accepted"
     const otherJoinedParticipants = Array.from(conference.participants.entries()).filter(
       ([pubKey, p]) => pubKey !== myPubKey && p.hasJoined,
     );

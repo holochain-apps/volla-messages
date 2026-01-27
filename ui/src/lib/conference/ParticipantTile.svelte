@@ -118,24 +118,17 @@
   $: isMenuOpen = activeMenuPubKey === participant.pubKey;
 
   $: avatarSize =
-    variant === "main" ? 120 : variant === "pip" ? 40 : variant === "sidebar" ? 50 : 60;
-  $: avatarClasses =
-    variant === "main"
-      ? "sm:w-[200px] sm:h-[200px]"
-      : variant === "pip"
-        ? "sm:w-[60px] sm:h-[60px]"
-        : variant === "sidebar"
-          ? "sm:w-[80px] sm:h-[80px]"
-          : "sm:w-[80px] sm:h-[80px]";
+    variant === "main" ? 120 : variant === "pip" ? 40 : variant === "sidebar" ? 48 : 64;
+  $: avatarClasses = "";
 
   $: containerClasses =
     variant === "main"
-      ? "relative flex-1 overflow-hidden rounded-xl bg-gradient-to-br from-secondary-400 to-secondary-500 sm:rounded-2xl"
+      ? "relative h-full w-full overflow-hidden rounded-xl bg-gradient-to-br from-secondary-400 to-secondary-500 sm:rounded-2xl"
       : variant === "pip"
-        ? "relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-secondary-400 to-secondary-500"
+        ? "relative aspect-[4/3] h-full w-full overflow-hidden rounded-lg bg-gradient-to-br from-secondary-400 to-secondary-500"
         : variant === "sidebar"
-          ? "relative min-w-[100px] aspect-square flex-1 overflow-hidden rounded-lg bg-gradient-to-br from-secondary-400 to-secondary-500 sm:min-w-0 sm:aspect-video sm:rounded-xl"
-          : "relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-br from-secondary-400 to-secondary-500";
+          ? "relative aspect-[4/3] h-full w-full overflow-hidden rounded-lg bg-gradient-to-br from-secondary-400 to-secondary-500 sm:aspect-video sm:rounded-xl"
+          : "relative aspect-[4/3] h-full w-full overflow-hidden rounded-xl bg-gradient-to-br from-secondary-400 to-secondary-500 sm:aspect-video sm:rounded-2xl";
 
   $: displayName = getName(participant.pubKey);
   $: truncatedName = variant === "sidebar" ? displayName.split(" ")[0] : displayName;
@@ -174,34 +167,50 @@
       />
     </div>
   {:else if showWaiting}
-    <div class="bg-secondary-500 absolute inset-0 flex items-center justify-center">
+    <div class="bg-secondary-500 absolute inset-0 flex items-center justify-center p-2">
       <div class="text-center">
         {#if variant === "main"}
           <div
-            class="bg-secondary-400 mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full sm:h-48 sm:w-48"
+            class="bg-secondary-400 mx-auto mb-3 flex h-[clamp(80px,20vw,192px)] w-[clamp(80px,20vw,192px)] items-center justify-center rounded-full"
           >
-            <SvgIcon icon="user" moreClasses="h-16 w-16 text-tertiary-500 sm:h-24 sm:w-24" />
+            <SvgIcon
+              icon="user"
+              moreClasses="h-[clamp(40px,10vw,96px)] w-[clamp(40px,10vw,96px)] text-tertiary-500"
+            />
           </div>
-          <p class="text-tertiary-500 text-sm sm:text-base">
+          <p class="text-tertiary-500 text-xs sm:text-sm md:text-base">
             {$t("common.conference_waitingToJoin") || "Waiting to join..."}
           </p>
         {:else if variant === "pip"}
-          <div class="bg-secondary-400 flex h-10 w-10 items-center justify-center rounded-full">
-            <SvgIcon icon="user" moreClasses="h-5 w-5 text-tertiary-500" />
+          <div
+            class="bg-secondary-400 flex h-[clamp(28px,8vw,40px)] w-[clamp(28px,8vw,40px)] items-center justify-center rounded-full"
+          >
+            <SvgIcon
+              icon="user"
+              moreClasses="h-[clamp(14px,4vw,20px)] w-[clamp(14px,4vw,20px)] text-tertiary-500"
+            />
           </div>
         {:else if variant === "sidebar"}
           <div
-            class="bg-secondary-400 flex h-12 w-12 items-center justify-center rounded-full sm:h-20 sm:w-20"
+            class="bg-secondary-400 flex h-[clamp(40px,12vw,80px)] w-[clamp(40px,12vw,80px)] items-center justify-center rounded-full"
           >
-            <SvgIcon icon="user" moreClasses="h-6 w-6 text-tertiary-500 sm:h-10 sm:w-10" />
+            <SvgIcon
+              icon="user"
+              moreClasses="h-[clamp(20px,6vw,40px)] w-[clamp(20px,6vw,40px)] text-tertiary-500"
+            />
           </div>
         {:else}
           <div
-            class="bg-secondary-400 mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full sm:h-20 sm:w-20"
+            class="bg-secondary-400 mx-auto mb-1.5 flex h-[clamp(48px,14vw,80px)] w-[clamp(48px,14vw,80px)] items-center justify-center rounded-full sm:mb-2"
           >
-            <SvgIcon icon="user" moreClasses="h-7 w-7 text-tertiary-500 sm:h-10 sm:w-10" />
+            <SvgIcon
+              icon="user"
+              moreClasses="h-[clamp(24px,7vw,40px)] w-[clamp(24px,7vw,40px)] text-tertiary-500"
+            />
           </div>
-          <p class="text-tertiary-500 text-xs">{$t("common.conference_waiting") || "Waiting..."}</p>
+          <p class="text-tertiary-500 text-[10px] sm:text-xs">
+            {$t("common.conference_waiting") || "Waiting..."}
+          </p>
         {/if}
       </div>
     </div>
@@ -247,41 +256,41 @@
 
   {#if variant === "main"}
     <div
-      class="absolute bottom-4 left-4 right-4 flex items-center justify-between sm:bottom-6 sm:left-6 sm:right-6"
+      class="absolute bottom-2 left-2 right-2 flex items-end justify-between gap-2 sm:bottom-4 sm:left-4 sm:right-4 md:bottom-6 md:left-6 md:right-6"
     >
       <div
-        class="flex items-center gap-2 rounded-xl bg-black/60 px-3 py-2 backdrop-blur-md sm:gap-3 sm:px-4 sm:py-2.5"
+        class="flex max-w-[70%] items-center gap-1.5 rounded-lg bg-black/60 px-2 py-1.5 backdrop-blur-md sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 md:gap-3 md:px-4 md:py-2.5"
       >
         <div
-          class="flex h-6 w-6 items-center justify-center rounded-full sm:h-8 sm:w-8
+          class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full sm:h-6 sm:w-6 md:h-8 md:w-8
           {isMuted ? 'bg-error-500' : 'bg-success-500/80'}"
         >
           <SvgIcon
             icon={isMuted ? "micOff" : "mic"}
-            moreClasses="h-3 w-3 text-white sm:h-4 sm:w-4"
+            moreClasses="h-2.5 w-2.5 text-white sm:h-3 sm:w-3 md:h-4 md:w-4"
           />
         </div>
-        <div class="flex items-center gap-2">
-          <span
-            class="max-w-[150px] truncate text-sm font-semibold text-white sm:max-w-[250px] sm:text-base"
-          >
+        <div class="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <span class="truncate text-xs font-semibold text-white sm:text-sm md:text-base">
             {displayName}{participant.isLocal ? " (You)" : ""}
           </span>
-          <RoleBadge role={participant.role} size="md" showIcon />
+          <RoleBadge role={participant.role} size="sm" showIcon />
         </div>
       </div>
 
       {#if !participant.isLocal && participant.connectionQuality}
         <div
-          class="flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 backdrop-blur-md"
+          class="flex flex-shrink-0 items-center gap-1 rounded-md bg-black/60 px-1.5 py-1 backdrop-blur-md sm:gap-1.5 sm:rounded-lg sm:px-2.5 sm:py-1.5"
           title={getQualityLabel(participant.connectionQuality)}
         >
           <div
-            class="h-2.5 w-2.5 rounded-full {getQualityIndicatorClass(
+            class="h-2 w-2 rounded-full sm:h-2.5 sm:w-2.5 {getQualityIndicatorClass(
               participant.connectionQuality,
             )}"
           />
-          <span class="text-tertiary-400 text-xs">{participant.connectionQuality}</span>
+          <span class="text-tertiary-400 hidden text-[10px] sm:inline sm:text-xs"
+            >{participant.connectionQuality}</span
+          >
         </div>
       {/if}
     </div>
@@ -323,41 +332,41 @@
     </div>
   {:else}
     <div
-      class="absolute bottom-2 left-2 right-2 flex items-center justify-between sm:bottom-4 sm:left-4 sm:right-4"
+      class="absolute bottom-1.5 left-1.5 right-1.5 flex flex-wrap items-end justify-between gap-1 sm:bottom-2 sm:left-2 sm:right-2 sm:gap-1.5 md:bottom-3 md:left-3 md:right-3"
     >
       <div
-        class="flex items-center gap-1.5 rounded-xl bg-black/60 px-2 py-1.5 backdrop-blur-md sm:gap-2 sm:px-3 sm:py-2"
+        class="flex min-w-0 flex-1 items-center gap-1 rounded-lg bg-black/60 px-1.5 py-1 backdrop-blur-md sm:gap-1.5 sm:px-2 sm:py-1.5 md:rounded-xl md:px-3 md:py-2"
       >
         <div
-          class="flex h-5 w-5 items-center justify-center rounded-full sm:h-6 sm:w-6
+          class="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full sm:h-5 sm:w-5 md:h-6 md:w-6
           {isMuted ? 'bg-error-500' : 'bg-success-500/80'}"
         >
           <SvgIcon
             icon={isMuted ? "micOff" : "mic"}
-            moreClasses="h-2.5 w-2.5 text-white sm:h-3 sm:w-3"
+            moreClasses="h-2 w-2 text-white sm:h-2.5 sm:w-2.5 md:h-3 md:w-3"
           />
         </div>
-        <div class="flex flex-col">
-          <div class="flex items-center gap-1">
-            <span
-              class="max-w-[80px] truncate text-[10px] font-semibold text-white sm:max-w-[120px] sm:text-xs"
-            >
-              {displayName}{participant.isLocal ? " (You)" : ""}
-            </span>
-            <RoleBadge role={participant.role} size="sm" />
-          </div>
+        <div class="flex min-w-0 items-center gap-1">
+          <span
+            class="min-w-0 truncate text-[9px] font-semibold text-white sm:text-[10px] md:text-xs"
+          >
+            {displayName}{participant.isLocal ? " (You)" : ""}
+          </span>
+          <RoleBadge role={participant.role} size="sm" />
         </div>
       </div>
 
       {#if !participant.isLocal && participant.connectionQuality}
         <div
-          class="flex items-center gap-1 rounded-lg bg-black/60 px-2 py-1 backdrop-blur-md"
+          class="flex flex-shrink-0 items-center gap-0.5 rounded-md bg-black/60 px-1 py-0.5 backdrop-blur-md sm:gap-1 sm:rounded-lg sm:px-1.5 sm:py-1"
           title={getQualityLabel(participant.connectionQuality)}
         >
           <div
-            class="h-2 w-2 rounded-full {getQualityIndicatorClass(participant.connectionQuality)}"
+            class="h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2 {getQualityIndicatorClass(
+              participant.connectionQuality,
+            )}"
           />
-          <span class="text-tertiary-500 hidden text-[9px] sm:inline"
+          <span class="text-tertiary-500 hidden text-[8px] sm:inline sm:text-[9px]"
             >{participant.connectionQuality}</span
           >
         </div>

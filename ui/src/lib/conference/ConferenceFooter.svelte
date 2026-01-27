@@ -44,12 +44,12 @@
 
 {#if visible}
   <footer
-    class="from-secondary-500 via-secondary-500/95 absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t to-transparent px-3 pb-6 pt-8 sm:px-8 sm:pb-8 sm:pt-12"
+    class="from-secondary-500 via-secondary-500/95 absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t to-transparent px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 sm:px-4 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-10 md:px-8"
     transition:fade={{ duration: 200 }}
   >
-    <div class="mx-auto flex max-w-lg items-center justify-center gap-4 sm:gap-6">
+    <div class="mx-auto flex max-w-lg items-center justify-center gap-2 sm:gap-4 md:gap-6">
       <div
-        class="bg-secondary-400/30 flex items-center gap-3 rounded-full p-1.5 backdrop-blur-sm sm:gap-4 sm:p-2"
+        class="bg-secondary-400/30 flex items-center gap-2 rounded-full p-1 backdrop-blur-sm sm:gap-3 sm:p-1.5 md:gap-4 md:p-2"
       >
         <ConferenceControlButton
           icon={isMuted ? "micOff" : "mic"}
@@ -88,9 +88,9 @@
       />
     </div>
 
-    <div class="mt-3 flex justify-center sm:mt-4">
-      <div class="bg-secondary-400/50 rounded-full px-3 py-1 backdrop-blur-sm">
-        <p class="text-tertiary-400 text-xs font-medium tabular-nums sm:text-sm">
+    <div class="mt-2 flex justify-center sm:mt-3 md:mt-4">
+      <div class="bg-secondary-400/50 rounded-full px-2.5 py-0.5 backdrop-blur-sm sm:px-3 sm:py-1">
+        <p class="text-tertiary-400 text-[11px] font-medium tabular-nums sm:text-xs md:text-sm">
           {formattedDuration}
         </p>
       </div>

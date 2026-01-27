@@ -20,13 +20,7 @@ export {
   ROLE_CACHE_TTL_MS,
 } from "$lib/../config";
 
-export type ConnectionQuality =
-  | "excellent"
-  | "good"
-  | "fair"
-  | "poor"
-  | "disconnected"
-  | "unknown";
+export type ConnectionQuality = "excellent" | "good" | "fair" | "poor" | "disconnected" | "unknown";
 
 export function deriveConnectionQuality(iceState?: RTCIceConnectionState): ConnectionQuality {
   switch (iceState) {
@@ -143,6 +137,7 @@ export function updateParticipant(
   updater: (participant: SimplePeerParticipant) => SimplePeerParticipant,
 ): void {
   ctx.conferences.updateKeyValue(roomId, (conf) => {
+    if (!conf?.participants) return conf;
     const participant = conf.participants.get(pubKey);
     if (!participant) return conf;
     const newParticipants = new Map(conf.participants);
