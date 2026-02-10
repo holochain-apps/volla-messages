@@ -13,11 +13,11 @@ export async function sendConferenceStartedLog(
   cellIdB64: CellIdB64,
   conferenceId: string,
   initiatorPubKeyB64: AgentPubKeyB64,
-  participantPubKeys: AgentPubKeyB64[]
+  participantPubKeys: AgentPubKeyB64[],
 ): Promise<void> {
   const log: ConferenceLog = {
-    type: 'conference_log',
-    event: 'started',
+    type: "conference_log",
+    event: "started",
     conference_id: conferenceId,
     initiator: initiatorPubKeyB64,
     timestamp: Date.now(),
@@ -26,12 +26,12 @@ export async function sendConferenceStartedLog(
   };
 
   const content = createConferenceLogMessage(log);
-  
+
   try {
     await messageStore.sendMessage(cellIdB64, content, []);
-    console.log('[ConferenceLog] Sent conference started log to chat');
+    console.log("[ConferenceLog] Sent conference started log to chat");
   } catch (error) {
-    console.error('[ConferenceLog] Failed to send conference started log:', error);
+    console.error("[ConferenceLog] Failed to send conference started log:", error);
   }
 }
 
@@ -41,11 +41,11 @@ export async function sendConferenceEndedLog(
   conferenceId: string,
   initiatorPubKeyB64: AgentPubKeyB64,
   participantPubKeys: AgentPubKeyB64[],
-  durationSeconds: number
+  durationSeconds: number,
 ): Promise<void> {
   const log: ConferenceLog = {
-    type: 'conference_log',
-    event: 'ended',
+    type: "conference_log",
+    event: "ended",
     conference_id: conferenceId,
     initiator: initiatorPubKeyB64,
     timestamp: Date.now(),
@@ -55,11 +55,11 @@ export async function sendConferenceEndedLog(
   };
 
   const content = createConferenceLogMessage(log);
-  
+
   try {
     await messageStore.sendMessage(cellIdB64, content, []);
-    console.log('[ConferenceLog] Sent conference ended log to chat');
+    console.log("[ConferenceLog] Sent conference ended log to chat");
   } catch (error) {
-    console.error('[ConferenceLog] Failed to send conference ended log:', error);
+    console.error("[ConferenceLog] Failed to send conference ended log:", error);
   }
 }

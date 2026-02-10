@@ -22,6 +22,8 @@ pub enum EntryTypes {
     Config(Config),
     Message(Message),
     Contact(Contact),
+    Conference(Conference),
+    ConferenceParticipant(ConferenceParticipant),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,6 +37,8 @@ pub enum LinkTypes {
     AllContacts,
     RoomParticipants,
     ActiveCalls,
+    RoomIdToConference,
+    ConferenceToParticipants,
 }
 
 #[derive(Serialize, Deserialize, Debug, SerializedBytes, Clone)]
@@ -155,6 +159,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 contact,
                             )
                         }
+                        EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                        EntryTypes::ConferenceParticipant(_) => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 OpEntry::UpdateEntry { app_entry, action, .. } => {
@@ -177,6 +183,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 contact,
                             )
                         }
+                        EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                        EntryTypes::ConferenceParticipant(_) => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 _ => Ok(ValidateCallbackResult::Valid),
@@ -234,6 +242,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         EntryTypes::Config(config) => {
                             validate_update_config(action, config)
                         }
+                        EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                        EntryTypes::ConferenceParticipant(_) => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 _ => Ok(ValidateCallbackResult::Valid),
@@ -311,6 +321,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         ),
                     );
                 }
+                EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                EntryTypes::ConferenceParticipant(_) => Ok(ValidateCallbackResult::Valid),
             }
         }
         FlatOp::RegisterCreateLink {
@@ -372,7 +384,9 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 LinkTypes::RoomParticipants => {
                     Ok(ValidateCallbackResult::Valid)
                 }
-                LinkTypes::ActiveCalls => Ok(ValidateCallbackResult::Valid)
+                LinkTypes::ActiveCalls => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::RoomIdToConference => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::ConferenceToParticipants => Ok(ValidateCallbackResult::Valid),
             }
         }
         FlatOp::RegisterDeleteLink {
@@ -444,6 +458,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 LinkTypes::ActiveCalls => {
                     Ok(ValidateCallbackResult::Valid)
                 }
+                LinkTypes::RoomIdToConference => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::ConferenceToParticipants => Ok(ValidateCallbackResult::Valid),
             }
         }
         FlatOp::StoreRecord(store_record) => {
@@ -468,6 +484,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 contact,
                             )
                         }
+                        EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                        EntryTypes::ConferenceParticipant(_) => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 OpRecord::UpdateEntry {
@@ -574,6 +592,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 Ok(result)
                             }
                         }
+                        EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                        EntryTypes::ConferenceParticipant(_) => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 OpRecord::DeleteEntry { original_action_hash, action, .. } => {
@@ -649,6 +669,10 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 original_contact,
                             )
                         }
+                        EntryTypes::Conference(_) => Ok(ValidateCallbackResult::Valid),
+                        EntryTypes::ConferenceParticipant(_) => {
+                            Ok(ValidateCallbackResult::Valid)
+                        }
                     }
                 }
                 OpRecord::CreateLink {
@@ -710,7 +734,9 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         LinkTypes::RoomParticipants => {
                             Ok(ValidateCallbackResult::Valid)
                         }
-                        LinkTypes::ActiveCalls => Ok(ValidateCallbackResult::Valid)
+                        LinkTypes::ActiveCalls => Ok(ValidateCallbackResult::Valid),
+                        LinkTypes::RoomIdToConference => Ok(ValidateCallbackResult::Valid),
+                        LinkTypes::ConferenceToParticipants => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 OpRecord::DeleteLink { original_action_hash, base_address, action } => {
@@ -796,6 +822,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         LinkTypes::ActiveCalls => {
                             Ok(ValidateCallbackResult::Valid)
                         }
+                        LinkTypes::RoomIdToConference => Ok(ValidateCallbackResult::Valid),
+                        LinkTypes::ConferenceToParticipants => Ok(ValidateCallbackResult::Valid),
                     }
                 }
                 OpRecord::CreatePrivateEntry { .. } => Ok(ValidateCallbackResult::Valid),

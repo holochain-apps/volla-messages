@@ -4,7 +4,6 @@
   import type { CellIdB64, ConferenceLog } from "$lib/types";
   import Avatar from "$lib/Avatar.svelte";
   import AgentNickname from "$lib/AgentNickname.svelte";
-  import Time from "svelte-time";
 
   export let log: ConferenceLog;
   export let cellIdB64: CellIdB64;
@@ -48,9 +47,28 @@
     class="bg-surface-700/20 dark:bg-surface-800/20 inline-flex w-full max-w-lg items-center justify-center
             gap-1.5 rounded-full px-3 py-1.5 text-xs sm:w-fit sm:gap-2 sm:px-5 sm:py-2 sm:text-sm"
   >
-    <!-- Avatar -->
-    <div class="flex-shrink-0">
-      <Avatar {cellIdB64} agentPubKeyB64={log.initiator} size={20} moreClasses="sm:w-6 sm:h-6" />
+    <div class="flex flex-shrink-0 -space-x-2">
+      {#each log.participants.slice(0, 4) as participantPubKey, i}
+        <div
+          class="ring-surface-700/20 dark:ring-surface-800/20 relative rounded-full ring-2"
+          style="z-index: {log.participants.length - i}"
+        >
+          <Avatar
+            {cellIdB64}
+            agentPubKeyB64={participantPubKey}
+            size={20}
+            moreClasses="sm:w-6 sm:h-6"
+          />
+        </div>
+      {/each}
+      {#if log.participants.length > 4}
+        <div
+          class="bg-surface-600 ring-surface-700/20 dark:ring-surface-800/20 relative flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-medium text-white ring-2 sm:h-6 sm:w-6 sm:text-[10px]"
+          style="z-index: 0"
+        >
+          +{log.participants.length - 4}
+        </div>
+      {/if}
     </div>
 
     <!-- Clock icon -->
@@ -82,22 +100,15 @@
         {isStarted ? "started a conference at" : "ended the conference at"}
       </span>
       <span class="sm:hidden">
-        {isStarted ? "started conference" : "ended conference"}
+        {isStarted ? "started" : "ended"}
       </span>
 
       <span class="whitespace-nowrap">{formatTime(log.timestamp)}</span>
     </div>
 
-    <!-- Participant count -->
-    <span class="text-surface-500 flex-shrink-0 whitespace-nowrap text-[10px] sm:text-xs">
-      ({log.participant_count})
-    </span>
-
     <!-- Duration for ended events -->
     {#if !isStarted && log.duration_seconds}
-      <span
-        class="text-surface-500 hidden flex-shrink-0 whitespace-nowrap text-[10px] sm:inline sm:text-xs"
-      >
+      <span class="text-surface-500 flex-shrink-0 whitespace-nowrap text-[10px] sm:text-xs">
         • {formatDuration(log.duration_seconds)}
       </span>
     {/if}

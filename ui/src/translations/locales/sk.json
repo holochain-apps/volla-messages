@@ -27,6 +27,8 @@
   "first": "First",
   "first_name": "Krstné meno",
   "group_name": "Názov skupiny",
+  "images": "{{count}} {{count; 1:obrázok; default:obrázky;}}",
+  "files": "{{count}} {{count; 1:súbor; default:súbory;}}",
   "invalid_contact_code": "Neplatný kód kontaktu",
   "join_conversation": "Zapojte sa do konverzácie",
   "jump_in": "Jump In",

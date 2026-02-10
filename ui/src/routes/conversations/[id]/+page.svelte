@@ -35,7 +35,7 @@
   import DialogConfirm from "$lib/DialogConfirm.svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
   import InlineConferenceInvite from "./InlineConferenceInvite.svelte";
-  import type { ConferenceStore } from "$store/ConferenceStore";
+  import type { SimplePeerConferenceStore } from "$store/SimplePeerConferenceStore";
   import { sendConferenceStartedLog, sendConferenceEndedLog } from "$lib/conferenceLogging";
 
   const conversationStore = getContext<{ getStore: () => ConversationStore }>(
@@ -54,7 +54,7 @@
   const conversationMessageStore = getContext<{
     getStore: () => ConversationMessageStore;
   }>("conversationMessageStore").getStore();
-  const conferenceStore = getContext<{ getStore: () => ConferenceStore }>(
+  const conferenceStore = getContext<{ getStore: () => SimplePeerConferenceStore }>(
     "conferenceStore",
   ).getStore();
 
@@ -284,24 +284,15 @@
     isStartingCall = false;
   }
 
-  async function handleAcceptCall(roomId: string) {
-    try {
-      const conference = $conferenceStore.data[roomId];
-      if (!conference) {
-        toast.error("Conference not found");
-        return;
-      }
-
-      await conferenceStore.acceptConferenceInvitation(roomId);
-
-      const participantsB64 = conference.room.participants
-        .map((p) => (typeof p === "string" ? p : encodeHashToBase64(p)))
-        .filter((p) => p !== myPubKeyB64);
-      await conferenceStore.joinConference(roomId, participantsB64);
-    } catch (error) {
-      console.error("Failed to accept call:", error);
-      toast.error("Failed to accept call");
+  function handleAcceptCall(roomId: string) {
+    const conference = $conferenceStore.data[roomId];
+    if (!conference) {
+      toast.error("Conference not found");
+      return;
     }
+
+    conferenceStore.setMinimized(roomId, false);
+    conferenceStore.setShowPreJoinScreen(roomId, true);
   }
 
   async function handleRejectCall(roomId: string) {
