@@ -16,7 +16,7 @@ pub static ICE_URLS: &'static [&str] = &[
 ];
 
 pub fn happ_bundle() -> anyhow::Result<AppBundle> {
-    let bundle = AppBundle::decode(HAPP_BUNDLE_BYTES)?;
+    let bundle = AppBundle::unpack(HAPP_BUNDLE_BYTES)?;
     Ok(bundle)
 }
 

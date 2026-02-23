@@ -7,21 +7,42 @@
 
   export let messageExtended: MessageExtended;
   export let cellIdB64: CellIdB64;
+
+  // Separate images from other files based on MIME type
+  $: imageFiles = messageExtended.message.images.filter((file) =>
+    file.file_type.startsWith("image/"),
+  );
+  $: otherFiles = messageExtended.message.images.filter(
+    (file) => !file.file_type.startsWith("image/"),
+  );
+  $: hasImages = imageFiles.length > 0;
+  $: hasFiles = otherFiles.length > 0;
 </script>
 
-<div class="flex items-start justify-start space-x-2 mt-1">
+<div class="mt-1 flex items-start justify-start space-x-2">
   <div class=" flex items-start justify-start space-x-1">
     <Avatar agentPubKeyB64={messageExtended.authorAgentPubKeyB64} {cellIdB64} size={14} />
-    <AgentNickname cellIdB64={cellIdB64} agentPubKeyB64={messageExtended.authorAgentPubKeyB64} />
+    <AgentNickname {cellIdB64} agentPubKeyB64={messageExtended.authorAgentPubKeyB64} />
   </div>
 
-  <div>{@html DOMPurify.sanitize(messageExtended.message.content)}</div>
+  <div class="overflow-wrap-anywhere overflow-hidden whitespace-normal break-words">
+    {@html DOMPurify.sanitize(messageExtended.message.content)}
+  </div>
 
-  {#if messageExtended.message.images.length > 0}
+  {#if hasImages || hasFiles}
     <div class="text-secondary-400 italic">
-      ({$t("common.images", {
-        count: messageExtended.message.images.length,
-      })})
+      ({#if hasImages}
+        {$t("common.images", {
+          count: imageFiles.length,
+        })}
+      {/if}
+      {#if hasImages && hasFiles},
+      {/if}
+      {#if hasFiles}
+        {$t("common.files", {
+          count: otherFiles.length,
+        })}
+      {/if})
     </div>
   {/if}
 </div>

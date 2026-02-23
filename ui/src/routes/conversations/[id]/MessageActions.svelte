@@ -38,6 +38,8 @@
       $cellFileStore.data[encodeHashToBase64(f.storage_entry_hash)].status === FileStatus.Loaded,
   );
 
+  const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
   async function downloadFile(file: File) {
     try {
       const defaultDir = await downloadDir();
@@ -57,7 +59,7 @@
       }
     } catch (e) {
       console.error("Download failed", e);
-      toast.error(`${$t("common.download_file_error")}: ${e.message}`);
+      toast.error(`${$t("common.download_file_error")}: ${errorMessage(e)}`);
     }
   }
 
@@ -68,7 +70,7 @@
       await copyToClipboard(message.message.content);
       toast.success($t("common.copy_success"));
     } catch (e) {
-      toast.error(`${$t("common.copy_error")}: ${e}`);
+      toast.error(`${$t("common.copy_error")}: ${errorMessage(e)}`);
     }
   }
 

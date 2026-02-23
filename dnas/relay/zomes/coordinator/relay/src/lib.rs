@@ -1,3 +1,4 @@
+pub mod conference;
 pub mod config;
 pub mod contact;
 pub mod helper;
@@ -6,42 +7,217 @@ pub mod ping;
 use hdk::prelude::*;
 use relay_integrity::*;
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum RemoteSignal {
+    Message(MessageRecord),
+    Conference(ConferenceRecord),
+}
+
 #[hdk_extern]
-fn recv_remote_signal(message_record: MessageRecord) -> ExternResult<()> {
-    let info: CallInfo = call_info()?;
+fn recv_remote_signal(signal: RemoteSignal) -> ExternResult<()> {
+    info!("[Rust] ========== recv_remote_signal() called ==========");
+    
+    match signal {
+        RemoteSignal::Conference(conference_record) => {
+            info!("[Rust] ========== Processing ConferenceRecord signal ==========");
+            info!("[Rust] Signal type: {:?}", conference_record.signal_type);
+            info!("[Rust] Full conference record: {:?}", conference_record);
+            
+            match conference_record.signal_type {
+                ConferenceSignalType::Invite => {
+                    info!("[Rust] ** INVITE signal detected **");
+                    let room = conference_record
+                        .room
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room field required for Invite signal".into()
+                        )))?;
+                    let agent =
+                        conference_record
+                            .agent
+                            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                                "Agent field required for Invite signal".into()
+                            )))?;
+                    info!("[Rust] Room: {:?}", room);
+                    info!("[Rust] Inviter agent: {:?}", agent);
+                    info!("[Rust] About to emit ConferenceInvite signal");
+                    let result = emit_signal(Signal::ConferenceInvite { room, agent });
+                    info!("[Rust] emit_signal result: {:?}", result);
+                    result
+                }
+                ConferenceSignalType::Join => {
+                    info!("[Rust] ** JOIN signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for Join signal".into()
+                        )))?;
+                    let agent = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Join signal".into()
+                        )))?;
+                    info!("[Rust] Room ID: {}", room_id);
+                    info!("[Rust] Joining agent: {:?}", agent);
+                    emit_signal(Signal::ConferenceJoined { room_id, agent })
+                }
+                ConferenceSignalType::Leave => {
+                    info!("[Rust] ** LEAVE signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for Leave signal".into()
+                        )))?;
+                    let agent = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Leave signal".into()
+                        )))?;
+                    emit_signal(Signal::ConferenceLeft { room_id, agent })
+                }
+                ConferenceSignalType::Reject => {
+                    info!("[Rust] ** REJECT signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for Reject signal".into()
+                        )))?;
+                    let agent = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Reject signal".into()
+                        )))?;
+                    emit_signal(Signal::ConferenceRejected { room_id, agent })
+                }
+                ConferenceSignalType::End => {
+                    info!("[Rust] ** END signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for End signal".into()
+                        )))?;
+                    let ended_by = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for End signal".into()
+                        )))?;
+                    emit_signal(Signal::ConferenceEnded { room_id, ended_by })
+                }
+                ConferenceSignalType::WebRTC => {
+                    info!("[Rust] ** WebRTC signal detected **");
+                    let signal_payload = conference_record
+                        .signal_payload
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Signal payload required for WebRTC signal".into()
+                        )))?;
+                    info!("[Rust] WebRTC payload type: {:?}", signal_payload.payload_type);
+                    emit_signal(Signal::WebRTCSignal(signal_payload))
+                }
+                ConferenceSignalType::Ack => {
+                    info!("[Rust] ** ACK signal detected **");
+                    let signal_id = conference_record
+                        .ack_signal_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Signal ID required for Ack signal".into()
+                        )))?;
+                    let from = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Ack signal".into()
+                        )))?;
+                    info!("[Rust] Acknowledging signal ID: {}", signal_id);
+                    emit_signal(Signal::SignalAck { signal_id, from })
+                }
+                ConferenceSignalType::RoleChanged => {
+                    info!("[Rust] ** RoleChanged signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for RoleChanged signal".into()
+                        )))?;
+                    let new_role = conference_record
+                        .new_role
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "New role required for RoleChanged signal".into()
+                        )))?;
+                    let from = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for RoleChanged signal".into()
+                        )))?;
+                    emit_signal(Signal::RoleChanged { room_id, new_role, from })
+                }
+                ConferenceSignalType::Kicked => {
+                    info!("[Rust] ** Kicked signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for Kicked signal".into()
+                        )))?;
+                    let kicked_by = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for Kicked signal".into()
+                        )))?;
+                    emit_signal(Signal::Kicked { room_id, kicked_by })
+                }
+                ConferenceSignalType::HostTransfer => {
+                    info!("[Rust] ** HostTransfer signal detected **");
+                    let room_id = conference_record
+                        .room_id
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Room ID required for HostTransfer signal".into()
+                        )))?;
+                    let new_host = conference_record
+                        .new_host
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "New host required for HostTransfer signal".into()
+                        )))?;
+                    let from = conference_record
+                        .agent
+                        .ok_or(wasm_error!(WasmErrorInner::Guest(
+                            "Agent field required for HostTransfer signal".into()
+                        )))?;
+                    emit_signal(Signal::HostTransfer { room_id, new_host, from })
+                }
+            }
+        }
+        RemoteSignal::Message(message_record) => {
+            info!("[Rust] Processing MessageRecord signal");
+            let info: CallInfo = call_info()?;
+            let is_deletion = match message_record.signed_action.action() {
+                Action::Delete(_) => true,
+                _ => false,
+            };
+            if is_deletion {
+                let signal = Signal::MessageDeleted {
+                    action: message_record.signed_action.clone(),
+                    original_action: message_record.original_action.clone(),
+                    from: info.provenance,
+                };
 
-    let is_deletion = match message_record.signed_action.action() {
-        Action::Delete(_) => true,
-        _ => false,
-    };
+                info!("recv_remote_signal: signal: {:?}", signal);
 
-    if is_deletion {
-        let signal = Signal::MessageDeleted {
-            action: message_record.signed_action.clone(),
-            original_action: message_record.original_action.clone(),
-            from: info.provenance,
-        };
-
-        debug!("recv_remote_signal: signal: {:?}", signal);
-
-        emit_signal(signal)
-    } else if let Some(message) = message_record.message {
-        let signal = Signal::Message {
-            action: message_record.signed_action.clone(),
-            message,
-            from: info.provenance,
-        };
-        emit_signal(signal)
-    } else {
-        Err(wasm_error!(WasmErrorInner::Guest(
-            "Invalid message record".to_string()
-        )))
+                emit_signal(signal)
+            } else if let Some(message) = message_record.message {
+                let signal = Signal::Message {
+                    action: message_record.signed_action.clone(),
+                    message,
+                    from: info.provenance,
+                };
+                emit_signal(signal)
+            } else {
+                Err(wasm_error!(WasmErrorInner::Guest(
+                    "Invalid message record".to_string()
+                )))
+            }
+        }
     }
 }
 
 #[hdk_extern]
 pub fn init(_: ()) -> ExternResult<InitCallbackResult> {
-    let mut fns = BTreeSet::new();
+    let mut fns = HashSet::new();
     fns.insert((zome_info()?.name, "recv_remote_signal".into()));
     let functions = GrantedFunctions::Listed(fns);
     create_cap_grant(CapGrantEntry {
@@ -87,6 +263,45 @@ pub enum Signal {
         action: SignedActionHashed,
         original_app_entry: EntryTypes,
     },
+    ConferenceInvite {
+        room: ConferenceRoom,
+        agent: AgentPubKey,
+    },
+    ConferenceJoined {
+        room_id: String,
+        agent: AgentPubKey,
+    },
+    ConferenceLeft {
+        room_id: String,
+        agent: AgentPubKey,
+    },
+    ConferenceRejected {
+        room_id: String,
+        agent: AgentPubKey,
+    },
+    ConferenceEnded {
+        room_id: String,
+        ended_by: AgentPubKey,
+    },
+    WebRTCSignal(SignalPayload),
+    SignalAck {
+        signal_id: String,
+        from: AgentPubKey,
+    },
+    RoleChanged {
+        room_id: String,
+        new_role: ConferenceRole,
+        from: AgentPubKey,
+    },
+    Kicked {
+        room_id: String,
+        kicked_by: AgentPubKey,
+    },
+    HostTransfer {
+        room_id: String,
+        new_host: AgentPubKey,
+        from: AgentPubKey,
+    },
 }
 #[hdk_extern(infallible)]
 pub fn post_commit(committed_actions: Vec<SignedActionHashed>) {
@@ -107,7 +322,7 @@ fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
             Ok(())
         }
         Action::DeleteLink(delete_link) => {
-            let record = get(delete_link.link_add_address.clone(), GetOptions::default())?.ok_or(
+            let record = get(delete_link.link_add_address.clone(), GetOptions::local())?.ok_or(
                 wasm_error!(WasmErrorInner::Guest(
                     "Failed to fetch CreateLink action".to_string()
                 )),
@@ -163,7 +378,7 @@ fn signal_action(action: SignedActionHashed) -> ExternResult<()> {
     }
 }
 fn get_entry_for_action(action_hash: &ActionHash) -> ExternResult<Option<EntryTypes>> {
-    let record = match get_details(action_hash.clone(), GetOptions::default())? {
+    let record = match get_details(action_hash.clone(), GetOptions::local())? {
         Some(Details::Record(record_details)) => record_details.record,
         _ => {
             return Ok(None);
@@ -202,12 +417,12 @@ pub fn generate_membrane_proof(input: MembraneProofData) -> ExternResult<Seriali
 
 #[hdk_extern]
 pub fn get_membrane_proof(agent: AgentPubKey) -> ExternResult<Option<MembraneProofData>> {
-    match get_details(agent, GetOptions::default())? {
+    match get_details(agent, GetOptions::local())? {
         None => Ok(None),
         Some(details) => match details {
             Details::Entry(entry_details) => {
                 let prev = entry_details.actions[0].action().prev_action().unwrap();
-                let maybe_record = get(prev.clone(), GetOptions::default())?;
+                let maybe_record = get(prev.clone(), GetOptions::local())?;
                 match maybe_record {
                     None => Err(wasm_error!("expected agent validation record")),
                     Some(record) => match record.action() {

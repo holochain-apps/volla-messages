@@ -155,7 +155,7 @@
       {#if $conversation.dnaProperties.privacy === Privacy.Public && $conversation.publicInviteCode !== undefined}
         <li class="variant-filled-primary mb-2 flex flex-row items-center rounded-full p-2 text-xl">
           <span
-            class="bg-tertiary-500 inline-block flex h-10 w-10 items-center justify-center rounded-full"
+            class="inline-block flex h-10 w-10 items-center justify-center rounded-full bg-tertiary-500"
           >
             <SvgIcon icon="addPerson" moreClasses="text-primary-600" />
           </span>
@@ -169,7 +169,7 @@
         </li>
       {:else}
         {#if $unjoined.count > 0}
-          <h3 class="text-md text-secondary-300 mb-2 font-light">
+          <h3 class="text-md mb-2 font-light text-secondary-300">
             {$t("common.unconfirmed_invitations")}
           </h3>
 
@@ -186,7 +186,7 @@
           {/each}
         {/if}
 
-        <h3 class="text-md text-secondary-300 mb-2 mt-4 font-light">
+        <h3 class="text-md mb-2 mt-4 font-light text-secondary-300">
           {$t("common.members")}
         </h3>
       {/if}

@@ -30,3 +30,34 @@ export const POLLING_INTERVAL_FAST = 2 * 1000;
 
 // Memory management for chat messages
 export const MESSAGES_PER_PAGE = 20;
+
+// Conference WebRTC configuration
+export const ICE_CONFIG: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+];
+
+export const RECONNECT_CONFIG = {
+  maxAttempts: 10,
+  baseDelayMs: 1000,
+  maxDelayMs: 60000,
+  backoffMultiplier: 2,
+  jitterFactor: 0.3,
+};
+
+export const CONNECTION_TIMEOUT_MS = 30000;
+export const MAX_CONFERENCE_PARTICIPANTS = 6;
+export const INVITATION_TIMEOUT_MS = 60000;
+export const MEDIA_STATE_DEBOUNCE_MS = 200;
+export const SDP_BUFFER_EXPIRY_MS = 30000;
+export const ROLE_CACHE_TTL_MS = 30000;

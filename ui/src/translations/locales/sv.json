@@ -31,6 +31,7 @@
   "first_name": "Förnamn, tack",
   "group_name": "Gruppens namn",
   "images": "{{count}} {{count; 1:image; default:images;}}",
+  "files": "{{count}} {{count; 1:fil; default:filer;}}",
   "invalid_contact_code": "Ogiltig kod",
   "join_conversation": "Gå med i konversationen",
   "jump_in": "Hoppa in",

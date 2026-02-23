@@ -27,6 +27,8 @@
   "first": "First",
   "first_name": "Prénom",
   "group_name": "Nom du groupe",
+  "images": "{{count}} {{count; 1:image; default:images;}}",
+  "files": "{{count}} {{count; 1:fichier; default:fichiers;}}",
   "invalid_contact_code": "Code de contact non valide",
   "join_conversation": "Participer à la conversation",
   "jump_in": "Jump In",
