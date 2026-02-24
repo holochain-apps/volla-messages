@@ -10,7 +10,7 @@
   import { goto } from "$app/navigation";
   import Header from "$lib/Header.svelte";
   import { t } from "$translations";
-  import { Privacy, type LocalFile, type MessageExtended, type ThreadInfo } from "$lib/types";
+  import { Privacy, type LocalFile, type MessageExtended } from "$lib/types";
   import ConversationMessageInput from "./ConversationMessageInput.svelte";
   import ConversationEmpty from "./ConversationEmpty.svelte";
   import ConversationMessages from "./ConversationMessages.svelte";
@@ -35,10 +35,8 @@
     type MergedProfileContactInviteStore,
   } from "$store/MergedProfileContactInviteStore";
   import { POLLING_INTERVAL_FAST, POLLING_INTERVAL_SLOW } from "$config";
-  import SvgIcon from "$lib/SvgIcon.svelte";
   import DialogConfirm from "$lib/DialogConfirm.svelte";
   import ConversationHeader from "./ConversationHeader.svelte";
-  import ThreadView from "./ThreadView.svelte";
   import InlineConferenceInvite from "./InlineConferenceInvite.svelte";
   import type { SimplePeerConferenceStore } from "$store/SimplePeerConferenceStore";
   import { sendConferenceStartedLog, sendConferenceEndedLog } from "$lib/conferenceLogging";
@@ -96,10 +94,6 @@
   // Reply state
   let replyToMessage: MessageExtended | undefined = undefined;
   let replyToActionHash: ActionHashB64 | undefined = undefined;
-
-  // Thread state
-  let activeThread: ThreadInfo | undefined = undefined;
-  let threadViewOpen = false;
 
   let isStartingCall = false;
 
@@ -275,39 +269,8 @@
     }
   }
 
-  async function openThreadView(rootMessageHash: ActionHashB64) {
-    try {
-      // Fetch thread messages from DHT
-      const threadMessages = await messages.getThreadMessages(rootMessageHash);
-
-      activeThread = {
-        rootMessageHash,
-        replyCount: threadMessages.length - 1,
-        latestReplyTimestamp: threadMessages[threadMessages.length - 1]?.timestamp || 0,
-        messages: threadMessages,
-      };
-
-      threadViewOpen = true;
-    } catch (e) {
-      console.error("Failed to load thread:", e);
-      toast.error("Failed to load thread");
-    }
-  }
-
-  async function handleThreadReply(event: CustomEvent) {
-    const { text, files, replyTo } = event.detail;
-
-    try {
-      await sendMessage(text, files, replyTo, activeThread?.rootMessageHash);
-
-      // Refresh thread
-      if (activeThread) {
-        await openThreadView(activeThread.rootMessageHash);
-      }
-    } catch (e) {
-      console.error("Failed to send thread reply:", e);
-      toast.error("Failed to send reply");
-    }
+  function openThreadView(rootMessageHash: ActionHashB64) {
+    goto(`/conversations/${$page.params.id}/thread/${rootMessageHash}`);
   }
 
   function scrollToMessage(actionHashB64: ActionHashB64) {
@@ -499,19 +462,6 @@
     replyToActionHash = undefined;
   }}
 />
-
-{#if activeThread}
-  <ThreadView
-    bind:open={threadViewOpen}
-    thread={activeThread}
-    cellIdB64={$page.params.id}
-    on:close={() => {
-      threadViewOpen = false;
-      activeThread = undefined;
-    }}
-    on:sendReply={handleThreadReply}
-  />
-{/if}
 
 <DialogConfirm
   bind:open={showDeleteDialog}
