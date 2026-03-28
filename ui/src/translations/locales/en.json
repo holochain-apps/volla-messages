@@ -90,6 +90,7 @@
   "stores_setup": "Loading initial data...",
   "stores_setup_error": "Error setting up data stores",
   "tagline": "Peer-to-peer. Encrypted. Secure.",
+  "unclaimed_invitations": "Unused invitations",
   "unconfirmed": "Not confirmed",
   "unconfirmed_invitations": "Unconfirmed Invitations",
   "update_profile_error": "Failed to update the profile",
